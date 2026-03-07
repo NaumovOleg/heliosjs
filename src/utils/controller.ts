@@ -1,8 +1,7 @@
-// Внутри класса, который возвращает @Controller
 import { ControllerInstance, Middleware, ParamMetadata } from '@types';
 import { transformAndValidate } from './transform';
 
-import { PARAM_METADATA_KEY } from '@constants';
+import { ENDPOINT, MIDDLEWARES, PARAM_METADATA_KEY } from '@constants';
 
 export const executeControllerMethod = async (
   controller: ControllerInstance,
@@ -11,12 +10,11 @@ export const executeControllerMethod = async (
 ) => {
   const fn = controller[propertyName];
   if (typeof fn !== 'function') return null;
-
-  const endpointMeta = Reflect.getMetadata('endpoint', controller, propertyName);
+  const endpointMeta = Reflect.getMetadata(ENDPOINT, controller, propertyName);
   if (!endpointMeta) return null;
 
   const methodMiddlewares: Middleware[] =
-    Reflect.getMetadata('middlewares', controller, propertyName) || [];
+    Reflect.getMetadata(MIDDLEWARES, controller, propertyName) || [];
 
   let processedPayload = { ...payload };
   for (let i = 0; i < methodMiddlewares.length; i++) {
@@ -84,11 +82,11 @@ export const getControllerMethods = (controller: ControllerInstance) => {
     for (const propertyName of propertyNames) {
       if (propertyName === 'constructor') continue;
 
-      const endpointMeta = Reflect.getMetadata('endpoint', proto, propertyName);
+      const endpointMeta = Reflect.getMetadata(ENDPOINT, proto, propertyName);
 
       if (endpointMeta) {
         const [httpMethod, pattern] = endpointMeta;
-        const methodMiddlewares = Reflect.getMetadata('middlewares', proto, propertyName);
+        const methodMiddlewares = Reflect.getMetadata(MIDDLEWARES, proto, propertyName);
 
         methods.push({
           name: propertyName,

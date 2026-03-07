@@ -1,7 +1,7 @@
 import { Request } from '@types';
 import http from 'http';
 import { URL } from 'url';
-import { Body, Controller, POST } from './controllers';
+import { Body, Controller, Status, USE } from './controllers';
 
 import { IsString } from 'class-validator';
 
@@ -11,21 +11,47 @@ class DTO {
 }
 
 const auth = (req: Request) => {
+  console.log('00000');
+  req.body = 'name';
+
   return req;
 };
+const auth2 = (resp: any) => {
+  resp = { hello: 'world' };
 
-@Controller('base')
+  return resp;
+};
+
+@Controller({
+  prefix: 'base',
+  responseInterceprors: auth2,
+  requestInterceptors: [auth],
+  middlewares: [auth],
+})
 // @Validate('body', DTO)
 export class Controllera {
   // @Validate('body', DTO)
-  @POST('/:nane', [auth])
+  @Status(300)
+  @USE('/:nane', [auth])
   async test(@Body() body: any) {
     console.log('==============', body);
     return body;
   }
 }
 
-const ctr = new Controllera();
+@Controller({
+  prefix: 'api',
+  controllers: [Controllera],
+  responseInterceprors: [
+    (resp) => {
+      console.log('base responseInterceprors', resp);
+      return 'done';
+    },
+  ],
+})
+export class App {}
+
+const ctr = new App();
 
 const PORT = 3000;
 
@@ -54,12 +80,12 @@ const server = http.createServer(async (req, res) => {
       headers: req.headers,
     });
 
-    console.log(response);
+    console.log('ssssssssssssssssssssssss', response);
 
     res.statusCode = response.status ?? 200;
     res.setHeader('Content-Type', 'application/json');
 
-    const resp = JSON.stringify(response.data ? response.data : { ...response });
+    const resp = JSON.stringify(response.data ? response.data : response);
     res.end(resp);
   } catch (error: any) {
     res.statusCode = error.status ?? 500;

@@ -7,7 +7,7 @@ export type Request<B = unknown, Q extends P_Q = unknown, P extends P_Q = unknow
   method: string;
   url: URL;
   headers: IncomingHttpHeaders;
-  query: Q;
+  query?: Q;
   params?: P;
   body: B;
   isBase64Encoded?: boolean;
