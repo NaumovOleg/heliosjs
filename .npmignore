@@ -1,0 +1,11 @@
+# .npmignore
+src/
+examples/
+testing/
+**/*.test.ts
+**/*.spec.ts
+.editorconfig
+.prettierrc.json
+eslint.config.mjs
+nodemon.json
+tsconfig.json

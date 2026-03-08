@@ -21,7 +21,7 @@ yarn build
 Use the `@Controller` decorator to define controllers with options such as prefix, sub-controllers, middlewares, and interceptors.
 
 ```typescript
-import { Controller } from 'x-api/core';
+import { Controller } from 'quantum-flow/core';
 
 @Controller({
   prefix: 'api',
@@ -36,7 +36,7 @@ class RootController {}
 Use the `@Server` decorator with configuration options like port, host, controllers, and WebSocket enablement.
 
 ```typescript
-import { Server, Port, Host, Use, Intercept, Catch, HttpServer } from 'x-api/http';
+import { Server, Port, Host, Use, Intercept, Catch, HttpServer } from 'quantum-flow/http';
 
 @Server({
   controllers: [RootController],
@@ -62,22 +62,24 @@ server.listen().catch(console.error);
 
 ## Request decorators
 
-- Use `@Body` to apply middlewares.
-- Use `@Headers` to apply interceptors.
-- Use `@Query` to handle errors.
-- Use `@Params` and `@Host` to configure server port and host.
-- Use `@Multipart` and `@Host` to configure server port and host.
-- Use `@Request` and `@Host` to configure server port and host.
-- Use `@Response` and `@Host` to configure server port and host.
+- Use `@Body` to handle request bodies.
+- Use `@Headers` to access request headers.
+- Use `@Query` to handle query parameters.
+- Use `@Params` to access route parameters.
+- Use `@Host` to configure the server host.
+- Use `@Port` to configure the server port.
+- Use `@Multipart` for handling multipart/form-data requests.
+- Use `@Request` to access the entire request object.
+- Use `@Response` to access the response object.
 
 # AWS Lambda Support
 
 Use `LambdaAdapter` to convert API Gateway events to requests and responses. Create Lambda handlers from controllers.
 
 ```typescript
-// Example Lambda handler creation
-// import { LambdaAdapter } from 'x-api/aws';
-// export const handler = LambdaAdapter.createHandler(RootController);
+Example Lambda handler creation
+import { LambdaAdapter } from 'quantum-flow/aws';
+export const handler = LambdaAdapter.createHandler(RootController);
 ```
 
 # WebSocket Support
@@ -177,9 +179,9 @@ You can use controllers and server functionality by importing controllers and cr
 
 # Project Structure
 
-- `src/http/` - Main application source code for HTTP servers.
-- `src/aws/` - Main application source code AWS Lambda.
-- `src/core/` - Core framework components like Controller and Endpoint.
+- `quantum-flow/http` - Main application source code for HTTP servers.
+- `quantum-flow/aws` - Main application source code AWS Lambda.
+- `quantum-flow/core` - Core framework components like Controller and Endpoint.
 
 ---
 
