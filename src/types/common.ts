@@ -51,6 +51,7 @@ export type ParamDecoratorType =
   | 'cookies'
   | 'response'
   | 'multipart';
+
 export interface ParamMetadata {
   index: number;
   type: ParamDecoratorType;

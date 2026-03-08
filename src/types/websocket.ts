@@ -31,13 +31,6 @@ export interface WebSocketMessage {
   clientId?: string;
 }
 
-export interface WebSocketEvent {
-  type: 'connection' | 'message' | 'close' | 'error';
-  client: WebSocketClient;
-  message?: WebSocketMessage;
-  data?: any;
-}
-
 export interface WebSocketStats {
   clients: number;
   topics: Array<{

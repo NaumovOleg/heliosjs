@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
-import { validate, ValidationError } from 'class-validator';
+import { validate as Validate, ValidationError } from 'class-validator';
 
-export async function Validate(dtoClass: any, data: any) {
+export async function validate(dtoClass: any, data: any) {
   if (!dtoClass) {
     return data;
   }
@@ -13,7 +13,7 @@ export async function Validate(dtoClass: any, data: any) {
 
     if (typeof dtoClass === 'function') {
       const instance = plainToInstance(dtoClass, data);
-      const errors = await validate(instance);
+      const errors = await Validate(instance);
 
       if (errors.length > 0) {
         const formattedErrors = formatValidationErrors(errors);

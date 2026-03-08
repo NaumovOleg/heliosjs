@@ -1,23 +1,45 @@
 {
-  "name": "your-package-name",
-  "version": "1.0.0",
-  "description": "Description of your package",
+  "name": "quantum-flow",
+  "version": "1.0.1",
+  "description": "Decorator-based API framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon --config ./nodemon.json"
+    "dev": "nodemon --config ./nodemon.json",
+    "prepublishOnly": "yarn build"
+  },
+  "exports": {
+    "./core": {
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./http": {
+      "import": "./dist/app/http/index.js",
+      "require": "./dist/app/http/index.js",
+      "types": "./dist/app/http/index.d.ts"
+    },
+    "./aws": {
+      "import": "./dist/app/aws/index.js",
+      "require": "./dist/app/aws/index.js",
+      "types": "./dist/app/aws/index.d.ts"
+    }
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yourusername/your-repo.git"
   },
   "keywords": [
-    "keyword1",
-    "keyword2"
+    "api",
+    "decorators",
+    "http",
+    "websocket",
+    "typescript",
+    "aws",
+    "rest"
   ],
-  "author": "Your Name <youremail@example.com>",
-  "license": "MIT",
+  "author": "Naumov Oleh",
   "dependencies": {
     "aws-lambda": "^1.0.7",
     "class-transformer": "^0.5.1",
@@ -25,9 +47,12 @@
     "parse-multipart-data": "^1.5.0",
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "ws": "^8.19.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.0.0",
+    "ts-node": ">=10.9.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -40,7 +65,6 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unused-imports": "^4.4.1",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
     "typescript-eslint": "^8.56.1"
   }
 }

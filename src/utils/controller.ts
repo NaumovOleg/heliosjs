@@ -1,9 +1,9 @@
 import { ControllerInstance, Middleware, ParamMetadata } from '@types';
 import { MultipartProcessor } from '@utils';
 import { WebSocketService } from '../app/http/websocket/WebsocetService';
-import { Validate } from './validate';
+import { validate } from './validate';
 
-import { ENDPOINT, MIDDLEWARES, PARAM_METADATA_KEY, WS_SERVICE_KEY } from '@constants';
+import { ENDPOINT, MIDDLEWARES, PARAM_METADATA_KEY, TO_VALIDATE, WS_SERVICE_KEY } from '@constants';
 import { ServerResponse } from 'http';
 
 const getBodyAndMultipart = (payload: any) => {
@@ -74,41 +74,34 @@ export const executeControllerMethod = async (
     }
 
     const param = paramMetadata.find((p) => p.index === i);
-    if (param) {
-      let value: any;
-
-      switch (param.type) {
-        case 'body':
-          value = await Validate(param.dto, body);
-          break;
-        case 'query':
-          value = param.name ? payload.query?.[param.name] : payload.query;
-          break;
-        case 'multipart':
-          value = multipart;
-          break;
-        case 'params':
-          value = param.name ? payload.params?.[param.name] : payload.params;
-          break;
-        case 'headers':
-          value = param.name ? payload.headers?.[param.name] : payload.headers;
-          break;
-        case 'cookies':
-          value = param.name ? payload.cookies?.[param.name] : payload.cookies;
-          break;
-        case 'request':
-          value = payload;
-          break;
-        case 'response':
-          value = response;
-          break;
-        default:
-          value = undefined;
-      }
-      args[i] = value;
-    } else {
+    if (!param) {
       args[i] = undefined;
+      continue;
     }
+
+    let value = param.name ? payload[param.type]?.[param.name] : payload[param.type];
+
+    if (param.type === 'multipart') {
+      value = multipart;
+    }
+    if (param.type === 'request') {
+      value = payload;
+    }
+    if (param.type === 'response') {
+      value = response;
+    }
+    if (param.type === 'response') {
+      value = response;
+    }
+    if (param.type === 'body') {
+      value = body;
+    }
+
+    if (TO_VALIDATE.includes(param.type)) {
+      value = await validate(param.dto, value);
+    }
+
+    args[i] = value;
   }
 
   return fn.apply(controller, args);

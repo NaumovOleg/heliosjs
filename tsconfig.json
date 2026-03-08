@@ -7,7 +7,7 @@
       "node"
     ],
     "declaration": true,
-    "outDir": "dist",
+    "outDir": "./dist",
     "rootDir": "./src",
     "esModuleInterop": true,
     "strict": true,
@@ -34,6 +34,18 @@
       "@constants": [
         "./src/constants.ts"
       ]
-    }
-  }
+    },
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "testing",
+    "./testing",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "examples"
+  ]
 }
