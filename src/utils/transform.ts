@@ -15,8 +15,6 @@ export async function transformAndValidate(dtoClass: any, data: any) {
       await instance.validate();
     }
 
-    console.log('ppppppp', dtoClass, data);
-
     return instance;
   }
 

@@ -42,10 +42,8 @@
   "exclude": [
     "node_modules",
     "dist",
-    "testing",
-    "./testing",
+    "examples",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "examples"
   ]
 }

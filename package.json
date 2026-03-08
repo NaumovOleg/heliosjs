@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --config ./nodemon.json",
-    "prepublishOnly": "yarn build"
+    "prepublishOnly": "yarn build",
+    "link": "yarn link && cd ./examples && yarn link quantum-flow"
   },
   "exports": {
     "./core": {
@@ -47,12 +48,13 @@
     "parse-multipart-data": "^1.5.0",
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",
+    "typescript": ">=4.0.0",
     "uuid": "^13.0.0",
     "ws": "^8.19.0"
   },
   "peerDependencies": {
-    "typescript": ">=4.0.0",
-    "ts-node": ">=10.9.2"
+    "ts-node": ">=10.9.2",
+    "typescript": ">=4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

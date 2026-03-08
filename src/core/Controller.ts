@@ -23,6 +23,27 @@ interface ControllerConfig {
   interceptors?: Array<(...args: any[]) => any> | ((...args: any[]) => any);
 }
 
+/**
+ * Class decorator to define a controller with optional configuration.
+ *
+ * This decorator can be used with a string prefix or a configuration object.
+ * It sets up metadata for route prefix, middlewares, sub-controllers, and interceptors.
+ *
+ * It wraps all controller methods to handle errors gracefully by catching exceptions
+ * and returning a standardized error response.
+ *
+ * The decorated controller class is extended with methods to:
+ * - execute controller methods with proper context and error handling
+ * - retrieve controller methods metadata
+ * - handle incoming requests by matching routes, applying middlewares and interceptors,
+ *   and returning appropriate responses
+ *
+ * @param config - Either a string representing the route prefix or a configuration object
+ *                 containing prefix, middlewares, sub-controllers, and interceptors.
+ * @param middlewares - Additional interceptors to apply at the controller level.
+ *
+ * @returns A class decorator function that enhances the controller class.
+ */
 export function Controller(
   config: string | ControllerConfig,
   middlewares: Array<Interceptor> = [],
@@ -128,7 +149,7 @@ export function Controller(
 
       handleRequest = async (request: any, response?: ServerResponse) => {
         const method = request.method;
-        const path = (request.url.path ?? request.url.pathname ?? '').replace(/^\/+/, '');
+        const path = (request.url.path ?? request.url.pathname ?? '').replace(/^\/+/g, '');
 
         const baseInterceptors = Reflect.getMetadata(INTERCEPTORS, proto);
 
@@ -157,7 +178,7 @@ export function Controller(
               const fullPattern = [routePrefix, controllerPrefix, methodInfo.pattern]
                 .filter(Boolean)
                 .join('/')
-                .replace(/\/+/g, '/');
+                .replace(/\/+ /g, '/');
 
               const pathParams = matchRoute(fullPattern, path);
               if (pathParams) {
@@ -199,7 +220,7 @@ export function Controller(
             const fullPattern = [routePrefix, routePattern]
               .filter(Boolean)
               .join('/')
-              .replace(/\/+/g, '/');
+              .replace(/\/+ /g, '/');
 
             const pathParams = matchRoute(fullPattern, path);
             if (pathParams) {

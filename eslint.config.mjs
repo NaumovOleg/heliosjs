@@ -49,9 +49,26 @@ export default tseslint.defineConfig(
 
       'unused-imports/no-unused-imports': 'warn',
       'unused-imports/no-unused-vars': 'off',
-      'simple-import-sort/imports': 'error',
+      'simple-import-sort/imports': [
+        'error',
+        {
+          groups: [
+            // Специальная группа для reflect-metadata - всегда первой
+            ['^reflect-metadata$'],
+            // Пакеты из node_modules
+            ['^@?\\w'],
+            // Алиасы
+            ['^@/'],
+            // Родительские импорты
+            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+            // Текущая папка
+            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+            // Стили
+            ['^.+\\.s?css$'],
+          ],
+        },
+      ],
       'simple-import-sort/exports': 'error',
-      'import/first': 'error',
       'import/no-duplicates': 'error',
 
       '@typescript-eslint/no-explicit-any': ['error', { ignoreRestArgs: true }],
