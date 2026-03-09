@@ -1,4 +1,4 @@
-import { SERVER_CONFIG_KEY, SERVER_MODULES_KEY } from '@constants';
+import { CATCH, INTECEPT, SERVER_CONFIG_KEY, SERVER_MODULES_KEY } from '@constants';
 import { ServerConfig } from '@types';
 import http from 'http';
 
@@ -8,11 +8,15 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
   if (configOrClass && typeof configOrClass === 'function') {
     const decoratorConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, configOrClass) || {};
     const controllers = Reflect.getMetadata(SERVER_MODULES_KEY, configOrClass) || [];
+    const errorHandler = Reflect.getMetadata(CATCH, configOrClass);
+    const interceptors = Reflect.getMetadata(INTECEPT, configOrClass);
 
     config = {
       port: 3000,
       host: 'localhost',
       ...decoratorConfig,
+      errorHandler,
+      interceptors,
       controllers: [...controllers, ...(decoratorConfig.controllers || [])],
     };
   } else if (configOrClass && typeof configOrClass === 'object') {

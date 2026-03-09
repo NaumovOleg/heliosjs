@@ -1,19 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IncomingHttpHeaders, ServerResponse } from 'http';
+import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
 
 type P_Q = Record<string, string | undefined> | null | unknown;
 
-export type Request<B = unknown, Q extends P_Q = unknown, P extends P_Q = unknown> = {
-  method: string;
+export type AppRequest<B = unknown, Q extends P_Q = unknown, P extends P_Q = unknown> = {
+  method: HTTP_METHODS;
   url: URL;
   headers: IncomingHttpHeaders;
   query?: Q;
   params?: P;
   body: B;
+  rawBody: Buffer<ArrayBufferLike>;
   isBase64Encoded?: boolean;
+  cookies: Record<string, string>;
+  _startTime: number;
 };
+
 export type Router = (
-  req: Request,
+  req: AppRequest,
   res?: ServerResponse,
 ) => Promise<{ status: number; data: any; message?: string }>;
 
@@ -35,12 +39,23 @@ export interface IController {
   handleRequest: Router;
 }
 
-export type Middleware = (req: Request, res?: ServerResponse) => Promise<Request> | Request;
-export type Interceptor = (
+export type MiddlewareCB = (
+  appRequest: AppRequest,
+  request?: IncomingMessage,
+  respinse?: ServerResponse,
+) => Promise<AppRequest> | AppRequest;
+
+export type InterceptorCB = (
   data: any,
-  req?: Request,
+  req?: IncomingMessage,
   res?: ServerResponse,
 ) => Promise<unknown> | unknown;
+
+export type ErrorCB = (
+  error: Error,
+  req?: IncomingMessage,
+  res?: ServerResponse,
+) => Promise<ResponseWithStatus> | ResponseWithStatus;
 
 export type ParamDecoratorType =
   | 'body'
@@ -50,11 +65,36 @@ export type ParamDecoratorType =
   | 'headers'
   | 'cookies'
   | 'response'
-  | 'multipart';
+  | 'multipart'
+  | 'event'
+  | 'context';
 
 export interface ParamMetadata {
   index: number;
   type: ParamDecoratorType;
   dto?: any;
   name?: string;
+}
+
+export interface ParamMetadata {
+  index: number;
+  type: ParamDecoratorType;
+  dto?: any;
+  name?: string;
+}
+
+export type ResponseWithStatus = {
+  status: number;
+  [key: string]: any;
+};
+
+export enum HTTP_METHODS {
+  USE = 'USE',
+  GET = 'GET',
+  POST = 'POST',
+  PATCH = 'PATCH',
+  DELETE = 'DELETE',
+  PUT = 'PUT',
+  OPTIONS = 'OPTIONS',
+  HEAD = 'HEAD',
 }

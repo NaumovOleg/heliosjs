@@ -1,9 +1,10 @@
 export const PARAM_METADATA_KEY = 'design:parameters';
 export const APP_METADATA_KEY = 'app:configuration';
-export const ROUTE_PREFIX = 'route:profix';
-export const MIDDLEWARES = 'route:middlewares';
+export const ROUTE_PREFIX = 'route:prefix';
+export const ROUTE_MIDDLEWARES = 'route:middlewares';
+export const MIDDLEWARES = 'controller:middlewares';
 export const CONTROLLERS = 'app:controllers';
-export const INTERCEPTORS = 'app:interceptors';
+export const INTERCEPTOR = 'app:interceptors';
 export const ENDPOINT = 'route:endpoints';
 export const OK_METADATA_KEY = 'custom:ok';
 
@@ -13,6 +14,8 @@ export const SERVER_MODULES_KEY = 'server:modules';
 export const WS_METADATA_KEY = 'websocket:handler';
 export const WS_TOPIC_KEY = 'websocket:topic';
 export const WS_SERVICE_KEY = 'websocket:service';
+export const INTECEPT = 'server:intercept';
+export const CATCH = 'server:catch';
 
 export const STOPPED = `
 ╔════════════════════════════════════════╗

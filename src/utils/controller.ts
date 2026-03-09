@@ -1,10 +1,16 @@
-import { ControllerInstance, Middleware, ParamMetadata } from '@types';
+import {
+  ControllerInstance,
+  ControllerMethods,
+  HTTP_METHODS,
+  MiddlewareCB,
+  ParamMetadata,
+} from '@types';
 import { MultipartProcessor } from '@utils';
 import { WebSocketService } from '../app/http/websocket/WebsocetService';
 import { validate } from './validate';
 
 import { ENDPOINT, MIDDLEWARES, PARAM_METADATA_KEY, TO_VALIDATE, WS_SERVICE_KEY } from '@constants';
-import { ServerResponse } from 'http';
+import { IncomingMessage, ServerResponse } from 'http';
 
 const getBodyAndMultipart = (payload: any) => {
   let body = payload.body;
@@ -31,6 +37,7 @@ export const executeControllerMethod = async (
   controller: ControllerInstance,
   propertyName: string,
   payload: any,
+  request?: IncomingMessage,
   response?: ServerResponse,
 ) => {
   const fn = controller[propertyName];
@@ -38,7 +45,7 @@ export const executeControllerMethod = async (
   const endpointMeta = Reflect.getMetadata(ENDPOINT, controller, propertyName);
   if (!endpointMeta) return null;
 
-  const methodMiddlewares: Middleware[] =
+  const methodMiddlewares: MiddlewareCB[] =
     Reflect.getMetadata(MIDDLEWARES, controller, propertyName) || [];
 
   for (let i = 0; i < methodMiddlewares.length; i++) {
@@ -87,14 +94,14 @@ export const executeControllerMethod = async (
     if (param.type === 'request') {
       value = payload;
     }
-    if (param.type === 'response') {
-      value = response;
-    }
-    if (param.type === 'response') {
-      value = response;
+    if (param.type === 'request') {
+      value = request;
     }
     if (param.type === 'body') {
       value = body;
+    }
+    if (param.type === 'response') {
+      value = response;
     }
 
     if (TO_VALIDATE.includes(param.type)) {
@@ -108,12 +115,7 @@ export const executeControllerMethod = async (
 };
 
 export const getControllerMethods = (controller: ControllerInstance) => {
-  const methods: Array<{
-    name: string;
-    httpMethod: string;
-    pattern: string;
-    middlewares?: Array<(req: any, res?: ServerResponse) => any>;
-  }> = [];
+  const methods: ControllerMethods = [];
 
   let proto = Object.getPrototypeOf(controller);
 
@@ -139,5 +141,5 @@ export const getControllerMethods = (controller: ControllerInstance) => {
     proto = Object.getPrototypeOf(proto);
   }
 
-  return methods;
+  return methods.sort((a, b) => (a.httpMethod === HTTP_METHODS.USE ? 1 : -1));
 };

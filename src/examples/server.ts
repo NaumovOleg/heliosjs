@@ -1,18 +1,16 @@
-import { Controller } from 'quantum-flow/core';
-import { Catch, Host, HttpServer, Intercept, Port, Server, Use } from 'quantum-flow/http';
+import { Catch, Controller, Intercept } from 'quantum-flow/core';
+import { Host, HttpServer, Port, Server, Use } from 'quantum-flow/http';
 import 'reflect-metadata';
 
-import { Socket } from './controllers/socket';
 import { User } from './controllers/user';
 
 @Controller({
   prefix: 'api',
-  controllers: [User, Socket],
-  interceptors: [
-    (resp: any) => {
-      return resp;
-    },
-  ],
+  controllers: [User],
+  interceptor: (resp: any) => {
+    console.log('APP INTERCEPTOR');
+    return resp;
+  },
 })
 class Root {}
 
@@ -26,7 +24,6 @@ class Root {}
 @Host('localhost')
 @Use((res: any) => res)
 @Intercept((data: any, req, res) => {
-  console.log(data, 'aaaaa', req);
   return data;
 })
 @Catch((r: any) => {

@@ -66,11 +66,9 @@ server.listen().catch(console.error);
 - Use `@Headers` to access request headers.
 - Use `@Query` to handle query parameters.
 - Use `@Params` to access route parameters.
-- Use `@Host` to configure the server host.
-- Use `@Port` to configure the server port.
 - Use `@Multipart` for handling multipart/form-data requests.
-- Use `@Request` to access the entire request object.
-- Use `@Response` to access the response object.
+- Use `@Request` to access the original request object.
+- Use `@Response` to access the original object.
 
 # AWS Lambda Support
 
@@ -248,6 +246,7 @@ class App {}
 Method or class decorator to validate request parameters (query, body, params, headers) against a DTO class using class-validator.
 
 ```typescript
+import { IsEmail } from 'class-validator';
 class UserDTO {
   @IsEmail()
   email: string;

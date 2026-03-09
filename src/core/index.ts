@@ -5,11 +5,13 @@
  * as well as related types and utility functions used throughout the core framework.
  */
 export {
+  AppRequest,
   EndpointResponse,
+  ErrorCB,
   IController,
-  Interceptor,
-  Middleware,
-  Request,
+  InterceptorCB,
+  MiddlewareCB,
+  ResponseWithStatus,
   Router,
   WebSocketClient,
   WebSocketEvent,

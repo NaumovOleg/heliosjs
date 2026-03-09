@@ -1,26 +1,4 @@
-import { PARAM_METADATA_KEY } from '@constants';
-import { ParamDecoratorType } from '@types';
-
-export interface ParamMetadata {
-  index: number;
-  type: ParamDecoratorType;
-  dto?: any;
-  name?: string;
-}
-
-function createParamDecorator(type: ParamDecoratorType, dto?: any, name?: string) {
-  return function (target: any, propertyKey: string | symbol, parameterIndex: number) {
-    const existingParams: ParamMetadata[] =
-      Reflect.getMetadata(PARAM_METADATA_KEY, target, propertyKey) || [];
-
-    existingParams.push({ index: parameterIndex, type, dto, name });
-    existingParams.sort((a, b) => a.index - b.index);
-
-    Reflect.defineMetadata(PARAM_METADATA_KEY, existingParams, target, propertyKey);
-
-    const saved = Reflect.getMetadata(PARAM_METADATA_KEY, target, propertyKey);
-  };
-}
+import { createParamDecorator } from '@utils';
 
 /**
  * Parameter decorator to extract and validate the request body.

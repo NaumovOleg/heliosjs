@@ -1,7 +1,7 @@
 import { STOPPED } from '@constants';
-import { ServerConfig } from '@types';
+import { AppRequest, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@types';
 import { collectRawBody, ParseBody, ParseCookies, ParseQuery, resolveConfig } from '@utils';
-import http, { ServerResponse } from 'http';
+import http, { IncomingMessage, ServerResponse } from 'http';
 import { Socket } from './Socket';
 import { WebSocketService } from './websocket/WebsocetService';
 import { WebSocketServer } from './websocket/WebsocketServer';
@@ -26,7 +26,7 @@ export class HttpServer extends Socket {
 
     this.app = app;
 
-    this.logConfig();
+    // this.logConfig();
   }
 
   private logConfig() {
@@ -37,8 +37,9 @@ export class HttpServer extends Socket {
 ║  📍 Host: ${this.config.host}                       
 ║  🔌 Port: ${this.config.port}                         
 ║  🔌 Websocket: ${!!this.config.websocket}                         
-║  🔧 Middlewares: ${this.config.globalMiddlewares?.length || 0}                   
-║  🎯 Interceptors: ${this.config.globalInterceptors?.length || 0}                   
+║  🔧 Middlewares: ${this.config.midlewares?.length || 0}                   
+║  🔧 Error middlewares: ${this.config.errorHandler?.length || 0}                   
+║  🎯 Interceptors: ${this.config.interceptors?.length || 0}                   
 ║  📦 Controllers: ${this.config.controllers?.length || 0}                   
 ╚════════════════════════════════════════╝
     `);
@@ -103,16 +104,16 @@ export class HttpServer extends Socket {
     };
   }
 
-  private async requestHandler(req: http.IncomingMessage, res: ServerResponse) {
+  private async requestHandler(req: IncomingMessage, res: ServerResponse) {
     const startTime = Date.now();
 
     try {
       const request = await this.createRequest(req);
 
-      let processedRequest = await this.applyMiddlewares(request, res);
-      const data = await this.findController(processedRequest, res);
+      let appRequest = await this.applyMiddlewares(request, req, res);
+      const data = await this.findController(appRequest, req, res);
 
-      const finalResponse = await this.applyInterceptors(data, request, res);
+      const finalResponse = await this.applyInterceptors(data, req, res);
 
       await this.sendResponse(res, finalResponse, startTime);
     } catch (error) {
@@ -120,7 +121,7 @@ export class HttpServer extends Socket {
     }
   }
 
-  private async createRequest(req: http.IncomingMessage): Promise<any> {
+  private async createRequest(req: http.IncomingMessage): Promise<AppRequest> {
     const rawBody = await collectRawBody(req);
 
     const parseRequest = {
@@ -138,9 +139,8 @@ export class HttpServer extends Socket {
     const whatwgUrl = new URL(fullUrl);
 
     return {
-      method: req.method,
+      method: req.method?.toUpperCase() as HTTP_METHODS,
       url: whatwgUrl,
-      path: whatwgUrl.pathname,
       headers: req.headers,
       body: parsedBody,
       rawBody: rawBody,
@@ -152,24 +152,33 @@ export class HttpServer extends Socket {
     };
   }
 
-  private async applyMiddlewares(request: any, res: http.ServerResponse): Promise<any> {
-    let processed = request;
+  private async applyMiddlewares(
+    appRequest: any,
+    request: IncomingMessage,
+    response: http.ServerResponse,
+  ): Promise<any> {
+    let processed = appRequest;
 
-    for (const middleware of this.config.globalMiddlewares || []) {
-      const result = await middleware(processed, res);
+    for (const middleware of this.config.midlewares || []) {
+      const result = await middleware(processed, request, response);
       if (result) {
-        processed = { ...processed, ...result };
+        processed = result;
       }
     }
 
     return processed;
   }
 
-  private async findController(request: any, response?: ServerResponse): Promise<any> {
+  private async findController(
+    appRequest: AppRequest,
+    request: IncomingMessage,
+    response?: ServerResponse,
+  ): Promise<any> {
     for (const ControllerClass of this.config.controllers || []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
-        const data = await instance.handleRequest(request, response);
+        const data = await instance.handleRequest(appRequest, request, response);
+
         if (data && data.status !== 404) {
           return data;
         }
@@ -178,18 +187,18 @@ export class HttpServer extends Socket {
 
     return {
       status: 404,
-      data: { message: `Route ${request.method} ${request.path} not found` },
+      data: { message: `Route ${appRequest.method} ${appRequest.url.pathname} not found` },
     };
   }
 
   private async applyInterceptors(
     data: any,
-    request: Request,
+    request: IncomingMessage,
     response: ServerResponse,
   ): Promise<any> {
     let processed = data;
 
-    for (const interceptor of this.config.globalInterceptors || []) {
+    for (const interceptor of this.config.interceptors || []) {
       processed = await interceptor(processed, request, response);
     }
 
@@ -201,7 +210,7 @@ export class HttpServer extends Socket {
     data: any,
     startTime: number,
   ): Promise<void> {
-    const resp = data?.data !== undefined ? data.data : data;
+    const response = data?.data !== undefined ? data.data : data;
     if (!res.headersSent) {
       if (!res.getHeader('Content-Type')) {
         res.setHeader('Content-Type', 'application/json');
@@ -218,16 +227,16 @@ export class HttpServer extends Socket {
     res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
     res.statusCode = data.status ?? 200;
 
-    res.end(JSON.stringify(resp));
+    res.end(JSON.stringify(response));
   }
 
   private async handleError(
     error: any,
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
     startTime: number,
   ): Promise<void> {
-    let errorResponse = {
+    let errorResponse: ResponseWithStatus = {
       status: error.status || 500,
       data: {
         message: error.message || 'Internal Server Error',
@@ -235,16 +244,16 @@ export class HttpServer extends Socket {
       },
     };
 
-    if (!this.config.globalErrorHandler) {
-      return this.sendResponse(res, errorResponse, startTime);
+    if (!this.config.errorHandler) {
+      return this.sendResponse(response, errorResponse, startTime);
     }
 
     try {
-      const intercepted = await this.config.globalErrorHandler(error, req, res);
-      errorResponse = { ...errorResponse, ...intercepted };
+      const intercepted = await this.config.errorHandler(error, request, response);
+      errorResponse = intercepted;
     } catch (cathed) {
       Object.assign(errorResponse, cathed);
     }
-    return this.sendResponse(res, errorResponse, startTime);
+    return this.sendResponse(response, errorResponse, startTime);
   }
 }

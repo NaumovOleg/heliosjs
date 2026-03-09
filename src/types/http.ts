@@ -1,10 +1,12 @@
+import { ErrorCB, InterceptorCB, MiddlewareCB } from './common';
+
 export interface ServerConfig {
   port?: number;
   host?: string;
-  globalMiddlewares?: any[];
-  globalInterceptors?: any[];
-  globalErrorHandler?: any;
-  controllers?: any[];
+  midlewares?: MiddlewareCB[];
+  interceptors?: InterceptorCB[];
+  errorHandler?: ErrorCB;
+  controllers?: (new (...args: any[]) => any)[];
   websocket?: {
     enabled: boolean;
     path?: string;

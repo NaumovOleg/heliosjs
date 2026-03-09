@@ -36,16 +36,7 @@ export default tseslint.defineConfig(
       },
     },
     rules: {
-      'prettier/prettier': [
-        'error',
-        {
-          singleQuote: true,
-          trailingComma: 'all',
-          printWidth: 100,
-          tabWidth: 2,
-          unusedImports: 'all',
-        },
-      ],
+      'prettier/prettier': 'error',
 
       'unused-imports/no-unused-imports': 'warn',
       'unused-imports/no-unused-vars': 'off',

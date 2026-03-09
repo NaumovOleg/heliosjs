@@ -1,27 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  CATCH,
   CONTROLLERS,
   ENDPOINT,
-  INTERCEPTORS,
+  INTERCEPTOR,
   MIDDLEWARES,
   OK_METADATA_KEY,
   OK_STATUSES,
   ROUTE_PREFIX,
 } from '@constants';
-import { Interceptor, Middleware } from '@types';
+import {
+  AppRequest,
+  ControllerClass,
+  ControllerConfig,
+  ControllerInstance,
+  InterceptorCB,
+  RouteContext,
+} from '@types';
 import { executeControllerMethod, getControllerMethods, matchRoute } from '@utils';
-import { ServerResponse } from 'http';
+import { IncomingMessage, ServerResponse } from 'http';
 import 'reflect-metadata';
-
-type ControllerClass = { new (...args: any[]): any };
-type ControllerInstance = InstanceType<ControllerClass>;
-
-interface ControllerConfig {
-  prefix: string;
-  middlewares?: Array<Middleware>;
-  controllers?: ControllerClass[];
-  interceptors?: Array<(...args: any[]) => any> | ((...args: any[]) => any);
-}
 
 /**
  * Class decorator to define a controller with optional configuration.
@@ -46,28 +44,23 @@ interface ControllerConfig {
  */
 export function Controller(
   config: string | ControllerConfig,
-  middlewares: Array<Interceptor> = [],
+  middlewares: Array<InterceptorCB> = [],
 ) {
   // Handle both string and config object
   const routePrefix = typeof config === 'string' ? config : config.prefix;
   const controllers = typeof config === 'object' ? config.controllers : undefined;
   const controllerMiddlewares =
     typeof config === 'object' ? [...(config.middlewares || []), ...middlewares] : middlewares;
-
-  const interceptors =
-    typeof config === 'object'
-      ? config.interceptors
-        ? ([] as any).concat(config.interceptors)
-        : []
-      : [];
+  let interceptor =
+    typeof config === 'object' && typeof config.interceptor === 'function' && config.interceptor;
 
   return function <T extends ControllerClass>(constructor: T) {
     const proto = constructor.prototype;
-
+    Reflect.defineMetadata('controller:name', constructor.name, proto);
     Reflect.defineMetadata(ROUTE_PREFIX, routePrefix, proto);
     Reflect.defineMetadata(MIDDLEWARES, controllerMiddlewares, proto);
     Reflect.defineMetadata(CONTROLLERS, controllers || [], proto);
-    Reflect.defineMetadata(INTERCEPTORS, interceptors, proto);
+    Reflect.defineMetadata(INTERCEPTOR, interceptor, proto);
 
     for (const key of Object.getOwnPropertyNames(proto)) {
       if (key === 'constructor') continue;
@@ -104,24 +97,28 @@ export function Controller(
         controllerInstance: ControllerInstance;
         name: string;
         payload: any;
-        interceptors: Array<(...args: any[]) => any | Promise<any>>;
+        interceptors: InterceptorCB[];
+        request?: IncomingMessage;
         response?: ServerResponse;
       }) {
         try {
-          let response = await this.executeControllerMethod(
+          let appResponse = await this.executeControllerMethod(
             data.controllerInstance,
             data.name,
             data.payload,
+            data.request,
             data.response,
           );
 
-          let status = response.status ?? 200;
+          let status = appResponse.status ?? 200;
 
           const isError = !OK_STATUSES.includes(status);
 
-          for (let index = 0; index < data.interceptors?.length && !isError; index++) {
-            const interceptor = data.interceptors[index];
-            response = await interceptor(response);
+          const interceptors = data.interceptors.reverse();
+
+          for (let index = 0; index < interceptors?.length && !isError; index++) {
+            const interceptor = interceptors[index];
+            appResponse = await interceptor(appResponse, data.request, data.response);
           }
 
           const propertyName = data.name;
@@ -140,111 +137,190 @@ export function Controller(
             !isError && classOkStatus && (status = classOkStatus);
           }
 
-          return { status, data: response };
+          return { status, data: appResponse };
         } catch (err) {
           console.error(err);
           throw err;
         }
       }
+      handleRequest = async (
+        appRequest: AppRequest,
+        request?: IncomingMessage,
+        response?: ServerResponse,
+      ) => {
+        const context: RouteContext = {
+          controllerInstance: this,
+          controllerMeta: {
+            routePrefix: Reflect.getMetadata(ROUTE_PREFIX, proto) || '',
+            middlewares: Reflect.getMetadata(MIDDLEWARES, proto) || [],
+            interceptor: Reflect.getMetadata(INTERCEPTOR, proto),
+            subControllers: Reflect.getMetadata(CONTROLLERS, proto) || [],
+            errorHandler: Reflect.getMetadata(CATCH, proto),
+          },
+          path: (appRequest.url.pathname ?? '').replace(/^\/+/g, ''),
+          method: appRequest.method.toUpperCase(),
+          appRequest,
+          request,
+          response,
+          middlewareChain: [],
+          interceptorChain: [],
+          subPath: Reflect.getMetadata(ROUTE_PREFIX, proto) || '',
+        };
 
-      handleRequest = async (request: any, response?: ServerResponse) => {
-        const method = request.method;
-        const path = (request.url.path ?? request.url.pathname ?? '').replace(/^\/+/g, '');
+        const result = await this.routeWalker(context);
+        return result || { status: 404, message: 'Method Not Found' };
+      };
 
-        const baseInterceptors = Reflect.getMetadata(INTERCEPTORS, proto);
+      async routeWalker(context: RouteContext): Promise<any> {
+        const { controllerInstance, controllerMeta, path, method, subPath } = context;
 
-        const routePrefix: string = Reflect.getMetadata(ROUTE_PREFIX, proto) || '';
-        const middlewares: Array<(Request: any) => any> =
-          Reflect.getMetadata(MIDDLEWARES, proto) || [];
-        const subControllers: ControllerClass[] = Reflect.getMetadata(CONTROLLERS, proto) || [];
+        for (const SubController of controllerMeta.subControllers) {
+          const subInstance = new SubController();
 
-        // Try sub-controllers
-        for (const SubController of subControllers) {
-          const controllerInstance = new SubController(SubController);
-          if (!controllerInstance) continue;
+          const subMeta = {
+            routePrefix: Reflect.getMetadata(ROUTE_PREFIX, SubController.prototype) || '',
+            middlewares: Reflect.getMetadata(MIDDLEWARES, SubController.prototype) || [],
+            interceptor: Reflect.getMetadata(INTERCEPTOR, SubController.prototype),
+            errorHandler: Reflect.getMetadata(CATCH, SubController.prototype),
+            subControllers: Reflect.getMetadata(CONTROLLERS, SubController.prototype) || [],
+          };
 
-          const subInterceptors = Reflect.getMetadata(INTERCEPTORS, controllerInstance);
+          const fullSubPath = [subPath, subMeta.routePrefix]
+            .filter(Boolean)
+            .join('/')
+            .replace(/\/+/g, '/');
 
-          const controllerPrefix: string =
-            Reflect.getMetadata(ROUTE_PREFIX, SubController.prototype) || '';
-          const controllerMiddlewares: Array<(Request: any) => any> =
-            Reflect.getMetadata(MIDDLEWARES, SubController.prototype) || [];
+          if (path.startsWith(fullSubPath)) {
+            const subResult = await this.routeWalker({
+              ...context,
+              subPath: fullSubPath,
+              controllerInstance: subInstance,
+              controllerMeta: subMeta,
+              path,
+              middlewareChain: [...context.middlewareChain, ...controllerMeta.middlewares],
+              interceptorChain: [...context.interceptorChain, controllerMeta.interceptor].filter(
+                (el) => !!el,
+              ),
+            });
 
-          const methods = this.getControllerMethods(controllerInstance);
-
-          for (const methodInfo of methods) {
-            if (methodInfo.httpMethod === method || methodInfo.httpMethod === 'USE') {
-              // Build full pattern: main prefix + controller prefix + method pattern
-              const fullPattern = [routePrefix, controllerPrefix, methodInfo.pattern]
-                .filter(Boolean)
-                .join('/')
-                .replace(/\/+ /g, '/');
-
-              const pathParams = matchRoute(fullPattern, path);
-              if (pathParams) {
-                let payload = { ...request, params: pathParams };
-
-                // Apply all middlewares in order: main controller -> sub-controller -> method
-                for (const middleware of [
-                  ...middlewares,
-                  ...controllerMiddlewares,
-                  ...(methodInfo.middlewares || []),
-                ]) {
-                  const middlawareResponde = await middleware(payload, response);
-                  payload = { ...payload, ...middlawareResponde };
-                }
-
-                return this.getResponse({
-                  interceptors: [...subInterceptors, ...baseInterceptors],
-                  controllerInstance,
-                  name: methodInfo.name,
-                  payload,
-                  response,
-                });
-              }
+            if (subResult && subResult.status !== 404) {
+              return subResult;
             }
           }
         }
 
-        const propertyNames = Object.getOwnPropertyNames(proto);
+        const routeMatch = this.findRouteInController(controllerInstance, subPath, path, method);
 
-        for (const propertyName of propertyNames) {
-          const fn = (this as any)[propertyName];
-          if (typeof fn !== 'function') continue;
+        if (routeMatch) {
+          const { name, pathParams, methodMiddlewares, methodInterceptors } = routeMatch;
 
-          const endpointMeta = Reflect.getMetadata(ENDPOINT, proto, propertyName) || [];
+          const allMiddlewares = [
+            ...context.middlewareChain,
+            ...controllerMeta.middlewares,
+            ...methodMiddlewares,
+          ];
+
+          let payload = { ...context.appRequest, params: pathParams };
+          for (const mw of allMiddlewares) {
+            const mwResult = await mw(payload, context.request, context.response);
+            payload = { ...payload, ...mwResult };
+          }
+
+          return this.getResponse({
+            interceptors: [...context.interceptorChain, controllerMeta.interceptor].filter(
+              (el) => !!el,
+            ),
+            controllerInstance,
+            name,
+            payload,
+            response: context.response,
+            request: context.request,
+          }).catch((error) => {
+            if (controllerMeta.errorHandler) {
+              return controllerMeta.errorHandler(error, context.request, context.response);
+            }
+            return error;
+          });
+        }
+
+        return null;
+      }
+
+      getAllMethods(obj: any): string[] {
+        let methods = new Set<string>();
+        let current = Object.getPrototypeOf(obj);
+
+        while (current && current !== Object.prototype) {
+          Object.getOwnPropertyNames(current).forEach((name) => {
+            if (name !== 'constructor' && typeof current[name] === 'function') {
+              methods.add(name);
+            }
+          });
+          current = Object.getPrototypeOf(current);
+        }
+
+        return Array.from(methods);
+      }
+
+      findRouteInController(instance: any, path: string, route: string, method: string) {
+        const prototype = Object.getPrototypeOf(instance);
+        const propertyNames = this.getAllMethods(instance);
+
+        const matches: Array<{
+          name: string;
+          pathParams: Record<string, string>;
+          priority: number;
+          methodMiddlewares: any[];
+          methodInterceptors: any[];
+        }> = [];
+
+        for (const name of propertyNames) {
+          if (
+            [
+              'constructor',
+              'getResponse',
+              'routeWalker',
+              'getAllMethods',
+              'findRouteInController',
+            ].includes(name)
+          )
+            continue;
+
+          const endpointMeta = Reflect.getMetadata(ENDPOINT, prototype, name) || [];
+          if (endpointMeta.length === 0) continue;
 
           const [httpMethod, routePattern] = endpointMeta;
 
-          if (httpMethod === method || httpMethod === 'USE') {
-            const fullPattern = [routePrefix, routePattern]
-              .filter(Boolean)
-              .join('/')
-              .replace(/\/+ /g, '/');
+          if (httpMethod !== method && httpMethod !== 'USE') {
+            continue;
+          }
 
-            const pathParams = matchRoute(fullPattern, path);
-            if (pathParams) {
-              let payload = { ...request, params: pathParams };
+          if (httpMethod === 'USE') {
+            let useRoute = route.split('/');
+            useRoute.pop();
+            route = useRoute.join('/');
+          }
+          const current = [path, routePattern].join('/').replace(/\/+/g, '/');
 
-              // Apply controller-level middlewares
-              for (const middleware of middlewares) {
-                const middlewareResponse = await middleware(payload);
-                payload = { ...payload, middlewareResponse };
-              }
+          const pathParams = matchRoute(route, current);
 
-              return this.getResponse({
-                interceptors: baseInterceptors,
-                controllerInstance: this,
-                name: propertyName,
-                payload,
-                response,
-              });
-            }
+          if (pathParams) {
+            const priority = httpMethod === 'USE' ? 0 : Object.keys(pathParams).length > 0 ? 1 : 2;
+
+            matches.push({
+              name,
+              pathParams,
+              priority,
+              methodMiddlewares: Reflect.getMetadata(MIDDLEWARES, prototype, name) || [],
+              methodInterceptors: Reflect.getMetadata(INTERCEPTOR, prototype, name) || [],
+            });
           }
         }
 
-        return { status: 404, message: 'Method Not Found' };
-      };
+        matches.sort((a, b) => b.priority - a.priority);
+
+        return matches[0] || null;
+      }
     };
   };
 }

@@ -8,7 +8,6 @@ export interface LambdaRequest {
   body: any;
   params: Record<string, string>;
   cookies: Record<string, string>;
-  raw: APIGatewayProxyEvent;
   context: Context;
   isBase64Encoded: boolean;
   requestId: string;
@@ -16,6 +15,7 @@ export interface LambdaRequest {
   sourceIp: string;
   userAgent: string;
   url: URL;
+  event: APIGatewayProxyEvent;
 }
 
 export interface LambdaResponse {
@@ -25,4 +25,13 @@ export interface LambdaResponse {
   isBase64Encoded?: boolean;
   multiValueHeaders?: Record<string, string[]>;
   cookies?: string[];
+}
+
+export interface LambdaApp {
+  beforeStart?: () => void;
+}
+
+export interface Lambda {
+  beforeStart?: () => Promise<void>;
+  handleRequest(request: any): Promise<any>;
 }

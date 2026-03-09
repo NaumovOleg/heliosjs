@@ -9,7 +9,7 @@ import {
   Handler,
 } from 'aws-lambda';
 
-import { LambdaRequest, LambdaResponse } from '@types';
+import { LambdaRequest, LambdaResponse, LambdaApp, Lambda } from '@types';
 
 export class LambdaAdapter {
   private static getHeaderValue(headers: any, headerName: string): string | undefined {
@@ -77,7 +77,7 @@ export class LambdaAdapter {
       body,
       params: this.safeParams(event.pathParameters),
       cookies,
-      raw: event,
+      event,
       context,
       isBase64Encoded: event.isBase64Encoded || false,
       requestId: context.awsRequestId,
@@ -175,12 +175,16 @@ export class LambdaAdapter {
     return lambdaResponse;
   }
 
-  static createHandler(Contoller: any) {
+  static createHandler(Contoller: new (...args: any[]) => LambdaApp) {
     const handler: Handler<APIGatewayProxyEvent, APIGatewayProxyResult> = async (
       event,
       context,
     ) => {
-      const instance = new Contoller();
+      const instance = new Contoller() as Lambda;
+
+      if (Object.hasOwn(instance, 'beforeStart')) {
+        await instance.beforeStart?.();
+      }
 
       try {
         const request = LambdaAdapter.toRequest(event, context);

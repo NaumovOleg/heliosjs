@@ -1,6 +1,5 @@
 import { SERVER_CONFIG_KEY, SERVER_MODULES_KEY } from '@constants';
-
-import { Conf, Interceptor } from '@types';
+import { Conf } from '@types';
 
 export function Server(config: Conf = {}) {
   return function (target: any) {
@@ -30,49 +29,11 @@ export function Use(middleware: any) {
     const middlewares = existingConfig.globalMiddlewares || [];
 
     middlewares.push(middleware);
-    console.log(middlewares);
     Reflect.defineMetadata(
       SERVER_CONFIG_KEY,
       {
         ...existingConfig,
         globalMiddlewares: middlewares,
-      },
-      target,
-    );
-
-    return target;
-  };
-}
-
-export function Intercept(interceptor: Interceptor) {
-  return function (target: any) {
-    const existingConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, target) || {};
-    const interceptors = existingConfig.globalInterceptors || [];
-
-    interceptors.push(interceptor);
-
-    Reflect.defineMetadata(
-      SERVER_CONFIG_KEY,
-      {
-        ...existingConfig,
-        globalInterceptors: interceptors,
-      },
-      target,
-    );
-
-    return target;
-  };
-}
-
-export function Catch(handler: any) {
-  return function (target: any) {
-    const existingConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, target) || {};
-
-    Reflect.defineMetadata(
-      SERVER_CONFIG_KEY,
-      {
-        ...existingConfig,
-        globalErrorHandler: handler,
       },
       target,
     );
