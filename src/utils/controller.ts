@@ -6,7 +6,7 @@ import {
   ParamMetadata,
 } from '@types';
 import { MultipartProcessor } from '@utils';
-import { WebSocketService } from '../app/http/websocket/WebsocetService';
+import { WebSocketService } from '../app/http/websocket/WebsocketService';
 import { validate } from './validate';
 
 import { ENDPOINT, MIDDLEWARES, PARAM_METADATA_KEY, TO_VALIDATE, WS_SERVICE_KEY } from '@constants';

@@ -76,13 +76,6 @@ export interface ParamMetadata {
   name?: string;
 }
 
-export interface ParamMetadata {
-  index: number;
-  type: ParamDecoratorType;
-  dto?: any;
-  name?: string;
-}
-
 export type ResponseWithStatus = {
   status: number;
   [key: string]: any;

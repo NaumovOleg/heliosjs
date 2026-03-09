@@ -9,7 +9,7 @@ import {
   Handler,
 } from 'aws-lambda';
 
-import { LambdaRequest, LambdaResponse, LambdaApp, Lambda } from '@types';
+import { Lambda, LambdaApp, LambdaRequest, LambdaResponse } from '@types';
 
 export class LambdaAdapter {
   private static getHeaderValue(headers: any, headerName: string): string | undefined {
@@ -139,14 +139,15 @@ export class LambdaAdapter {
         };
       }
     }
-    let originHeader = LambdaAdapter.getHeaderValue(request?.headers, 'origin');
+    let origin = LambdaAdapter.getHeaderValue(request?.headers, 'origin');
+    const originHeader = Array.isArray(origin) ? origin[0] : origin;
 
     if (originHeader) {
-      if (Array.isArray(originHeader)) {
-        origin = originHeader[0];
-      } else {
-        origin = originHeader;
-      }
+      headers['Access-Control-Allow-Origin'] = originHeader;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+      headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS';
+      headers['Access-Control-Allow-Headers'] =
+        'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token';
     }
 
     if (request?.cookies && Object.keys(request.cookies).length > 0) {

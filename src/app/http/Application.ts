@@ -3,8 +3,8 @@ import { AppRequest, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@typ
 import { collectRawBody, ParseBody, ParseCookies, ParseQuery, resolveConfig } from '@utils';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { Socket } from './Socket';
-import { WebSocketService } from './websocket/WebsocetService';
 import { WebSocketServer } from './websocket/WebsocketServer';
+import { WebSocketService } from './websocket/WebsocketService';
 
 export class HttpServer extends Socket {
   private app: http.Server;

@@ -1,5 +1,5 @@
-import { WebSocketService } from './websocket/WebsocetService';
 import { WebSocketServer } from './websocket/WebsocketServer';
+import { WebSocketService } from './websocket/WebsocketService';
 
 export class Socket {
   protected wss: WebSocketServer;
