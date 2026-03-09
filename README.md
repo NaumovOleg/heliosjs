@@ -61,7 +61,7 @@ class UserDto {
 @Catch((err) => ({ status: 500, err }))
 export class User {
   @Status(201)
-  @PUT(':id')
+  @PUT(':id',[...middlewares])
   async createUser(
     @Body(UserDto) body: UserDto,
     @Query() query: any,
@@ -73,7 +73,7 @@ export class User {
   ) {
   }
 
-  @USE()
+  @USE([...middlewares])
   async any(@Response() resp: any) {
     ...
   }
