@@ -9,9 +9,6 @@ To install dependencies and build the project, run:
 ```bash
 yarn install
 # or npm install
-
-yarn build
-# or npm run build
 ```
 
 # Usage
