@@ -1,6 +1,6 @@
 {
   "name": "quantum-flow",
-  "version": "1.3.9",
+  "version": "1.3.10",
   "description": "Decorator-based API framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
