@@ -15,7 +15,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
       port: 3000,
       host: 'localhost',
       ...decoratorConfig,
-      errorHandler,
+      errorHandler: decoratorConfig.errorHandler ?? errorHandler,
       interceptors,
       controllers: [...controllers, ...(decoratorConfig.controllers || [])],
     };

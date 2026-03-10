@@ -11,6 +11,6 @@ class DTO {
 export class UserMetadata {
   @GET('/:meta')
   async getUserMetadata(@Params(DTO, 'meta') params: any) {
-    return params;
+    throw 'dddaaaad';
   }
 }

@@ -8,6 +8,7 @@ export {
   AppRequest,
   EndpointResponse,
   ErrorCB,
+  HttpError,
   IController,
   InterceptorCB,
   IWebSocketService,
