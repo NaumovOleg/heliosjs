@@ -10,6 +10,8 @@ import {
   ROUTE_PREFIX,
   SANITIZE,
   USE_MIDDLEWARE,
+  WS_HANDLER,
+  WS_TOPIC_KEY,
 } from '@constants';
 import { AppRequest, ControllerClass, ControllerConfig, InterceptorCB, RouteContext } from '@types';
 import {
@@ -260,6 +262,38 @@ export function Controller(
         }
 
         return null;
+      }
+
+      getWebSocketController() {
+        return {
+          instance: this,
+          handlers: {
+            connection: this.getWSHandlers('connection'),
+            message: this.getWSHandlers('message'),
+            close: this.getWSHandlers('close'),
+            error: this.getWSHandlers('error'),
+          },
+          topics: this.getWSTopics(),
+        };
+      }
+
+      getWSHandlers(type: string) {
+        const handlers = Reflect.getMetadata(WS_HANDLER, this.constructor) || [];
+        return handlers
+          .filter((h: any) => h.type === type)
+          .map((h: any) => ({
+            ...h,
+            fn: this[h.method].bind(this),
+          }));
+      }
+
+      getWSTopics() {
+        const topics = Reflect.getMetadata(WS_TOPIC_KEY, this.constructor) || [];
+
+        return topics.map((t: any) => ({
+          ...t,
+          fn: this[t.method].bind(this),
+        }));
       }
     };
   };

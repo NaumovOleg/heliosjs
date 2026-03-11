@@ -9,10 +9,9 @@ export const ENDPOINT = 'route:endpoints';
 export const OK_METADATA_KEY = 'custom:ok';
 
 export const SERVER_CONFIG_KEY = 'server:config';
-export const SERVER_MODULES_KEY = 'server:modules';
 export const USE_MIDDLEWARE = 'controller:usemiddleware';
 
-export const WS_METADATA_KEY = 'websocket:handler';
+export const WS_HANDLER = 'websocket:handler';
 export const WS_TOPIC_KEY = 'websocket:topic';
 export const WS_SERVICE_KEY = 'websocket:service';
 export const INTECEPT = 'server:intercept';

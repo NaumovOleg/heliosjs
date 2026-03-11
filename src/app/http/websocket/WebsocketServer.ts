@@ -4,20 +4,33 @@ import { v4 as uuidv4 } from 'uuid';
 import WebSocket from 'ws';
 
 export class WebSocketServer {
-  private wss: WebSocket.Server | null = null;
+  private wss: WebSocket.Server;
   private clients: Map<string, WebSocketClient> = new Map();
   private topics: Map<string, Set<string>> = new Map();
   private controllers: any[] = [];
   private options: any;
 
-  constructor(server: http.Server, options?: any) {
+  constructor(server: http.Server, options?: { path?: string }) {
     this.options = options;
 
+    this.wss = new WebSocket.Server({
+      noServer: true,
+      path: this.options?.path || '/',
+    });
+
+    this.wss.on('connection', (socket, request) => {
+      this.handleConnection(socket);
+    });
+
     server.on('upgrade', (request, socket, head) => {
+      if ((socket as any).__wsHandled) {
+        return;
+      }
+      (socket as any).__wsHandled = true;
+
       if (this.shouldHandleWebSocket(request.url)) {
-        this.ensureServer(server);
-        this.wss?.handleUpgrade(request, socket, head, (ws) => {
-          this.wss?.emit('connection', ws, request);
+        this.wss.handleUpgrade(request, socket, head, (ws) => {
+          this.wss.emit('connection', ws, request);
         });
       } else {
         socket.destroy();
@@ -30,21 +43,7 @@ export class WebSocketServer {
     return url.startsWith(path);
   }
 
-  private ensureServer(server: http.Server) {
-    if (!this.wss) {
-      this.wss = new WebSocket.Server({
-        server,
-        path: this.options?.path || '/ws',
-        noServer: true,
-      });
-
-      this.wss.on('connection', (socket, request) => {
-        this.handleConnection(socket, request);
-      });
-    }
-  }
-
-  private async handleConnection(socket: WebSocket, request: http.IncomingMessage) {
+  private async handleConnection(socket: WebSocket) {
     const clientId = uuidv4();
     const client: WebSocketClient = {
       id: clientId,
@@ -74,9 +73,10 @@ export class WebSocketServer {
   private async handleMessage(client: WebSocketClient, data: WebSocket.Data) {
     try {
       const message = JSON.parse(data.toString()) as WebSocketMessage;
+      const topic = message.topic ?? message.data?.topic;
 
-      if (message.type === 'subscribe' && message.topic) {
-        this.subscribeToTopic(client, message.topic);
+      if (message.type === 'subscribe' && topic) {
+        this.subscribeToTopic(client, topic);
         return;
       }
 
@@ -144,28 +144,27 @@ export class WebSocketServer {
 
   private async triggerHandlers(eventType: string, event: WebSocketEvent, topic?: string) {
     for (const controller of this.controllers) {
-      const handlers = Reflect.getMetadata('websocket:handler', controller.constructor) || [];
-
-      const matchingHandlers = handlers.filter(
-        (h: any) => h.type === eventType && (!h.topic || h.topic === topic),
-      );
+      const controllerHandlers = controller.handlers?.[eventType] ?? [];
+      const matchingHandlers = controllerHandlers.filter((h: any) => {
+        if (h.type !== eventType) return false;
+        if (!topic) return !h.topic;
+        return !h.topic || h.topic === topic;
+      });
 
       for (const handler of matchingHandlers) {
         try {
-          await controller[handler.method](event);
+          await handler.fn(event);
         } catch (error) {
           console.error(`Error in WebSocket handler ${handler.method}:`, error);
         }
       }
 
-      const subscriptions = Reflect.getMetadata('websocket:topic', controller.constructor) || [];
-
       if (eventType === 'message' && topic) {
-        const matchingSubs = subscriptions.filter((s: any) => s.topic === topic);
+        const matchingSubs = controller.topics.filter((s: any) => s.topic === topic);
 
         for (const sub of matchingSubs) {
           try {
-            await controller[sub.method](event);
+            await sub.fn(event);
           } catch (error) {
             console.error(`Error in subscription ${sub.method}:`, error);
           }
@@ -175,7 +174,12 @@ export class WebSocketServer {
   }
 
   public registerControllers(controllers: any[]) {
-    this.controllers = controllers;
+    this.controllers = controllers.map((controller) => {
+      if (controller.getWebSocketController) {
+        return controller.getWebSocketController();
+      }
+      return controller;
+    });
   }
 
   public subscribeToTopic(client: WebSocketClient, topic: string) {
@@ -225,8 +229,12 @@ export class WebSocketServer {
     });
 
     topicClients.forEach((clientId) => {
+      if (exclude && exclude.includes(clientId)) {
+        return;
+      }
+
       const client = this.clients.get(clientId);
-      if (client && exclude?.includes(client.id)) {
+      if (client) {
         client.socket.send(message);
       }
     });

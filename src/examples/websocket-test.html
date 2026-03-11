@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        max-width: 800px;
+      }
+      #log {
+        width: 100%;
+        height: 300px;
+        border: 1px solid #ccc;
+        overflow-y: scroll;
+        padding: 10px;
+        background: #f9f9f9;
+        margin: 10px 0;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 15px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      input[type='text'] {
+        padding: 8px;
+        width: 300px;
+        margin-right: 10px;
+      }
+      .sent {
+        color: blue;
+      }
+      .received {
+        color: green;
+      }
+      .system {
+        color: gray;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔌 WebSocket Test</h1>
+
+    <div>
+      <button id="connectBtn">🔗 Connect</button>
+      <button id="disconnectBtn" disabled>❌ Disconnect</button>
+      <span id="status" style="margin-left: 10px">⚪ Disconnected</span>
+    </div>
+
+    <div style="margin: 20px 0">
+      <button id="subscribeBtn" disabled>📌 Subscribe to Chat</button>
+      <button id="unsubscribeBtn" disabled>🚫 Unsubscribe</button>
+      <button id="pingBtn" disabled>🏓 Ping</button>
+    </div>
+
+    <div>
+      <input type="text" id="messageInput" placeholder="Type your message..." disabled />
+      <button id="sendBtn" disabled>💬 Send</button>
+    </div>
+
+    <h2>📋 Message Log</h2>
+    <div id="log"></div>
+
+    <script>
+      let socket = null;
+
+      // DOM элементы
+      const logDiv = document.getElementById('log');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const subscribeBtn = document.getElementById('subscribeBtn');
+      const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+      const pingBtn = document.getElementById('pingBtn');
+      const sendBtn = document.getElementById('sendBtn');
+      const messageInput = document.getElementById('messageInput');
+      const statusSpan = document.getElementById('status');
+
+      function logMessage(message, type = 'system') {
+        const p = document.createElement('p');
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+
+        if (type === 'sent') p.style.color = 'blue';
+        else if (type === 'received') p.style.color = 'green';
+        else p.style.color = 'gray';
+
+        logDiv.appendChild(p);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function setUIConnected(connected) {
+        connectBtn.disabled = connected;
+        disconnectBtn.disabled = !connected;
+        subscribeBtn.disabled = !connected;
+        unsubscribeBtn.disabled = !connected;
+        pingBtn.disabled = !connected;
+        sendBtn.disabled = !connected;
+        messageInput.disabled = !connected;
+
+        statusSpan.innerHTML = connected ? '🟢 Connected' : '🔴 Disconnected';
+      }
+
+      // 🔗 CONNECT
+      connectBtn.onclick = () => {
+        logMessage('Connecting to ws://localhost:3000/ws...', 'system');
+
+        try {
+          socket = new WebSocket('ws://localhost:3000/ws');
+
+          socket.onopen = () => {
+            logMessage('✅ Connected successfully!', 'system');
+            setUIConnected(true);
+          };
+
+          socket.onmessage = (event) => {
+            let data;
+            try {
+              data = JSON.parse(event.data);
+              logMessage(`📩 Received: ${JSON.stringify(data)}`, 'received');
+            } catch {
+              logMessage(`📩 Received: ${event.data}`, 'received');
+            }
+          };
+
+          socket.onclose = (event) => {
+            logMessage(`❌ Disconnected (code: ${event.code})`, 'system');
+            setUIConnected(false);
+            socket = null;
+          };
+
+          socket.onerror = (error) => {
+            logMessage(`⚠️ Error: ${error.message}`, 'system');
+          };
+        } catch (error) {
+          logMessage(`❌ Connection error: ${error.message}`, 'system');
+        }
+      };
+
+      // ❌ DISCONNECT
+      disconnectBtn.onclick = () => {
+        if (socket) {
+          socket.close();
+        }
+      };
+
+      // 📌 SUBSCRIBE
+      subscribeBtn.onclick = () => {
+        if (!socket) return;
+
+        const msg = {
+          type: 'subscribe',
+          data: { topic: 'chat' },
+        };
+
+        socket.send(JSON.stringify(msg));
+        logMessage(`📤 Sent: ${JSON.stringify(msg)}`, 'sent');
+      };
+
+      // 🚫 UNSUBSCRIBE
+      unsubscribeBtn.onclick = () => {
+        if (!socket) return;
+
+        const msg = {
+          type: 'unsubscribe',
+          data: { topic: 'chat' },
+        };
+
+        socket.send(JSON.stringify(msg));
+        logMessage(`📤 Sent: ${JSON.stringify(msg)}`, 'sent');
+      };
+
+      // 🏓 PING
+      pingBtn.onclick = () => {
+        if (!socket) return;
+
+        const msg = {
+          type: 'ping',
+          data: { time: Date.now() },
+        };
+
+        socket.send(JSON.stringify(msg));
+        logMessage(`📤 Sent: ${JSON.stringify(msg)}`, 'sent');
+      };
+
+      // 💬 SEND MESSAGE
+      sendBtn.onclick = () => {
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        const msg = {
+          type: 'topic_message',
+          topic: 'chat',
+          data: { text, from: 'test' },
+        };
+
+        socket.send(JSON.stringify(msg));
+        logMessage(`📤 Sent: ${JSON.stringify(msg)}`, 'sent');
+        messageInput.value = '';
+      };
+
+      // Enter key to send
+      messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !sendBtn.disabled) {
+          sendBtn.click();
+        }
+      });
+    </script>
+  </body>
+</html>

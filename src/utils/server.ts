@@ -1,11 +1,4 @@
-import {
-  CATCH,
-  INTECEPT,
-  SANITIZE,
-  SERVER_CONFIG_KEY,
-  SERVER_MODULES_KEY,
-  USE_MIDDLEWARE,
-} from '@constants';
+import { CATCH, INTECEPT, SANITIZE, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '@constants';
 import { ServerConfig } from '@types';
 import http from 'http';
 
@@ -14,7 +7,6 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
 
   if (configOrClass && typeof configOrClass === 'function') {
     const decoratorConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, configOrClass) || {};
-    const controllers = Reflect.getMetadata(SERVER_MODULES_KEY, configOrClass) || [];
     const errorHandler = Reflect.getMetadata(CATCH, configOrClass);
     const interceptors = Reflect.getMetadata(INTECEPT, configOrClass);
     const middlewares = Reflect.getMetadata(USE_MIDDLEWARE, configOrClass);
@@ -28,7 +20,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
       interceptors,
       middlewares: decoratorConfig.middlewares.concat(middlewares),
       cors: decoratorConfig.cors,
-      controllers: [...controllers, ...(decoratorConfig.controllers || [])],
+      controllers: decoratorConfig.controllers || [],
       sanitizers,
     };
   } else if (configOrClass && typeof configOrClass === 'object') {

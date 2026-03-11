@@ -1,6 +1,15 @@
 import { IsString } from 'class-validator';
 import * as Joi from 'joi';
-import { Body, Controller, GET, Multipart, Params, POST } from 'quantum-flow/core';
+import {
+  Body,
+  Controller,
+  GET,
+  InjectWS,
+  IWebSocketService,
+  Multipart,
+  Params,
+  POST,
+} from 'quantum-flow/core';
 import { Cors, Sanitize, Use } from 'quantum-flow/middlewares';
 
 class DTO {
@@ -31,7 +40,12 @@ export class UserMetadata {
     stripUnknown: true,
     type: 'body',
   })
-  async createMeta(@Multipart() mult: any, @Body(DTO) body: any, @Params('meta') params: any) {
+  async createMeta(
+    @InjectWS() ws: IWebSocketService,
+    @Multipart() mult: any,
+    @Body(DTO) body: any,
+    @Params('meta') params: any,
+  ) {
     return { body, params };
   }
 }

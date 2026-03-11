@@ -1,12 +1,12 @@
-import * as Joi from 'joi';
 import { Controller } from 'quantum-flow/core';
 import { Port, Server } from 'quantum-flow/http';
-import { Catch, Cors, Sanitize, Use } from 'quantum-flow/middlewares';
+import { Catch, Cors, Use } from 'quantum-flow/middlewares';
+import { Socket } from './controllers/socket';
 import { User } from './controllers/user';
 
 @Controller({
   prefix: 'api',
-  controllers: [User],
+  controllers: [User, Socket],
   middlewares: [function Global(req, res, next) {}],
 })
 @Cors({ origin: '*' })
@@ -16,20 +16,11 @@ import { User } from './controllers/user';
 @Catch(function GLOBALCATCH(err) {
   return { status: 400 };
 })
-@Sanitize({
-  schema: Joi.object({
-    name: Joi.string().trim().min(2).max(50).required(),
-  }),
-  action: 'both',
-  options: { abortEarly: false },
-  stripUnknown: true,
-  type: 'body',
-})
 export class Root {}
 
 @Server({
   controllers: [Root],
-  websocket: { enabled: true },
+  websocket: { enabled: true, path: '/ws' },
   interceptor: (data) => data,
   errorHandler: (err) => err,
   cors: { origin: '*' },
@@ -39,13 +30,4 @@ export class Root {}
 @Use(() => {})
 @Use([() => {}, () => {}])
 @Catch((err) => err)
-@Sanitize({
-  schema: Joi.object({
-    name: Joi.string().trim().min(2).max(50).required(),
-  }),
-  action: 'both',
-  options: { abortEarly: false },
-  stripUnknown: true,
-  type: 'headers',
-})
 export class App {}

@@ -1,4 +1,4 @@
-import { OK_STATUSES, STATISTIC } from '@constants';
+import { CONTROLLERS, OK_STATUSES, STATISTIC } from '@constants';
 import { AppRequest, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@types';
 import {
   collectRawBody,
@@ -27,9 +27,8 @@ export class HttpServer extends Socket {
     const app = http.createServer(this.requestHandler.bind(this));
 
     if (this.config.websocket?.enabled) {
-      this.wss = new WebSocketServer(app, {
-        path: this.config.websocket.path || '/',
-      });
+      this.wss = new WebSocketServer(app, { path: this.config.websocket.path });
+      this.wss.registerControllers(this.getAllControllers(this.config.controllers));
       WebSocketService.getInstance().initialize(this.wss);
     }
 
@@ -86,6 +85,20 @@ export class HttpServer extends Socket {
         reject(error);
       }
     });
+  }
+
+  private getAllControllers(controllers: any[] = []): any[] {
+    const result = [];
+    for (const ControllerClass of controllers || []) {
+      const instance = new ControllerClass();
+      result.push(instance);
+
+      const subControllers = Reflect.getMetadata(CONTROLLERS, ControllerClass.prototype) || [];
+
+      result.push(...this.getAllControllers(subControllers));
+    }
+
+    return result;
   }
 
   public async close(): Promise<void> {

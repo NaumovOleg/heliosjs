@@ -1,4 +1,4 @@
-import { SERVER_CONFIG_KEY, SERVER_MODULES_KEY } from '@constants';
+import { SERVER_CONFIG_KEY } from '@constants';
 import { ServerConfig } from '@types';
 
 export function Server(config: ServerConfig = {}) {
@@ -15,10 +15,6 @@ export function Server(config: ServerConfig = {}) {
     };
 
     Reflect.defineMetadata(SERVER_CONFIG_KEY, mergedConfig, target);
-
-    if (config.controllers) {
-      Reflect.defineMetadata(SERVER_MODULES_KEY, config.controllers, target);
-    }
 
     return target;
   };
