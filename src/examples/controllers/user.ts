@@ -4,7 +4,6 @@ import {
   Body,
   Controller,
   Headers,
-  InjectWS,
   IWebSocketService,
   Params,
   PUT,
@@ -15,6 +14,7 @@ import {
 } from 'quantum-flow/core';
 
 import { Cors, Status, Use } from 'quantum-flow/middlewares';
+import { InjectWS } from 'quantum-flow/ws';
 
 import * as Joi from 'joi';
 import { UserMetadata } from './userMetadata';

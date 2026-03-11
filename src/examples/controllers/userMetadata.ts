@@ -4,13 +4,13 @@ import {
   Body,
   Controller,
   GET,
-  InjectWS,
   IWebSocketService,
   Multipart,
   Params,
   POST,
 } from 'quantum-flow/core';
 import { Cors, Sanitize, Use } from 'quantum-flow/middlewares';
+import { InjectWS } from 'quantum-flow/ws';
 
 class DTO {
   @IsString()

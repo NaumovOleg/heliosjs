@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "yarn clean && tsc && resolve-tspaths",
+    "build": "yarn clean && tsc -p tsconfig.build.json && resolve-tspaths",
     "prepublishOnly": "yarn build",
     "dev": "nodemon --config ./nodemon.json",
     "link": "yarn link && cd ./examples && yarn link quantum-flow",
@@ -35,6 +35,11 @@
       "import": "./dist/middlewares/index.js",
       "require": "./dist/middlewares/index.js",
       "types": "./dist/middlewares/index.d.ts"
+    },
+    "./ws": {
+      "import": "./dist/ws/index.js",
+      "require": "./dist/ws/index.js",
+      "types": "./dist/ws/index.d.ts"
     }
   },
   "repository": {

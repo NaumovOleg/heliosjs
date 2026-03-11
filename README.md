@@ -21,6 +21,7 @@ You can use controllers and server functionality by importing controllers and cr
 - `quantum-flow/aws` - Main application source code AWS Lambda.
 - `quantum-flow/core` - Core framework components like Controller and Endpoint.
 - `quantum-flow/middlewares` - Core middlewares to use within the application.
+- `quantum-flow/ws` - Websocket decorators.
 
 ---
 
@@ -33,7 +34,6 @@ import {
   Body,
   Controller,
   Headers,
-  InjectWS,
   IWebSocketService,
   Params,
   PUT,
@@ -45,6 +45,7 @@ import {
 } from 'quantum-flow/core';
 import {IsString} from  'class-validator'
 import { Catch, Cors, Sanitize, Use } from 'quantum-flow/middlewares';
+import { InjectWS } from 'quantum-flow/ws';
 
 class UserDto {
   constructor() {}
@@ -168,17 +169,13 @@ export const handler = LambdaAdapter.createHandler(RootController);
 Enable WebSocket in the server configuration and register WebSocket controllers.
 
 ```typescript
+import { OnConnection, Subscribe, OnMessage } from 'quantum-flow/ws';
 @Controller('socket')
 export class Socket {
   @OnConnection()
   onConnection(event: WebSocketEvent) {
     // Send greeting ONLY to this client
-    event.client.socket.send(
-      JSON.stringify({
-        type: 'welcome',
-        data: { message: 'Welcome!' },
-      }),
-    );
+    event.client.socket.send(JSON.stringify({ type: 'welcome', data: { message: 'Welcome!' } }));
   }
 
   /**
@@ -198,14 +195,6 @@ export class Socket {
     }
 
     // That's it, the message will be sent to subscribers automatically!
-  }
-
-  /**
-   * 3. @Subscribe for another room
-   */
-  @Subscribe('news')
-  onNewsMessage(event: WebSocketEvent) {
-    // Automatic broadcast to all subscribed to 'news'
   }
 
   /**

@@ -2,13 +2,6 @@ import WebSocket from 'ws';
 
 export type WebSocketHandlerType = 'connection' | 'message' | 'close' | 'error';
 
-export interface WebSocketMessage {
-  type: string;
-  topic?: string;
-  data: any;
-  clientId?: string;
-}
-
 export interface WebSocketEvent {
   type: WebSocketHandlerType;
   client: WebSocketClient;

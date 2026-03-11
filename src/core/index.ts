@@ -21,5 +21,5 @@ export {
   WebSocketMessage,
 } from '@types';
 export * from './Controller';
+export * from './decorators';
 export * from './Endpoint';
-export * from './utils';
