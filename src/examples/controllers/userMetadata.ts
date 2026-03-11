@@ -1,20 +1,19 @@
+import { SanitizeXSS } from '@utils';
 import { IsString } from 'class-validator';
-import { Body, Controller, GET, Multipart, Params, POST } from 'quantum-flow/core';
+import { Body, Controller, CORS, GET, Multipart, Params, POST, Use } from 'quantum-flow/core';
 
 class DTO {
-  constructor() {}
+  @SanitizeXSS()
   @IsString()
-  meta: string;
+  name: string;
 }
 
 @Controller({
   prefix: 'metadata',
-  middlewares: [
-    (req) => {
-      return req;
-    },
-  ],
+  middlewares: [() => {}],
 })
+@Use([() => {}])
+@CORS({ origin: '*' })
 export class UserMetadata {
   @GET('/:meta')
   async getUserMetadata(@Params(DTO, 'meta') params: any) {
@@ -22,7 +21,7 @@ export class UserMetadata {
   }
 
   @POST('/:meta')
-  async createMeta(@Multipart() mult: any, @Body() body: any, @Params(DTO, 'meta') params: any) {
+  async createMeta(@Multipart() mult: any, @Body(DTO) body: any, @Params('meta') params: any) {
     return { body, params };
   }
 }

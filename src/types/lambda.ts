@@ -1,4 +1,5 @@
-import { APIGatewayProxyEvent, APIGatewayProxyEventV2, Context } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from 'aws-lambda';
+
 export interface LambdaFunctionUrlEvent {
   version: string;
   routeKey: string;
@@ -46,28 +47,12 @@ export interface NormalizedEvent {
 }
 
 export interface LambdaRequest {
-  method: string;
-  path: string;
-  headers: Record<string, string | string[]>;
-  query: Record<string, string | string[]>;
-  body: any;
-  params: Record<string, string>;
-  cookies: Record<string, string>;
-  context: Context;
-  isBase64Encoded: boolean;
-  requestId: string;
-  stage: string;
-  sourceIp: string;
-  userAgent: string;
-  url: URL;
-  event: NormalizedEvent;
-  _startTime: number;
-
-  routeInfo?: {
-    controller: any;
-    methodName: string;
-    pathParams: Record<string, string>;
-  };
+  event?: any;
+  context?: any;
+  requestId?: string;
+  stage?: string;
+  sourceIp?: string;
+  userAgent?: string;
 }
 
 export interface LambdaResponse {

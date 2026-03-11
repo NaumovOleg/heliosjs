@@ -9,6 +9,7 @@ import {
   OK_METADATA_KEY,
   OK_STATUSES,
   ROUTE_PREFIX,
+  USE_MIDDLEWARE,
 } from '@constants';
 import {
   AppRequest,
@@ -23,8 +24,9 @@ import {
   findRouteInController,
   getControllerMethods,
   handleCORS,
+  NextFN,
 } from '@utils';
-import { IncomingMessage, ServerResponse } from 'http';
+import { ServerResponse } from 'http';
 import 'reflect-metadata';
 
 /**
@@ -103,23 +105,21 @@ export function Controller(
       async getResponse(data: {
         controllerInstance: ControllerInstance;
         name: string;
-        payload: any;
         interceptors: InterceptorCB[];
-        request?: IncomingMessage;
-        response?: ServerResponse;
+        request: AppRequest;
+        response: ServerResponse;
       }) {
         try {
           let appResponse = await this.executeControllerMethod(
             data.controllerInstance,
             data.name,
-            data.payload,
             data.request,
             data.response,
           );
 
-          let status = appResponse.status ?? 200;
+          data.response.statusCode = appResponse.status ?? 200;
 
-          const isError = !OK_STATUSES.includes(status);
+          const isError = !OK_STATUSES.includes(data.response.statusCode);
 
           const interceptors = data.interceptors.reverse();
 
@@ -138,37 +138,40 @@ export function Controller(
           );
 
           if (methodOkStatus) {
-            !isError && (status = methodOkStatus);
+            !isError && (data.response.statusCode = methodOkStatus);
           } else {
             const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
-            !isError && classOkStatus && (status = classOkStatus);
+            !isError && classOkStatus && (data.response.statusCode = classOkStatus);
           }
 
-          return { status, data: appResponse };
+          return { status: data.response.statusCode, data: appResponse };
         } catch (err) {
           throw err;
         }
       }
-      handleRequest = async (
-        appRequest: AppRequest,
-        request?: IncomingMessage,
-        response?: ServerResponse,
-      ) => {
+      handleRequest = async (request: AppRequest, response: ServerResponse) => {
+        const middlewares = []
+          .concat(Reflect.getMetadata(MIDDLEWARES, proto))
+          .concat(Reflect.getMetadata(USE_MIDDLEWARE, constructor))
+          .filter((el) => !!el);
+
+        const cors = []
+          .concat(Reflect.getMetadata(CORS_METADATA, proto))
+          .concat(Reflect.getMetadata(CORS_METADATA, constructor))
+          .filter((el) => !!el);
+
         const context: RouteContext = {
           controllerInstance: this,
           controllerMeta: {
             routePrefix: Reflect.getMetadata(ROUTE_PREFIX, proto) || '',
-            middlewares: Reflect.getMetadata(MIDDLEWARES, proto) || [],
+            middlewares,
             interceptor: Reflect.getMetadata(INTERCEPTOR, proto),
             subControllers: Reflect.getMetadata(CONTROLLERS, proto) || [],
-            errorHandler: Reflect.getMetadata(CATCH, proto),
+            errorHandler: Reflect.getMetadata(CATCH, constructor),
             cors: Reflect.getMetadata(CORS_METADATA, proto),
           },
-          path: (appRequest.url.pathname ?? '').replace(/^\/+/g, ''),
-          method: appRequest.method.toUpperCase(),
-          appRequest,
-          request,
-          response,
+          path: (request.requestUrl.pathname ?? '').replace(/^\/+/g, ''),
+          method: request.method.toUpperCase(),
           middlewareChain: [],
           interceptorChain: [],
           corsChain: [Reflect.getMetadata(CORS_METADATA, proto)],
@@ -176,19 +179,28 @@ export function Controller(
           subPath: Reflect.getMetadata(ROUTE_PREFIX, proto) || '',
         };
 
-        const result = await this.routeWalker(context);
+        const result = await this.routeWalker(context, request, response);
         return result || { status: 404, message: 'Method Not Found' };
       };
 
-      async routeWalker(context: RouteContext): Promise<any> {
+      async routeWalker(
+        context: RouteContext,
+        request: AppRequest,
+        response: ServerResponse,
+      ): Promise<any> {
         const { controllerInstance, controllerMeta, path, method, subPath } = context;
 
         for (const SubController of controllerMeta.subControllers) {
           const subInstance = new SubController();
 
+          const middlewares = []
+            .concat(Reflect.getMetadata(MIDDLEWARES, SubController.prototype))
+            .concat(Reflect.getMetadata(USE_MIDDLEWARE, SubController))
+            .filter((el) => !!el);
+
           const subMeta = {
             routePrefix: Reflect.getMetadata(ROUTE_PREFIX, SubController.prototype) || '',
-            middlewares: Reflect.getMetadata(MIDDLEWARES, SubController.prototype) || [],
+            middlewares,
             interceptor: Reflect.getMetadata(INTERCEPTOR, SubController.prototype),
             errorHandler: Reflect.getMetadata(CATCH, SubController),
             subControllers: Reflect.getMetadata(CONTROLLERS, SubController.prototype) || [],
@@ -201,7 +213,7 @@ export function Controller(
             .replace(/\/+/g, '/');
 
           if (path.startsWith(fullSubPath)) {
-            const subResult = await this.routeWalker({
+            const walkerData = {
               ...context,
               subPath: fullSubPath,
               controllerInstance: subInstance,
@@ -215,7 +227,8 @@ export function Controller(
                 (el) => !!el,
               ),
               corsChain: [...context.corsChain, subMeta.cors].filter((el) => !!el),
-            });
+            };
+            const subResult = await this.routeWalker(walkerData, request, response);
 
             if (subResult && subResult.status !== 404) {
               return subResult;
@@ -227,15 +240,14 @@ export function Controller(
 
         if (routeMatch) {
           const { name, pathParams, methodMiddlewares, cors } = routeMatch;
-
-          let payload: AppRequest = { ...context.appRequest, params: pathParams };
+          Object.assign(request, { params: pathParams });
 
           const handledCors = context.corsChain
             .concat(cors ?? [])
             .flat()
             .reduce(
               (acc, conf) => {
-                const cors = handleCORS(payload, context.response, conf);
+                const cors = handleCORS(request, response, conf);
                 return {
                   permitted: acc.permitted && cors.permitted,
                   continue: acc.continue && cors.continue,
@@ -251,15 +263,10 @@ export function Controller(
             return { status: 204 };
           }
 
-          const allMiddlewares = [
-            ...context.middlewareChain,
-            ...controllerMeta.middlewares,
-            ...methodMiddlewares,
-          ];
+          const allMiddlewares = [...context.middlewareChain, ...controllerMeta.middlewares];
 
           for (const mw of allMiddlewares) {
-            const mwResult = await mw(payload, context.request, context.response);
-            payload = mwResult ?? payload;
+            await mw(request, response, NextFN);
           }
 
           let apiResponse = await this.getResponse({
@@ -268,9 +275,8 @@ export function Controller(
             ),
             controllerInstance,
             name,
-            payload,
-            response: context.response,
-            request: context.request,
+            response: response,
+            request: request,
           }).catch((err) => err);
 
           const isError = !OK_STATUSES.includes(apiResponse.status);

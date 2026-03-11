@@ -1,4 +1,4 @@
-import { CATCH, INTECEPT, SERVER_CONFIG_KEY, SERVER_MODULES_KEY } from '@constants';
+import { CATCH, INTECEPT, SERVER_CONFIG_KEY, SERVER_MODULES_KEY, USE_MIDDLEWARE } from '@constants';
 import { ServerConfig } from '@types';
 import http from 'http';
 
@@ -10,6 +10,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     const controllers = Reflect.getMetadata(SERVER_MODULES_KEY, configOrClass) || [];
     const errorHandler = Reflect.getMetadata(CATCH, configOrClass);
     const interceptors = Reflect.getMetadata(INTECEPT, configOrClass);
+    const middlewares = Reflect.getMetadata(USE_MIDDLEWARE, configOrClass);
 
     config = {
       port: 3000,
@@ -17,6 +18,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
       ...decoratorConfig,
       errorHandler: decoratorConfig.errorHandler ?? errorHandler,
       interceptors,
+      middlewares: decoratorConfig.middlewares.concat(middlewares),
       cors: decoratorConfig.cors,
       controllers: [...controllers, ...(decoratorConfig.controllers || [])],
     };

@@ -1,13 +1,39 @@
-import { AppRequest } from '@types';
-import { IncomingHttpHeaders } from 'http';
+import { ServerResponse } from 'http';
 
-export class Response {
-  headers: IncomingHttpHeaders;
-  constructor(request: AppRequest) {
-    this.headers = { ...request.headers };
+export class LResponse {
+  private _statusCode: number = 200;
+  private _headers: Record<string, string> = {};
+  private _body: any = null;
+
+  constructor(private originalResponse?: ServerResponse) {}
+
+  setHeader(name: string, value: string): void {
+    this._headers[name] = value;
+    if (this.originalResponse) {
+      this.originalResponse.setHeader(name, value);
+    }
   }
 
-  setHeader(header: string, value: string) {
-    this.headers[header] = value;
+  set statusCode(code: number) {
+    this._statusCode = code;
+    if (this.originalResponse) {
+      this.originalResponse.statusCode = code;
+    }
+  }
+
+  get statusCode(): number {
+    return this._statusCode;
+  }
+
+  get headers(): Record<string, string> {
+    return { ...this._headers };
+  }
+
+  send(): void {
+    throw `Lambda response doesn't have "send" method`;
+  }
+
+  get original(): ServerResponse | undefined {
+    return this.originalResponse;
   }
 }

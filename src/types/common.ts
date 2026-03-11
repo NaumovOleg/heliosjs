@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
-
-type P_Q = Record<string, string | undefined> | null | unknown;
+import { IncomingMessage, ServerResponse } from 'http';
+import { LambdaRequest } from './lambda';
+import { MultipartFile } from './multipart';
 
 export interface HttpError extends Error {
   statusCode?: number;
@@ -11,27 +11,21 @@ export interface HttpError extends Error {
   errors?: Array<{ message: string }>;
 }
 
-export type AppRequest<B = unknown, Q extends P_Q = unknown, P extends P_Q = unknown> = {
+export type AppRequest = {
+  requestUrl: URL;
   method: HTTP_METHODS;
-  url: URL;
   path?: string;
-  headers: IncomingHttpHeaders;
-  query?: Q;
-  params?: P;
-  body: B;
+  headers: Record<string, string | string[]>;
+  query?: Record<string, string | string[]>;
+  params?: Record<string, string>;
+  body: any;
   rawBody: Buffer<ArrayBufferLike>;
   isBase64Encoded?: boolean;
   cookies: Record<string, string>;
+  multipart?: Record<string, MultipartFile | MultipartFile[]>;
   _startTime: number;
-
-  // Lambda-specific
-  event?: any;
-  context?: any;
-  requestId?: string;
-  stage?: string;
-  sourceIp?: string;
-  userAgent?: string;
-};
+  end: () => any;
+} & (IncomingMessage | LambdaRequest);
 
 export type Router = (
   req: AppRequest,
@@ -49,20 +43,20 @@ export interface IController {
 }
 
 export type MiddlewareCB = (
-  appRequest: AppRequest,
-  request?: IncomingMessage,
-  response?: ServerResponse,
+  request: AppRequest,
+  response: ServerResponse,
+  next: (args?: any) => any,
 ) => void | Promise<AppRequest> | AppRequest;
 
 export type InterceptorCB = (
   data: any,
-  req?: IncomingMessage,
+  req?: AppRequest,
   res?: ServerResponse,
 ) => Promise<unknown> | unknown;
 
 export type ErrorCB = (
   error: HttpError,
-  req?: IncomingMessage,
+  req?: AppRequest,
   res?: ServerResponse,
 ) => Promise<ResponseWithStatus> | ResponseWithStatus;
 

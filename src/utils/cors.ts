@@ -1,12 +1,13 @@
 import { CORS_METADATA } from '@constants';
-import { CORSConfig } from '@types';
+import { AppRequest, CORSConfig } from '@types';
+import { getOrigin } from './headers';
 
 export function handleCORS(
-  req: any,
+  req: AppRequest,
   res: any,
   config: CORSConfig,
 ): { permitted: boolean; continue: boolean } {
-  const origin = req.headers.origin || req.headers.Origin || req.url.origin;
+  const origin = getOrigin(req);
 
   function isOriginAllowed(): boolean {
     if (!origin) return false;
@@ -14,6 +15,7 @@ export function handleCORS(
     if (typeof config.origin === 'string') return config.origin === origin;
     if (Array.isArray(config.origin)) return config.origin.includes(origin);
     if (typeof config.origin === 'function') return config.origin(origin);
+
     return false;
   }
 

@@ -4,9 +4,11 @@ import {
   MIDDLEWARES,
   PARAM_METADATA_KEY,
   TO_VALIDATE,
+  USE_MIDDLEWARE,
   WS_SERVICE_KEY,
 } from '@constants';
 import {
+  AppRequest,
   ControllerInstance,
   ControllerMethods,
   CORSConfig,
@@ -14,21 +16,21 @@ import {
   MiddlewareCB,
   ParamMetadata,
 } from '@types';
-import { IncomingMessage, ServerResponse } from 'http';
+import { ServerResponse } from 'http';
 import { WebSocketService } from '../app/http/websocket/WebsocketService';
 import { matchRoute } from './helper';
 import { MultipartProcessor } from './multipart';
 import { validate } from './validate';
 
-const getBodyAndMultipart = (payload: any) => {
-  let body = payload.body;
+const getBodyAndMultipart = (request: AppRequest) => {
+  let body = request.body;
   let multipart;
-  if (MultipartProcessor.isMultipart({ headers: payload.headers })) {
+  if (MultipartProcessor.isMultipart({ headers: request.headers })) {
     try {
       const { fields, files } = MultipartProcessor.parse({
-        body: payload.rawBody || payload.body,
-        headers: payload.headers,
-        isBase64Encoded: payload.isBase64Encoded,
+        body: request.rawBody || request.body,
+        headers: request.headers,
+        isBase64Encoded: request.isBase64Encoded,
       });
       multipart = files;
       body = fields;
@@ -44,9 +46,8 @@ const getBodyAndMultipart = (payload: any) => {
 export const executeControllerMethod = async (
   controller: ControllerInstance,
   propertyName: string,
-  payload: any,
-  request?: IncomingMessage,
-  response?: ServerResponse,
+  request: AppRequest,
+  response: ServerResponse,
 ) => {
   const fn = controller[propertyName];
   if (typeof fn !== 'function') return null;
@@ -56,12 +57,8 @@ export const executeControllerMethod = async (
   const methodMiddlewares: MiddlewareCB[] =
     Reflect.getMetadata(MIDDLEWARES, controller, propertyName) || [];
 
-  for (let i = 0; i < methodMiddlewares.length; i++) {
-    const middleware = methodMiddlewares[i];
-    const result = await middleware(payload);
-    if (result) {
-      payload = { ...payload, ...result };
-    }
+  for (let middleware of methodMiddlewares) {
+    await middleware(request, response, NextFN);
   }
 
   const prototype = Object.getPrototypeOf(controller);
@@ -69,10 +66,10 @@ export const executeControllerMethod = async (
     Reflect.getMetadata(PARAM_METADATA_KEY, prototype, propertyName) || [];
 
   if (paramMetadata.length === 0) {
-    return fn.call(controller, payload);
+    return fn.call(controller, request, response);
   }
 
-  const { body, multipart } = getBodyAndMultipart(payload);
+  const { body, multipart } = getBodyAndMultipart(request);
 
   const args: any[] = [];
 
@@ -95,13 +92,12 @@ export const executeControllerMethod = async (
       continue;
     }
 
-    let value = param.name ? payload[param.type]?.[param.name] : payload[param.type];
+    let value = param.name
+      ? request[param.type as keyof AppRequest]?.[param.name]
+      : request[param.type as keyof AppRequest];
 
     if (param.type === 'multipart') {
       value = multipart;
-    }
-    if (param.type === 'request') {
-      value = payload;
     }
     if (param.type === 'request') {
       value = request;
@@ -221,13 +217,17 @@ export const findRouteInController = (
 
     if (pathParams) {
       const priority = httpMethod === 'USE' ? 0 : Object.keys(pathParams).length > 0 ? 1 : 2;
+      const methodMiddlewares = []
+        .concat(Reflect.getMetadata(MIDDLEWARES, prototype))
+        .concat(Reflect.getMetadata(USE_MIDDLEWARE, prototype))
+        .filter((el) => !!el);
 
       matches.push({
         name,
         pathParams,
         priority,
         cors: Reflect.getMetadata(CORS_METADATA, prototype, name),
-        methodMiddlewares: Reflect.getMetadata(MIDDLEWARES, prototype, name) || [],
+        methodMiddlewares,
       });
     }
   }
@@ -235,4 +235,8 @@ export const findRouteInController = (
   matches.sort((a, b) => b.priority - a.priority);
 
   return matches[0] || null;
+};
+
+export const NextFN = (error: any) => {
+  if (error) throw { status: error.status ?? 500, message: error.message ?? error };
 };

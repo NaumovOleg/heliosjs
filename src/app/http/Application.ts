@@ -1,8 +1,9 @@
-import { OK_STATUSES, STATISTIC, STOPPED } from '@constants';
+import { OK_STATUSES, STATISTIC } from '@constants';
 import { AppRequest, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@types';
 import {
   collectRawBody,
   handleCORS,
+  NextFN,
   ParseBody,
   ParseCookies,
   ParseQuery,
@@ -98,7 +99,6 @@ export class HttpServer extends Socket {
           reject(err);
         } else {
           this.isRunning = false;
-          console.log(STOPPED);
           resolve();
         }
       });
@@ -112,43 +112,47 @@ export class HttpServer extends Socket {
     };
   }
 
-  private async requestHandler(req: IncomingMessage, res: ServerResponse) {
+  private async requestHandler(req: IncomingMessage, response: ServerResponse) {
     const startTime = Date.now();
+    let request: AppRequest;
 
     try {
-      const request = await this.createRequest(req);
+      request = await this.createRequest(req);
+    } catch (err: any) {
+      return this.sendResponse(response, { status: 500, message: err.message }, startTime);
+    }
 
+    try {
       let handledCors = { permitted: true, continue: true };
       if (this.config.cors) {
-        handledCors = handleCORS(request, res, this.config.cors);
+        handledCors = handleCORS(request!, response, this.config.cors);
       }
 
       if (!handledCors.permitted) {
         return this.sendResponse(
-          res,
+          response,
           { status: 403, message: 'CORS: Origin not allowed' },
           startTime,
         );
       }
       if (!handledCors.continue && handledCors.permitted) {
-        return this.sendResponse(res, { status: 204 }, startTime);
+        return this.sendResponse(response, { status: 204 }, startTime);
       }
 
-      let appRequest = await this.applyMiddlewares(request, req, res);
-
-      let data = await this.findController(appRequest, req, res);
+      await this.applyMiddlewares(request, response);
+      let data = await this.findController(request, response);
 
       const isError = !OK_STATUSES.includes(data.status);
       if (isError) {
-        return this.handleError(data, req, res, startTime);
+        return this.handleError(data, request, response, startTime);
       }
       if (this.config.interceptor) {
-        data = await this.config.interceptor(data, req, res);
+        data = await this.config.interceptor(data, request, response);
       }
 
-      return this.sendResponse(res, data, startTime);
+      return this.sendResponse(response, data, startTime);
     } catch (error) {
-      return this.handleError(error, req, res, startTime);
+      return this.handleError(error, request, response, startTime);
     }
   }
 
@@ -167,46 +171,36 @@ export class HttpServer extends Socket {
     const host = req.headers.host || 'localhost';
     const fullUrl = `${protocol}://${host}${req.url}`;
 
-    const whatwgUrl = new URL(fullUrl);
+    const requestUrl = new URL(fullUrl);
 
-    return {
+    const parsedRequest = {
       method: req.method?.toUpperCase() as HTTP_METHODS,
-      url: whatwgUrl,
+      requestUrl,
       headers: req.headers,
       body: parsedBody,
       rawBody: rawBody,
-      query: ParseQuery(whatwgUrl),
+      query: ParseQuery(requestUrl),
       params: {},
       cookies: ParseCookies(req),
       isBase64Encoded: false,
       _startTime: Date.now(),
     };
+
+    Object.assign(req, parsedRequest);
+    return req as AppRequest;
   }
 
-  private async applyMiddlewares(
-    appRequest: AppRequest,
-    request: IncomingMessage,
-    response: http.ServerResponse,
-  ): Promise<any> {
-    let processed = appRequest;
-
+  private async applyMiddlewares(request: AppRequest, response: http.ServerResponse): Promise<any> {
     for (const middleware of this.config.middlewares?.reverse() || []) {
-      const result = await middleware(processed, request, response);
-      processed = result ?? processed;
+      await middleware(request, response, NextFN);
     }
-
-    return processed;
   }
 
-  private async findController(
-    appRequest: AppRequest,
-    request: IncomingMessage,
-    response?: ServerResponse,
-  ): Promise<any> {
+  private async findController(request: AppRequest, response?: ServerResponse): Promise<any> {
     for (const ControllerClass of this.config.controllers || []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
-        const data = await instance.handleRequest(appRequest, request, response);
+        const data = await instance.handleRequest(request, response);
         if (data && data.status !== 404) {
           return data;
         }
@@ -215,7 +209,7 @@ export class HttpServer extends Socket {
 
     return {
       status: 404,
-      data: { message: `Route ${appRequest.method} ${appRequest.url.pathname} not found` },
+      data: { message: `Route ${request.method} ${request.requestUrl.pathname} not found` },
     };
   }
 
@@ -246,7 +240,7 @@ export class HttpServer extends Socket {
 
   private async handleError(
     error: any,
-    request: http.IncomingMessage,
+    request: AppRequest,
     response: http.ServerResponse,
     startTime: number,
   ): Promise<void> {

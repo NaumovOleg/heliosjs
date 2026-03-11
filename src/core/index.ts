@@ -14,6 +14,7 @@ export {
   InterceptorCB,
   IWebSocketService,
   MiddlewareCB,
+  MultipartFile,
   ResponseWithStatus,
   Router,
   WebSocketClient,

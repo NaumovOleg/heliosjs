@@ -14,6 +14,7 @@ import {
   Response,
   Status,
   USE,
+  Use,
 } from 'quantum-flow/core';
 
 import { UserMetadata } from './userMetadata';
@@ -27,16 +28,13 @@ class DTO {
 @Controller({
   prefix: 'user',
   controllers: [UserMetadata],
-  middlewares: [
-    (req) => {
-      return req;
-    },
-  ],
+  middlewares: [function UserGlobalUse() {}],
   interceptor: (data, req, res) => {
     return { data, intercepted: true };
   },
 })
 @CORS({ origin: '*' })
+@Use(() => {})
 export class User {
   @Status(201)
   @PUT(':id')

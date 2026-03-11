@@ -1,5 +1,4 @@
-import { IncomingMessage, ServerResponse } from 'http';
-import { AppRequest, ErrorCB, HTTP_METHODS, InterceptorCB, MiddlewareCB } from './common';
+import { ErrorCB, HTTP_METHODS, InterceptorCB, MiddlewareCB } from './common';
 import { CORSConfig } from './cors';
 
 export type ControllerClass = { new (...args: any[]): any };
@@ -33,9 +32,6 @@ export type RouteContext = {
   controllerMeta: ControllerMetadata;
   path: string;
   method: string;
-  appRequest: AppRequest;
-  request?: IncomingMessage;
-  response?: ServerResponse;
   middlewareChain: MiddlewareCB[];
   interceptorChain: InterceptorCB[];
   corsChain: CORSConfig[];

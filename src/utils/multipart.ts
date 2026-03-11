@@ -1,14 +1,6 @@
 // utils/MultipartProcessor.ts
+import { MultipartFile } from '@types';
 import * as multipart from 'parse-multipart-data';
-
-export interface MultipartFile {
-  fieldname: string;
-  filename: string;
-  contentType: string;
-  data: Buffer;
-  size: number;
-  encoding?: string;
-}
 
 export class MultipartProcessor {
   static parse(request: any): {

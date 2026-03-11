@@ -63,7 +63,7 @@ class UserDto {
 @Catch((err) => ({ status: 500, err }))
 export class User {
   @Status(201)
-  @PUT(':id',[...middlewares])
+  @PUT(':id',[(req, res)=>{} , ...middlewares])
   @CORS({ origin: '*' })
   async createUser(
     @Body(UserDto) body: UserDto,
@@ -87,7 +87,7 @@ export class User {
   prefix: 'api',
   controllers: [UserController, SocketController],
   middelwares: [...middlewares],
-  interceptor: (parsedRequest, httpRequest, httpResponse) => parsedRequest,
+  interceptor: (data, req, res) => data,
 })
 @Catch((error) => ({ status: 400, error }))
 class RootController {}
@@ -239,6 +239,7 @@ export class Socket {
 ### Use
 
 Class decorator to add global middlewares to the server.
+Should be used only with @Server decorator
 
 ```typescript
 @Use(middleware)

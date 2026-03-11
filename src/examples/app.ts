@@ -4,8 +4,18 @@ import 'reflect-metadata';
 
 import { User } from './controllers/user';
 
-@Controller({ prefix: 'api', controllers: [User] })
+@Controller({
+  prefix: 'api',
+  controllers: [User],
+  middlewares: [function Global(req, res, next) {}],
+})
 @CORS({ origin: '*' })
+@Use(function Global1(req, res, next) {
+  return next();
+})
+@Catch(function GLOBALCATCH(err) {
+  return { status: 400 };
+})
 export class Root {}
 
 @Server({
@@ -14,13 +24,10 @@ export class Root {}
   interceptor: (data) => data,
   errorHandler: (err) => err,
   cors: { origin: '*' },
+  middlewares: [() => {}, () => {}],
 })
 @Port(3000)
-@Use((data) => {
-  return data;
-})
-@Use((data) => {
-  return data;
-})
+@Use(() => {})
+@Use([() => {}, () => {}])
 @Catch((err) => err)
 export class App {}
