@@ -25,8 +25,7 @@ export function Endpoint(method: HTTP_METHODS, pathPattern?: string, middlewares
     }
 
     if (method && pathPattern) {
-      Reflect.defineMetadata(ENDPOINT, [method, pathPattern], target, propertyKey);
-      Reflect.defineMetadata('middlewares', middlewares || [], target, propertyKey);
+      Reflect.defineMetadata(ENDPOINT, [method, pathPattern, middlewares], target, propertyKey);
     }
 
     INCREMENT_STATISTIC('routes');

@@ -30,6 +30,11 @@
       "import": "./dist/app/aws/index.js",
       "require": "./dist/app/aws/index.js",
       "types": "./dist/app/aws/index.d.ts"
+    },
+    "./middlewares": {
+      "import": "./dist/middlewares/index.js",
+      "require": "./dist/middlewares/index.js",
+      "types": "./dist/middlewares/index.d.ts"
     }
   },
   "repository": {
@@ -51,11 +56,10 @@
   ],
   "author": "Naumov Oleh",
   "dependencies": {
-    "@types/cors": "^2.8.19",
     "aws-lambda": "^1.0.7",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
-    "cors": "^2.8.6",
+    "joi": "^18.0.2",
     "parse-multipart-data": "^1.5.0",
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",

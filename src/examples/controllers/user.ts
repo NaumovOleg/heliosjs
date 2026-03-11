@@ -3,7 +3,6 @@ import { IsString } from 'class-validator';
 import {
   Body,
   Controller,
-  CORS,
   Headers,
   InjectWS,
   IWebSocketService,
@@ -12,12 +11,16 @@ import {
   Query,
   Request,
   Response,
-  Status,
   USE,
-  Use,
 } from 'quantum-flow/core';
 
+import { Cors, Status, Use } from 'quantum-flow/middlewares';
+
+import * as Joi from 'joi';
 import { UserMetadata } from './userMetadata';
+const params = Joi.object({
+  meta: Joi.string().trim().min(2).max(50).required(),
+});
 
 class DTO {
   constructor() {}
@@ -33,8 +36,8 @@ class DTO {
     return { data, intercepted: true };
   },
 })
-@CORS({ origin: '*' })
-@Use(() => {})
+@Cors({ origin: '*' })
+@Use(function s1() {})
 export class User {
   @Status(201)
   @PUT(':id')

@@ -1,7 +1,7 @@
 import { CORS_METADATA } from '@constants';
 import { CORSConfig, HTTP_METHODS } from '@types';
 
-export function CORS(config: CORSConfig = {}) {
+export function Cors(config: CORSConfig = {}) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
     const defaultConfig: CORSConfig = {
       origin: '*',

@@ -1,7 +1,7 @@
-import { Catch, Controller, CORS, Use } from 'quantum-flow/core';
+import * as Joi from 'joi';
+import { Controller } from 'quantum-flow/core';
 import { Port, Server } from 'quantum-flow/http';
-import 'reflect-metadata';
-
+import { Catch, Cors, Sanitize, Use } from 'quantum-flow/middlewares';
 import { User } from './controllers/user';
 
 @Controller({
@@ -9,12 +9,21 @@ import { User } from './controllers/user';
   controllers: [User],
   middlewares: [function Global(req, res, next) {}],
 })
-@CORS({ origin: '*' })
+@Cors({ origin: '*' })
 @Use(function Global1(req, res, next) {
   return next();
 })
 @Catch(function GLOBALCATCH(err) {
   return { status: 400 };
+})
+@Sanitize({
+  schema: Joi.object({
+    name: Joi.string().trim().min(2).max(50).required(),
+  }),
+  action: 'both',
+  options: { abortEarly: false },
+  stripUnknown: true,
+  type: 'body',
 })
 export class Root {}
 
@@ -30,4 +39,13 @@ export class Root {}
 @Use(() => {})
 @Use([() => {}, () => {}])
 @Catch((err) => err)
+@Sanitize({
+  schema: Joi.object({
+    name: Joi.string().trim().min(2).max(50).required(),
+  }),
+  action: 'both',
+  options: { abortEarly: false },
+  stripUnknown: true,
+  type: 'headers',
+})
 export class App {}

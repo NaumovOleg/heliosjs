@@ -17,6 +17,7 @@ export const WS_TOPIC_KEY = 'websocket:topic';
 export const WS_SERVICE_KEY = 'websocket:service';
 export const INTECEPT = 'server:intercept';
 export const CATCH = 'server:catch';
+export const SANITIZE = 'action:sanitize';
 
 export const STOPPED = `
 ╔════════════════════════════════════════╗

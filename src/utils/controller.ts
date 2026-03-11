@@ -2,9 +2,11 @@ import {
   CORS_METADATA,
   ENDPOINT,
   MIDDLEWARES,
+  OK_METADATA_KEY,
+  OK_STATUSES,
   PARAM_METADATA_KEY,
+  SANITIZE,
   TO_VALIDATE,
-  USE_MIDDLEWARE,
   WS_SERVICE_KEY,
 } from '@constants';
 import {
@@ -13,13 +15,16 @@ import {
   ControllerMethods,
   CORSConfig,
   HTTP_METHODS,
+  InterceptorCB,
   MiddlewareCB,
   ParamMetadata,
+  SanitizerConfig,
 } from '@types';
 import { ServerResponse } from 'http';
 import { WebSocketService } from '../app/http/websocket/WebsocketService';
 import { matchRoute } from './helper';
 import { MultipartProcessor } from './multipart';
+import { sanitizeRequest } from './sanitize';
 import { validate } from './validate';
 
 const getBodyAndMultipart = (request: AppRequest) => {
@@ -181,8 +186,9 @@ export const findRouteInController = (
     name: string;
     pathParams: Record<string, string>;
     priority: number;
-    methodMiddlewares: MiddlewareCB[];
+    middlewares: MiddlewareCB[];
     cors?: CORSConfig;
+    sanitizers: SanitizerConfig[];
   }> = [];
 
   for (const name of propertyNames) {
@@ -198,9 +204,10 @@ export const findRouteInController = (
       continue;
 
     const endpointMeta = Reflect.getMetadata(ENDPOINT, prototype, name) || [];
+    const sanitizers = Reflect.getMetadata(SANITIZE, prototype, name) ?? [];
     if (endpointMeta.length === 0) continue;
 
-    const [httpMethod, routePattern] = endpointMeta;
+    const [httpMethod, routePattern, middlewares] = endpointMeta;
 
     if (httpMethod !== method && httpMethod !== 'USE') {
       continue;
@@ -217,17 +224,14 @@ export const findRouteInController = (
 
     if (pathParams) {
       const priority = httpMethod === 'USE' ? 0 : Object.keys(pathParams).length > 0 ? 1 : 2;
-      const methodMiddlewares = []
-        .concat(Reflect.getMetadata(MIDDLEWARES, prototype))
-        .concat(Reflect.getMetadata(USE_MIDDLEWARE, prototype))
-        .filter((el) => !!el);
 
       matches.push({
         name,
         pathParams,
         priority,
         cors: Reflect.getMetadata(CORS_METADATA, prototype, name),
-        methodMiddlewares,
+        middlewares,
+        sanitizers,
       });
     }
   }
@@ -239,4 +243,73 @@ export const findRouteInController = (
 
 export const NextFN = (error: any) => {
   if (error) throw { status: error.status ?? 500, message: error.message ?? error };
+};
+
+export const getResponse = async (data: {
+  controllerInstance: ControllerInstance;
+  name: string;
+  interceptors: InterceptorCB[];
+  request: AppRequest;
+  response: ServerResponse;
+}) => {
+  try {
+    let appResponse = await executeControllerMethod(
+      data.controllerInstance,
+      data.name,
+      data.request,
+      data.response,
+    );
+
+    data.response.statusCode = appResponse.status ?? 200;
+
+    const isError = !OK_STATUSES.includes(data.response.statusCode);
+
+    const interceptors = data.interceptors.reverse();
+
+    for (let index = 0; index < interceptors?.length && !isError; index++) {
+      const interceptor = interceptors[index];
+      appResponse = await interceptor(appResponse, data.request, data.response);
+    }
+
+    const propertyName = data.name;
+    const prototype = Object.getPrototypeOf(data.controllerInstance);
+
+    const methodOkStatus = Reflect.getMetadata(
+      OK_METADATA_KEY,
+      data.controllerInstance,
+      propertyName,
+    );
+
+    if (methodOkStatus) {
+      !isError && (data.response.statusCode = methodOkStatus);
+    } else {
+      const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
+      !isError && classOkStatus && (data.response.statusCode = classOkStatus);
+    }
+
+    return { status: data.response.statusCode, data: appResponse };
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const applyMiddlewaresVsSanitizers = async (
+  request: AppRequest,
+  response: ServerResponse,
+  functions: {
+    sanitizers: SanitizerConfig[][];
+    middlewares: MiddlewareCB[][];
+  },
+) => {
+  const length = Math.max(functions.sanitizers.length, functions.middlewares.length);
+
+  for (let i = 0; i < length; i++) {
+    const mws = functions.middlewares[i] ?? [];
+    const sntzs = functions.sanitizers[i] ?? [];
+
+    sanitizeRequest(request, sntzs);
+    for (let middleware of mws) {
+      await middleware(request, response, NextFN);
+    }
+  }
 };

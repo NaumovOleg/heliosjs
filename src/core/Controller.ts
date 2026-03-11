@@ -6,25 +6,19 @@ import {
   INCREMENT_STATISTIC,
   INTERCEPTOR,
   MIDDLEWARES,
-  OK_METADATA_KEY,
   OK_STATUSES,
   ROUTE_PREFIX,
+  SANITIZE,
   USE_MIDDLEWARE,
 } from '@constants';
+import { AppRequest, ControllerClass, ControllerConfig, InterceptorCB, RouteContext } from '@types';
 import {
-  AppRequest,
-  ControllerClass,
-  ControllerConfig,
-  ControllerInstance,
-  InterceptorCB,
-  RouteContext,
-} from '@types';
-import {
+  applyMiddlewaresVsSanitizers,
   executeControllerMethod,
   findRouteInController,
   getControllerMethods,
+  getResponse,
   handleCORS,
-  NextFN,
 } from '@utils';
 import { ServerResponse } from 'http';
 import 'reflect-metadata';
@@ -102,62 +96,10 @@ export function Controller(
         super(...args);
       }
 
-      async getResponse(data: {
-        controllerInstance: ControllerInstance;
-        name: string;
-        interceptors: InterceptorCB[];
-        request: AppRequest;
-        response: ServerResponse;
-      }) {
-        try {
-          let appResponse = await this.executeControllerMethod(
-            data.controllerInstance,
-            data.name,
-            data.request,
-            data.response,
-          );
-
-          data.response.statusCode = appResponse.status ?? 200;
-
-          const isError = !OK_STATUSES.includes(data.response.statusCode);
-
-          const interceptors = data.interceptors.reverse();
-
-          for (let index = 0; index < interceptors?.length && !isError; index++) {
-            const interceptor = interceptors[index];
-            appResponse = await interceptor(appResponse, data.request, data.response);
-          }
-
-          const propertyName = data.name;
-          const prototype = Object.getPrototypeOf(data.controllerInstance);
-
-          const methodOkStatus = Reflect.getMetadata(
-            OK_METADATA_KEY,
-            data.controllerInstance,
-            propertyName,
-          );
-
-          if (methodOkStatus) {
-            !isError && (data.response.statusCode = methodOkStatus);
-          } else {
-            const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
-            !isError && classOkStatus && (data.response.statusCode = classOkStatus);
-          }
-
-          return { status: data.response.statusCode, data: appResponse };
-        } catch (err) {
-          throw err;
-        }
-      }
       handleRequest = async (request: AppRequest, response: ServerResponse) => {
         const middlewares = []
           .concat(Reflect.getMetadata(MIDDLEWARES, proto))
           .concat(Reflect.getMetadata(USE_MIDDLEWARE, constructor))
-          .filter((el) => !!el);
-
-        const cors = []
-          .concat(Reflect.getMetadata(CORS_METADATA, proto))
-          .concat(Reflect.getMetadata(CORS_METADATA, constructor))
           .filter((el) => !!el);
 
         const context: RouteContext = {
@@ -169,11 +111,13 @@ export function Controller(
             subControllers: Reflect.getMetadata(CONTROLLERS, proto) || [],
             errorHandler: Reflect.getMetadata(CATCH, constructor),
             cors: Reflect.getMetadata(CORS_METADATA, proto),
+            sanitizers: Reflect.getMetadata(SANITIZE, proto) || [],
           },
           path: (request.requestUrl.pathname ?? '').replace(/^\/+/g, ''),
           method: request.method.toUpperCase(),
           middlewareChain: [],
           interceptorChain: [],
+          sanitizersChain: [],
           corsChain: [Reflect.getMetadata(CORS_METADATA, proto)],
           errorHandlerChain: [Reflect.getMetadata(CATCH, proto)],
           subPath: Reflect.getMetadata(ROUTE_PREFIX, proto) || '',
@@ -198,6 +142,11 @@ export function Controller(
             .concat(Reflect.getMetadata(USE_MIDDLEWARE, SubController))
             .filter((el) => !!el);
 
+          const sanitizers = []
+            .concat(Reflect.getMetadata(SANITIZE, SubController.prototype))
+            .concat(Reflect.getMetadata(SANITIZE, SubController))
+            .filter((el) => !!el);
+
           const subMeta = {
             routePrefix: Reflect.getMetadata(ROUTE_PREFIX, SubController.prototype) || '',
             middlewares,
@@ -205,6 +154,7 @@ export function Controller(
             errorHandler: Reflect.getMetadata(CATCH, SubController),
             subControllers: Reflect.getMetadata(CONTROLLERS, SubController.prototype) || [],
             cors: Reflect.getMetadata(CORS_METADATA, SubController.prototype) || [],
+            sanitizers,
           };
 
           const fullSubPath = [subPath, subMeta.routePrefix]
@@ -220,6 +170,7 @@ export function Controller(
               controllerMeta: subMeta,
               path,
               middlewareChain: [...context.middlewareChain, ...controllerMeta.middlewares],
+              sanitizersChain: [...context.sanitizersChain, ...controllerMeta.sanitizers],
               errorHandlerChain: [...context.errorHandlerChain, subMeta.errorHandler].filter(
                 (el) => !!el,
               ),
@@ -238,56 +189,74 @@ export function Controller(
 
         const routeMatch = findRouteInController(controllerInstance, subPath, path, method);
 
-        if (routeMatch) {
-          const { name, pathParams, methodMiddlewares, cors } = routeMatch;
-          Object.assign(request, { params: pathParams });
+        try {
+          if (routeMatch) {
+            const { name, pathParams, middlewares, cors, sanitizers } = routeMatch;
+            Object.assign(request, { params: pathParams });
 
-          const handledCors = context.corsChain
-            .concat(cors ?? [])
-            .flat()
-            .reduce(
-              (acc, conf) => {
-                const cors = handleCORS(request, response, conf);
-                return {
-                  permitted: acc.permitted && cors.permitted,
-                  continue: acc.continue && cors.continue,
-                };
-              },
-              { permitted: true, continue: true },
-            );
+            const handledCors = context.corsChain
+              .concat(cors ?? [])
+              .flat()
+              .reduce(
+                (acc, conf) => {
+                  const cors = handleCORS(request, response, conf);
+                  return {
+                    permitted: acc.permitted && cors.permitted,
+                    continue: acc.continue && cors.continue,
+                  };
+                },
+                { permitted: true, continue: true },
+              );
 
-          if (!handledCors.permitted) {
-            return { status: 403, message: 'CORS: Origin not allowed' };
-          }
-          if (!handledCors.continue && handledCors.permitted) {
-            return { status: 204 };
-          }
-
-          const allMiddlewares = [...context.middlewareChain, ...controllerMeta.middlewares];
-
-          for (const mw of allMiddlewares) {
-            await mw(request, response, NextFN);
-          }
-
-          let apiResponse = await this.getResponse({
-            interceptors: [...context.interceptorChain, controllerMeta.interceptor].filter(
-              (el) => !!el,
-            ),
-            controllerInstance,
-            name,
-            response: response,
-            request: request,
-          }).catch((err) => err);
-
-          const isError = !OK_STATUSES.includes(apiResponse.status);
-
-          if (isError) {
-            for (const handler of context.errorHandlerChain?.reverse() || []) {
-              apiResponse = handler(apiResponse);
+            if (!handledCors.permitted) {
+              return { status: 403, message: 'Cors: Origin not allowed' };
             }
-          }
+            if (!handledCors.continue && handledCors.permitted) {
+              return { status: 204 };
+            }
 
-          return apiResponse;
+            const controllerMiddlewares = [
+              ...context.middlewareChain,
+              ...controllerMeta.middlewares,
+            ];
+
+            const controllerSanitizers = [
+              ...context.sanitizersChain,
+              ...controllerMeta.sanitizers,
+            ].filter((el) => !!el);
+
+            await applyMiddlewaresVsSanitizers(request, response, {
+              sanitizers: [controllerSanitizers, sanitizers],
+              middlewares: [controllerMiddlewares, middlewares],
+            });
+
+            let apiResponse = await getResponse({
+              interceptors: [...context.interceptorChain, controllerMeta.interceptor].filter(
+                (el) => !!el,
+              ),
+              controllerInstance,
+              name,
+              response: response,
+              request: request,
+            }).catch((err) => err);
+
+            const isError = !OK_STATUSES.includes(apiResponse.status);
+
+            if (isError) {
+              for (const handler of context.errorHandlerChain?.reverse() || []) {
+                apiResponse = handler(apiResponse, request, response);
+              }
+            }
+
+            return apiResponse;
+          }
+        } catch (errror: any) {
+          let data = { status: 500, ...errror };
+          for (const handler of context.errorHandlerChain?.reverse() || []) {
+            const res = await handler(errror, request, response);
+            Object.assign(data, res);
+          }
+          return data;
         }
 
         return null;

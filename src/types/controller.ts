@@ -1,5 +1,6 @@
 import { ErrorCB, HTTP_METHODS, InterceptorCB, MiddlewareCB } from './common';
 import { CORSConfig } from './cors';
+import { SanitizerConfig } from './sanitize';
 
 export type ControllerClass = { new (...args: any[]): any };
 export type ControllerInstance = InstanceType<ControllerClass>;
@@ -18,6 +19,7 @@ export type ControllerMetadata = {
   subControllers: ControllerClass[];
   errorHandler?: ErrorCB;
   cors?: CORSConfig;
+  sanitizers: SanitizerConfig[];
 };
 
 export interface ControllerConfig {
@@ -37,4 +39,5 @@ export type RouteContext = {
   corsChain: CORSConfig[];
   errorHandlerChain: ErrorCB[];
   subPath: string;
+  sanitizersChain: SanitizerConfig[];
 };

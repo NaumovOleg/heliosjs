@@ -8,6 +8,7 @@ import {
   ParseCookies,
   ParseQuery,
   resolveConfig,
+  sanitizeRequest,
 } from '@utils';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { Socket } from './Socket';
@@ -139,7 +140,7 @@ export class HttpServer extends Socket {
         return this.sendResponse(response, { status: 204 }, startTime);
       }
 
-      await this.applyMiddlewares(request, response);
+      await this.beforeRequest(request, response);
       let data = await this.findController(request, response);
 
       const isError = !OK_STATUSES.includes(data.status);
@@ -190,7 +191,9 @@ export class HttpServer extends Socket {
     return req as AppRequest;
   }
 
-  private async applyMiddlewares(request: AppRequest, response: http.ServerResponse): Promise<any> {
+  private async beforeRequest(request: AppRequest, response: http.ServerResponse): Promise<any> {
+    sanitizeRequest(request, this.config.sanitizers ?? []);
+
     for (const middleware of this.config.middlewares?.reverse() || []) {
       await middleware(request, response, NextFN);
     }

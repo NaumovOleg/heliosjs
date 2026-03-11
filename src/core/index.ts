@@ -16,7 +16,6 @@ export {
   MiddlewareCB,
   MultipartFile,
   ResponseWithStatus,
-  Router,
   WebSocketClient,
   WebSocketEvent,
   WebSocketMessage,

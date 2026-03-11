@@ -28,7 +28,7 @@ export class LambdaAdapter {
 
         if (!handledCors.permitted) {
           return this.toLambdaResponse(
-            { status: 403, message: 'CORS: Origin not allowed' },
+            { status: 403, message: 'Cors: Origin not allowed' },
             request,
             response,
             eventType,
@@ -85,14 +85,14 @@ export class LambdaAdapter {
 
     const body = JSON.stringify({
       success: statusCode < 400,
-      data: data.data,
+      data: data.data ?? data.error,
       timestamp: new Date().toISOString(),
     });
 
     const commonResponse = {
       statusCode,
       headers,
-      body: data.data,
+      body: data.data ?? data.error,
       timestamp: new Date().toISOString(),
     };
 

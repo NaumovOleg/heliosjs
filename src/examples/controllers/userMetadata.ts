@@ -1,26 +1,36 @@
-import { SanitizeXSS } from '@utils';
 import { IsString } from 'class-validator';
-import { Body, Controller, CORS, GET, Multipart, Params, POST, Use } from 'quantum-flow/core';
+import * as Joi from 'joi';
+import { Body, Controller, GET, Multipart, Params, POST } from 'quantum-flow/core';
+import { Cors, Sanitize, Use } from 'quantum-flow/middlewares';
 
 class DTO {
-  @SanitizeXSS()
   @IsString()
   name: string;
 }
+const userSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(50).required(),
+});
 
 @Controller({
   prefix: 'metadata',
-  middlewares: [() => {}],
+  middlewares: [function s2() {}],
 })
-@Use([() => {}])
-@CORS({ origin: '*' })
+@Use([function s3() {}])
+@Cors({ origin: '*' })
 export class UserMetadata {
   @GET('/:meta')
   async getUserMetadata(@Params(DTO, 'meta') params: any) {
     return params;
   }
 
-  @POST('/:meta')
+  @POST('/:meta', [function s4() {}])
+  @Sanitize({
+    schema: userSchema,
+    action: 'both',
+    options: { abortEarly: false },
+    stripUnknown: true,
+    type: 'body',
+  })
   async createMeta(@Multipart() mult: any, @Body(DTO) body: any, @Params('meta') params: any) {
     return { body, params };
   }

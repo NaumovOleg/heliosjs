@@ -20,6 +20,7 @@ You can use controllers and server functionality by importing controllers and cr
 - `quantum-flow/http` - Main application source code for HTTP servers.
 - `quantum-flow/aws` - Main application source code AWS Lambda.
 - `quantum-flow/core` - Core framework components like Controller and Endpoint.
+- `quantum-flow/middlewares` - Core middlewares to use within the application.
 
 ---
 
@@ -30,7 +31,6 @@ Use the `@Controller` decorator to define controllers with options such as prefi
 ```typescript
 import {
   Body,
-  Catch,
   Controller,
   Headers,
   InjectWS,
@@ -42,9 +42,9 @@ import {
   Response,
   Status,
   USE,
-  CORS
 } from 'quantum-flow/core';
 import {IsString} from  'class-validator'
+import { Catch, Cors, Sanitize, Use } from 'quantum-flow/middlewares';
 
 class UserDto {
   constructor() {}
@@ -55,16 +55,24 @@ class UserDto {
 @Controller({
   prefix: 'user',
   controllers: [UserMetadata, ...],
-  interceptor: (data, req, res) => {
-    return { data, intercepted: true };
-  },
+  interceptor: (data, req, res) => data,
 })
-@CORS({ origin: '*' })
+@Cors({ origin: '*' })
 @Catch((err) => ({ status: 500, err }))
+@Use(()=>{})
+@Sanitize({
+  schema: Joi.object({
+    name: Joi.string().trim().min(2).max(50).required(),
+  }),
+  action: 'both',
+  options: { abortEarly: false },
+  stripUnknown: true,
+  type: 'body',
+})
 export class User {
   @Status(201)
   @PUT(':id',[(req, res)=>{} , ...middlewares])
-  @CORS({ origin: '*' })
+  @Cors({ origin: '*' })
   async createUser(
     @Body(UserDto) body: UserDto,
     @Query() query: any,
@@ -104,7 +112,6 @@ import { Server, Port, Host, Use, Catch, HttpServer } from 'quantum-flow/http';
 @Port(3000)
 @Host('localhost')
 @Use((data) => data)
-@Use((data) => data)
 @Catch((error) => ({ status: 400, error }))
 class App {}
 
@@ -118,7 +125,8 @@ server.listen().catch(console.error);
 - Use `@Use` to apply middlewares.
 - Use `@Catch` to handle errors.
 - Use `@Port` and `@Host` to configure server port and host.
-- Use `@CORS` to configure cors.
+- Use `@Cors` to configure cors.
+- Use `@Sanitize` to apply sanitization to reqest.
 
 ## Request decorators
 

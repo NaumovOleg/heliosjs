@@ -4,4 +4,5 @@ export * from './cors';
 export * from './http';
 export * from './lambda';
 export * from './multipart';
+export * from './sanitize';
 export * from './websocket';
