@@ -9,11 +9,20 @@ import {
   OK_STATUSES,
   ROUTE_PREFIX,
   SANITIZE,
+  SSE_METADATA_KEY,
   USE_MIDDLEWARE,
   WS_HANDLER,
   WS_TOPIC_KEY,
 } from '@constants';
-import { AppRequest, ControllerClass, ControllerConfig, InterceptorCB, RouteContext } from '@types';
+import {
+  AppRequest,
+  ControllerClass,
+  ControllerConfig,
+  InterceptorCB,
+  RouteContext,
+  SeeControllerHandlers,
+  WsControllerHandlers,
+} from '@types';
 import {
   applyMiddlewaresVsSanitizers,
   executeControllerMethod,
@@ -92,10 +101,14 @@ export function Controller(
     }
 
     return class extends constructor {
+      ws?: WsControllerHandlers;
+      sse?: SeeControllerHandlers;
       executeControllerMethod = executeControllerMethod;
       getControllerMethods = getControllerMethods;
       constructor(...args: any[]) {
         super(...args);
+        this.lookupWS();
+        this.lookupSSE();
       }
 
       handleRequest = async (request: AppRequest, response: ServerResponse) => {
@@ -264,27 +277,51 @@ export function Controller(
         return null;
       }
 
-      getWebSocketController() {
+      lookupWS() {
+        const connection = this.getWSHandlers('connection');
+        const message = this.getWSHandlers('message');
+        const error = this.getWSHandlers('error');
+        const close = this.getWSHandlers('close');
+        const topics = this.getWSHandlers('topics');
+
+        if ([...connection, ...message, ...error, ...close, ...topics].length === 0) {
+          return;
+        }
+
+        this.ws = { handlers: { connection, message, close, error }, topics };
+      }
+      lookupSSE() {
+        const connection = this.getSSEHandlers('connection');
+        const error = this.getSSEHandlers('error');
+        const close = this.getSSEHandlers('close');
+
+        if ([...connection, ...error, ...close].length === 0) {
+          return;
+        }
+
+        this.sse = { handlers: { connection, close, error } };
+      }
+
+      getSSEController() {
         return {
           instance: this,
           handlers: {
-            connection: this.getWSHandlers('connection'),
-            message: this.getWSHandlers('message'),
-            close: this.getWSHandlers('close'),
-            error: this.getWSHandlers('error'),
+            connection: this.getSSEHandlers('connection'),
+            close: this.getSSEHandlers('close'),
+            error: this.getSSEHandlers('error'),
           },
-          topics: this.getWSTopics(),
         };
       }
 
       getWSHandlers(type: string) {
         const handlers = Reflect.getMetadata(WS_HANDLER, this.constructor) || [];
-        return handlers
-          .filter((h: any) => h.type === type)
-          .map((h: any) => ({
-            ...h,
-            fn: this[h.method].bind(this),
-          }));
+        return this.typedHandlers(handlers, type);
+      }
+
+      getSSEHandlers(type: string) {
+        const handlers = Reflect.getMetadata(SSE_METADATA_KEY, this.constructor) || [];
+
+        return this.typedHandlers(handlers, type);
       }
 
       getWSTopics() {
@@ -295,6 +332,15 @@ export function Controller(
           fn: this[t.method].bind(this),
         }));
       }
+
+      typedHandlers = (handlers: any[], type: string) => {
+        return handlers
+          .filter((h: any) => h.type === type)
+          .map((h: any) => ({
+            ...h,
+            fn: this[h.method].bind(this),
+          }));
+      };
     };
   };
 }

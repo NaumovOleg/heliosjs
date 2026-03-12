@@ -22,6 +22,7 @@ You can use controllers and server functionality by importing controllers and cr
 - `quantum-flow/core` - Core framework components like Controller and Endpoint.
 - `quantum-flow/middlewares` - Core middlewares to use within the application.
 - `quantum-flow/ws` - Websocket decorators.
+- `quantum-flow/sse` - Server side events decorators.
 
 ---
 

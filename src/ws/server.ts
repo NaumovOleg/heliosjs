@@ -1,13 +1,19 @@
-import { WebSocketClient, WebSocketEvent, WebSocketMessage } from '@types';
+import {
+  ControllerType,
+  IWebSocketServer,
+  WebSocketClient,
+  WebSocketEvent,
+  WebSocketMessage,
+} from '@types';
 import http from 'http';
 import { v4 as uuidv4 } from 'uuid';
 import WebSocket from 'ws';
 
-export class WebSocketServer {
+export class WebSocketServer implements IWebSocketServer {
   private wss: WebSocket.Server;
   private clients: Map<string, WebSocketClient> = new Map();
   private topics: Map<string, Set<string>> = new Map();
-  private controllers: any[] = [];
+  private controllers: ControllerType[] = [];
   private options: any;
 
   constructor(server: http.Server, options?: { path?: string }) {
@@ -106,6 +112,7 @@ export class WebSocketServer {
         message,
       });
     } catch (error) {
+      console.log(error);
       client.socket.send(
         JSON.stringify({
           type: 'error',
@@ -142,9 +149,13 @@ export class WebSocketServer {
     });
   }
 
-  private async triggerHandlers(eventType: string, event: WebSocketEvent, topic?: string) {
+  private async triggerHandlers(
+    eventType: 'connection' | 'message' | 'close' | 'error',
+    event: WebSocketEvent,
+    topic?: string,
+  ) {
     for (const controller of this.controllers) {
-      const controllerHandlers = controller.handlers?.[eventType] ?? [];
+      const controllerHandlers = controller.ws?.handlers?.[eventType] ?? [];
       const matchingHandlers = controllerHandlers.filter((h: any) => {
         if (h.type !== eventType) return false;
         if (!topic) return !h.topic;
@@ -160,7 +171,7 @@ export class WebSocketServer {
       }
 
       if (eventType === 'message' && topic) {
-        const matchingSubs = controller.topics.filter((s: any) => s.topic === topic);
+        const matchingSubs = controller.ws?.topics.filter((s: any) => s.topic === topic) ?? [];
 
         for (const sub of matchingSubs) {
           try {
@@ -173,29 +184,19 @@ export class WebSocketServer {
     }
   }
 
-  public registerControllers(controllers: any[]) {
-    this.controllers = controllers.map((controller) => {
-      if (controller.getWebSocketController) {
-        return controller.getWebSocketController();
-      }
-      return controller;
-    });
+  public registerControllers(controllers: ControllerType[]) {
+    this.controllers = controllers.filter((c) => !!c.ws);
   }
 
   public subscribeToTopic(client: WebSocketClient, topic: string) {
     if (!this.topics.has(topic)) {
       this.topics.set(topic, new Set());
     }
+
     this.topics.get(topic)!.add(client.id);
     client.topics.add(topic);
 
-    client.socket.send(
-      JSON.stringify({
-        type: 'subscribed',
-        topic,
-        data: { success: true },
-      }),
-    );
+    client.socket.send(JSON.stringify({ type: 'subscribed', topic, data: { success: true } }));
   }
 
   public unsubscribeFromTopic(client: WebSocketClient, topic: string) {

@@ -1,5 +1,5 @@
-import { WebSocketServer } from './websocket/WebsocketServer';
-import { WebSocketService } from './websocket/WebsocketService';
+import { WebSocketServer } from './server';
+import { WebSocketService } from './service';
 
 export class Socket {
   protected wss: WebSocketServer;
@@ -32,7 +32,7 @@ export class Socket {
     return WebSocketService.getInstance().getStats();
   }
 
-  public isWebSocketAvailable(): boolean {
+  public isWebSocketAvailable() {
     return WebSocketService.getInstance().isAvailable();
   }
 }

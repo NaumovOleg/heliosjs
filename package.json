@@ -40,6 +40,11 @@
       "import": "./dist/ws/index.js",
       "require": "./dist/ws/index.js",
       "types": "./dist/ws/index.d.ts"
+    },
+    "./sse": {
+      "import": "./dist/sse/index.js",
+      "require": "./dist/sse/index.js",
+      "types": "./dist/sse/index.d.ts"
     }
   },
   "repository": {

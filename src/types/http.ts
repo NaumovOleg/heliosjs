@@ -16,4 +16,5 @@ export interface ServerConfig {
     path?: string;
     lazy?: boolean;
   };
+  sse?: { enabled: boolean };
 }

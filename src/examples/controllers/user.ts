@@ -14,6 +14,7 @@ import {
 } from 'quantum-flow/core';
 
 import { Cors, Status, Use } from 'quantum-flow/middlewares';
+import { OnSSEClose, OnSSEConnection, OnSSEError } from 'quantum-flow/sse';
 import { InjectWS } from 'quantum-flow/ws';
 
 import * as Joi from 'joi';
@@ -57,5 +58,20 @@ export class User {
   @USE()
   async any(@Response() resp: any) {
     return 'done';
+  }
+  @OnSSEConnection()
+  async onsseconnection(@Request() req: any, @Response() res: any) {
+    console.log('onsseconnection------------');
+    return req.body;
+  }
+  @OnSSEError()
+  async onsseerror(@Request() req: any, @Response() res: any) {
+    console.log('onsseerror------------');
+    return req.body;
+  }
+  @OnSSEClose()
+  async onsseclose(@Request() req: any, @Response() res: any) {
+    console.log('onsseclose------------');
+    return req.body;
   }
 }

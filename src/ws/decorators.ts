@@ -1,6 +1,6 @@
-import { WS_HANDLER, WS_SERVICE_KEY, WS_TOPIC_KEY } from '@constants';
-
+import { WS_HANDLER, WS_TOPIC_KEY } from '@constants';
 import { WebSocketHandlerType } from '@types';
+import { createParamDecorator } from '@utils';
 
 /**
  * Method decorator to handle WebSocket events.
@@ -64,9 +64,5 @@ export function Subscribe(topic: string) {
  * Parameter decorator to inject WebSocket service instance.
  */
 export function InjectWS() {
-  return function (target: any, propertyKey: string, parameterIndex: number) {
-    const existingParams = Reflect.getMetadata(WS_SERVICE_KEY, target, propertyKey) || [];
-    existingParams.push({ index: parameterIndex });
-    Reflect.defineMetadata(WS_SERVICE_KEY, existingParams, target, propertyKey);
-  };
+  return createParamDecorator('ws');
 }

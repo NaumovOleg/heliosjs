@@ -47,4 +47,5 @@ export interface IWebSocketServer {
   getStats(): WebSocketStats;
   subscribeToTopic(client: WebSocketClient, topic: string): void;
   unsubscribeFromTopic(client: WebSocketClient, topic: string): void;
+  registerControllers(controllers: any[]): void;
 }

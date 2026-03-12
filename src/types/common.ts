@@ -70,7 +70,9 @@ export type ParamDecoratorType =
   | 'response'
   | 'multipart'
   | 'event'
-  | 'context';
+  | 'context'
+  | 'sse'
+  | 'ws';
 
 export interface ParamMetadata {
   index: number;

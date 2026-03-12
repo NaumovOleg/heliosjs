@@ -8,8 +8,11 @@ import {
   Multipart,
   Params,
   POST,
+  Request,
+  Response,
 } from 'quantum-flow/core';
-import { Cors, Sanitize, Use } from 'quantum-flow/middlewares';
+import { Sanitize } from 'quantum-flow/middlewares';
+import { InjectSSE, ISSEService } from 'quantum-flow/sse';
 import { InjectWS } from 'quantum-flow/ws';
 
 class DTO {
@@ -20,16 +23,23 @@ const userSchema = Joi.object({
   name: Joi.string().trim().min(2).max(50).required(),
 });
 
-@Controller({
-  prefix: 'metadata',
-  middlewares: [function s2() {}],
-})
-@Use([function s3() {}])
-@Cors({ origin: '*' })
+@Controller({ prefix: 'metadata' })
 export class UserMetadata {
   @GET('/:meta')
-  async getUserMetadata(@Params(DTO, 'meta') params: any) {
-    return params;
+  async getUserMetadata(@Request() req: any, @Response() res: any) {
+    return req.body;
+  }
+
+  @GET('/subscribesse')
+  async subscribesse(@InjectSSE() sse: ISSEService, @Response() res: any) {
+    const client = sse.createConnection(res);
+
+    sse.sendToClient(client.id, {
+      event: 'welcome message',
+      data: { message: 'Connected to notifications' },
+    });
+
+    return 'hellow';
   }
 
   @POST('/:meta', [function s4() {}])
@@ -41,10 +51,10 @@ export class UserMetadata {
     type: 'body',
   })
   async createMeta(
-    @InjectWS() ws: IWebSocketService,
     @Multipart() mult: any,
     @Body(DTO) body: any,
     @Params('meta') params: any,
+    @InjectWS() ws: IWebSocketService,
   ) {
     return { body, params };
   }

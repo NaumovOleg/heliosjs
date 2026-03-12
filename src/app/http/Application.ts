@@ -1,5 +1,5 @@
 import { CONTROLLERS, OK_STATUSES, STATISTIC } from '@constants';
-import { AppRequest, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@types';
+import { AppRequest, ControllerType, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@types';
 import {
   collectRawBody,
   handleCORS,
@@ -11,25 +11,34 @@ import {
   sanitizeRequest,
 } from '@utils';
 import http, { IncomingMessage, ServerResponse } from 'http';
-import { Socket } from './Socket';
-import { WebSocketServer } from './websocket/WebsocketServer';
-import { WebSocketService } from './websocket/WebsocketService';
+import { WebSocketServer } from '../../ws/server';
+import { WebSocketService } from '../../ws/service';
 
-export class HttpServer extends Socket {
+import { SSEServer } from '../../sse/server';
+import { SSEService } from '../../sse/service';
+
+export class HttpServer {
   private app: http.Server;
   private config: ServerConfig;
   private isRunning: boolean = false;
+  private sse?: SSEServer;
+  private websocket?: WebSocketServer;
 
   constructor(configOrClass: new (...args: any[]) => any) {
-    super();
     this.config = resolveConfig(configOrClass);
 
     const app = http.createServer(this.requestHandler.bind(this));
-
+    const controllers = this.getAllControllers(this.config.controllers);
     if (this.config.websocket?.enabled) {
-      this.wss = new WebSocketServer(app, { path: this.config.websocket.path });
-      this.wss.registerControllers(this.getAllControllers(this.config.controllers));
-      WebSocketService.getInstance().initialize(this.wss);
+      this.websocket = new WebSocketServer(app, { path: this.config.websocket.path });
+      this.websocket.registerControllers(controllers);
+      WebSocketService.getInstance().initialize(this.websocket!);
+    }
+
+    if (this.config.sse?.enabled) {
+      this.sse = new SSEServer();
+      this.sse.registerControllers(controllers);
+      SSEService.getInstance().initialize(this.sse);
     }
 
     this.app = app;
@@ -87,7 +96,7 @@ export class HttpServer extends Socket {
     });
   }
 
-  private getAllControllers(controllers: any[] = []): any[] {
+  private getAllControllers(controllers: ControllerType[] = []): ControllerType[] {
     const result = [];
     for (const ControllerClass of controllers || []) {
       const instance = new ControllerClass();
@@ -235,19 +244,20 @@ export class HttpServer extends Socket {
     startTime: number,
   ): Promise<void> {
     const response = data?.data !== undefined ? data.data : data;
-    if (!res.headersSent) {
-      if (!res.getHeader('Content-Type')) {
-        res.setHeader('Content-Type', 'application/json');
-      }
+    if (res.headersSent) return;
 
-      if (data?.headers) {
-        Object.entries(data.headers).forEach(([key, value]) => {
-          if (!res.getHeader(key)) {
-            res.setHeader(key, value as string);
-          }
-        });
-      }
+    if (!res.getHeader('Content-Type')) {
+      res.setHeader('Content-Type', 'application/json');
     }
+
+    if (data?.headers) {
+      Object.entries(data.headers).forEach(([key, value]) => {
+        if (!res.getHeader(key)) {
+          res.setHeader(key, value as string);
+        }
+      });
+    }
+
     res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
     res.statusCode = data.status ?? 200;
 

@@ -21,6 +21,7 @@ export class Root {}
 @Server({
   controllers: [Root],
   websocket: { enabled: true, path: '/ws' },
+  sse: { enabled: true },
   interceptor: (data) => data,
   errorHandler: (err) => err,
   cors: { origin: '*' },

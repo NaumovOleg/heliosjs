@@ -1,5 +1,5 @@
 import { IWebSocketService } from '@types';
-import { WebSocketServer } from './WebsocketServer';
+import { WebSocketServer } from './server';
 
 export class WebSocketService implements IWebSocketService {
   private static instance: WebSocketService;

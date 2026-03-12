@@ -6,8 +6,8 @@ import {
   OK_STATUSES,
   PARAM_METADATA_KEY,
   SANITIZE,
+  SSE_METADATA_KEY,
   TO_VALIDATE,
-  WS_SERVICE_KEY,
 } from '@constants';
 import {
   AppRequest,
@@ -21,7 +21,8 @@ import {
   SanitizerConfig,
 } from '@types';
 import { ServerResponse } from 'http';
-import { WebSocketService } from '../app/http/websocket/WebsocketService';
+import { SSEService } from '../sse/service';
+import { WebSocketService } from '../ws/service';
 import { matchRoute } from './helper';
 import { MultipartProcessor } from './multipart';
 import { sanitizeRequest } from './sanitize';
@@ -69,6 +70,7 @@ export const executeControllerMethod = async (
   const prototype = Object.getPrototypeOf(controller);
   const paramMetadata: ParamMetadata[] =
     Reflect.getMetadata(PARAM_METADATA_KEY, prototype, propertyName) || [];
+  const sse = Reflect.getMetadata(SSE_METADATA_KEY, prototype, propertyName) || [];
 
   if (paramMetadata.length === 0) {
     return fn.call(controller, request, response);
@@ -78,19 +80,11 @@ export const executeControllerMethod = async (
 
   const args: any[] = [];
 
-  const wsParams = Reflect.getMetadata(WS_SERVICE_KEY, controller, propertyName) || [];
   const totalParams = Math.max(
     paramMetadata.length ? Math.max(...paramMetadata.map((p) => p.index)) + 1 : 0,
-    wsParams.length ? Math.max(...wsParams.map((p: any) => p.index)) + 1 : 0,
   );
 
   for (let i = 0; i < totalParams; i++) {
-    const wsParam = wsParams.find((p: any) => p.index === i);
-    if (wsParam) {
-      args[i] = WebSocketService.getInstance();
-      continue;
-    }
-
     const param = paramMetadata.find((p) => p.index === i);
     if (!param) {
       args[i] = undefined;
@@ -103,6 +97,12 @@ export const executeControllerMethod = async (
 
     if (param.type === 'multipart') {
       value = multipart;
+    }
+    if (param.type === 'ws') {
+      value = WebSocketService.getInstance();
+    }
+    if (param.type === 'sse') {
+      value = SSEService.getInstance();
     }
     if (param.type === 'request') {
       value = request;
@@ -259,6 +259,10 @@ export const getResponse = async (data: {
       data.request,
       data.response,
     );
+
+    if (!appResponse) {
+      return;
+    }
 
     data.response.statusCode = appResponse.status ?? 200;
 
