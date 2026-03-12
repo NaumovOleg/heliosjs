@@ -17,10 +17,10 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
       host: 'localhost',
       ...decoratorConfig,
       errorHandler: decoratorConfig.errorHandler ?? errorHandler,
-      interceptors,
-      middlewares: decoratorConfig.middlewares.concat(middlewares),
+      interceptors: (interceptors ?? []).filter((el: any) => !!el),
+      middlewares: decoratorConfig.middlewares.concat(middlewares).filter((el: any) => !!el),
       cors: decoratorConfig.cors,
-      controllers: decoratorConfig.controllers || [],
+      controllers: (decoratorConfig.controllers ?? []).filter((el: any) => !!el),
       sanitizers,
     };
   } else if (configOrClass && typeof configOrClass === 'object') {

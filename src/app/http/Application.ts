@@ -174,7 +174,7 @@ export class HttpServer {
       }
 
       return this.sendResponse(response, data, startTime);
-    } catch (error) {
+    } catch (error: any) {
       return this.handleError(error, request, response, startTime);
     }
   }
@@ -285,7 +285,12 @@ export class HttpServer {
     try {
       const intercepted = await this.config.errorHandler(error, request, response);
 
-      errorResponse = intercepted;
+      if (typeof intercepted === 'object') {
+        errorResponse.status = intercepted.status ?? errorResponse.status;
+        errorResponse.data = intercepted.message ?? intercepted.data ?? intercepted;
+      } else {
+        errorResponse.data = intercepted;
+      }
     } catch (cathed) {
       Object.assign(errorResponse, cathed);
     }
