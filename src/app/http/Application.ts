@@ -1,7 +1,8 @@
 import { CONTROLLERS, OK_STATUSES, STATISTIC } from '@constants';
-import { AppRequest, ControllerType, HTTP_METHODS, ResponseWithStatus, ServerConfig } from '@types';
+import { AppRequest, ControllerType, HTTP_METHODS, ServerConfig } from '@types';
 import {
   collectRawBody,
+  getErrorType,
   handleCORS,
   NextFN,
   ParseBody,
@@ -9,7 +10,7 @@ import {
   ParseQuery,
   resolveConfig,
   sanitizeRequest,
-  stringifyError,
+  serializeError,
 } from '@utils';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { WebSocketServer } from '../../ws/server';
@@ -164,17 +165,31 @@ export class HttpServer {
       }
 
       await this.beforeRequest(request, response);
-      let data = await this.findController(request, response);
+      let controllerResponse = await this.runController(request, response);
 
-      const isError = !OK_STATUSES.includes(data.status);
+      if (!controllerResponse.routeMatch) {
+        return this.sendResponse(response, { status: 404, message: 'ssss' }, Date.now());
+      }
+
+      const isError =
+        getErrorType(controllerResponse.data).isError || !OK_STATUSES.includes(response.statusCode);
       if (isError) {
-        return this.handleError(data, request, response, startTime);
-      }
-      if (this.config.interceptor && data) {
-        data = await this.config.interceptor(data, request, response);
+        return this.handleError(controllerResponse.data, request, response, startTime);
       }
 
-      return this.sendResponse(response, data, startTime);
+      if (this.config.interceptor && controllerResponse) {
+        controllerResponse.data = await this.config.interceptor(
+          controllerResponse,
+          request,
+          response,
+        );
+      }
+
+      return this.sendResponse(
+        response,
+        { status: response.statusCode ?? 200, data: controllerResponse.data },
+        startTime,
+      );
     } catch (error: any) {
       return this.handleError(error, request, response, startTime);
     }
@@ -222,50 +237,35 @@ export class HttpServer {
     }
   }
 
-  private async findController(request: AppRequest, response?: ServerResponse): Promise<any> {
+  private async runController(request: AppRequest, response?: ServerResponse): Promise<any> {
     for (const ControllerClass of this.config.controllers || []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
-        const data = await instance.handleRequest(request, response);
-
-        if (!data) {
-          return undefined;
-        }
-        if (data?.status !== 404) {
-          return data;
+        const handlerResponse = await instance.handleRequest(request, response);
+        if (handlerResponse.routeMatch) {
+          return handlerResponse;
         }
       }
     }
-
-    return {
-      status: 404,
-      data: { message: `Route ${request.method} ${request.requestUrl.pathname} not found` },
-    };
+    return {};
   }
 
   private async sendResponse(
     res: http.ServerResponse,
-    data: any,
+    responseData: any,
     startTime: number,
   ): Promise<void> {
     if (res.headersSent) return;
 
+    const { status, data } = responseData;
     if (!res.getHeader('Content-Type')) {
       res.setHeader('Content-Type', 'application/json');
     }
 
-    if (data?.headers) {
-      Object.entries(data.headers).forEach(([key, value]) => {
-        if (!res.getHeader(key)) {
-          res.setHeader(key, value as string);
-        }
-      });
-    }
-
     res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
-    res.statusCode = data.status ?? 200;
+    res.statusCode = status ?? data.status ?? 200;
 
-    res.end(JSON.stringify(data.data));
+    res.end(JSON.stringify(data));
   }
 
   private async handleError(
@@ -274,17 +274,10 @@ export class HttpServer {
     response: http.ServerResponse,
     startTime: number,
   ): Promise<void> {
-    let errorResponse: ResponseWithStatus = {
-      status: error.status || 500,
-      data: {
-        message: error.message || 'Internal Server Error',
-        errors: error.errors || [],
-        stack: error.stack,
-      },
-    };
+    let serialized = serializeError(error);
 
     if (!this.config.errorHandler) {
-      return this.sendResponse(response, stringifyError(errorResponse), startTime);
+      return this.sendResponse(response, { data: serialized }, startTime);
     }
 
     try {
@@ -292,13 +285,11 @@ export class HttpServer {
 
       let data = intercepted.data ?? intercepted;
       if (data instanceof Error) {
-        data = stringifyError(data);
+        data = serializeError(data);
       }
-      errorResponse.status = intercepted.status ?? errorResponse.status;
-      errorResponse.data = data;
-    } catch (cathed) {
-      Object.assign(errorResponse, stringifyError(cathed));
-    }
-    return this.sendResponse(response, errorResponse, startTime);
+      serialized = data ?? serialized;
+    } catch (cathed) {}
+
+    return this.sendResponse(response, { data: serialized }, startTime);
   }
 }

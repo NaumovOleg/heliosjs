@@ -6,32 +6,27 @@ export async function validate(dtoClass: any, data: any) {
     return data;
   }
 
-  try {
-    if (typeof dtoClass.from === 'function') {
-      return dtoClass.from(data);
-    }
-
-    if (typeof dtoClass === 'function') {
-      const instance = plainToInstance(dtoClass, data);
-      const errors = await Validate(instance);
-
-      if (errors.length > 0) {
-        const formattedErrors = formatValidationErrors(errors);
-
-        throw {
-          status: 400,
-          message: 'Validation failed',
-          errors: formattedErrors,
-        };
-      }
-
-      return instance;
-    }
-
-    return data;
-  } catch (error) {
-    throw error;
+  if (typeof dtoClass.from === 'function') {
+    return dtoClass.from(data);
   }
+
+  if (typeof dtoClass === 'function') {
+    const instance = plainToInstance(dtoClass, data);
+    if (!instance) {
+      throw { status: 400, message: 'Validation failed', errors: 'Empty value' };
+    }
+    const errors = await Validate(instance);
+
+    if (errors.length > 0) {
+      const formattedErrors = formatValidationErrors(errors);
+
+      throw { status: 400, message: 'Validation failed', errors: formattedErrors };
+    }
+
+    return instance;
+  }
+
+  return data;
 }
 
 function formatValidationErrors(errors: ValidationError[]): any[] {

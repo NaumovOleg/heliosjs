@@ -1,5 +1,5 @@
 {
   "watch": ["src"],
   "ext": "ts,tsx",
-  "exec": "yarn build && ts-node --files -r tsconfig-paths/register ./src/examples/server.ts"
+  "exec": "yarn build && ts-node --files -r tsconfig-paths/register ./src/examples/lambda.ts"
 }

@@ -107,9 +107,7 @@ export const sanitizeRequest = (request: AppRequest, config: SanitizerConfig[]) 
   config.forEach((conf) => {
     const { value, error } = applyJoiSanitization(request[conf.type], conf);
 
-    if (error) {
-      throw { error, status: 400 };
-    }
+    if (error) throw error;
     request[conf.type] = value;
   });
 };

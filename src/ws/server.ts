@@ -114,10 +114,7 @@ export class WebSocketServer implements IWebSocketServer {
     } catch (error) {
       console.log(error);
       client.socket.send(
-        JSON.stringify({
-          type: 'error',
-          data: { message: 'Invalid message format' },
-        }),
+        JSON.stringify({ type: 'error', data: { message: 'Invalid message format' } }),
       );
     }
   }

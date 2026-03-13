@@ -68,17 +68,3 @@ export function mergeMiddlewares(...middlewareLists: MiddlewareCB[][]): Middlewa
 export function mergeInterceptors(...interceptorLists: InterceptorCB[][]): InterceptorCB[] {
   return interceptorLists.flat();
 }
-
-export const stringifyError = (error: any): any => {
-  return JSON.stringify(
-    {
-      message: error?.data?.message ?? error.message,
-      stack: error?.data?.stack ?? error.stack,
-      status: error?.data?.status ?? error.status,
-      code: error?.data?.code ?? error.code,
-    },
-
-    null,
-    2,
-  );
-};

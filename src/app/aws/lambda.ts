@@ -1,11 +1,11 @@
 import { CORS_METADATA } from '@constants';
-import { LambdaApp, LambdaEvent } from '@types';
-import { handleCORS } from '@utils';
+import { LambdaEvent } from '@types';
+import { getErrorType, handleCORS, serializeError } from '@utils';
 import { APIGatewayProxyResult, APIGatewayProxyResultV2, Context, Handler } from 'aws-lambda';
 import { LRequest, LResponse, getEventType } from './utils';
 
 export class LambdaAdapter {
-  static createHandler(Controller: new (...args: any[]) => LambdaApp): Handler {
+  static createHandler(Controller: any): Handler {
     return async (event: LambdaEvent, context: Context) => {
       const instance: any = new Controller();
 
@@ -14,12 +14,10 @@ export class LambdaAdapter {
       }
 
       const eventType = getEventType(event);
-
+      const request = new LRequest(event, context);
+      const response = new LResponse();
       try {
         const cors = Reflect.getMetadata(CORS_METADATA, instance);
-
-        const request = new LRequest(event, context);
-        const response = new LResponse();
 
         let handledCors = { permitted: true, continue: true };
         if (cors) {
@@ -34,6 +32,7 @@ export class LambdaAdapter {
             eventType,
           );
         }
+
         if (!handledCors.continue && handledCors.permitted) {
           return this.toLambdaResponse({ status: 204 }, request, response, eventType);
         }
@@ -41,7 +40,15 @@ export class LambdaAdapter {
           throw new Error('Controller must have handleRequest method');
         }
 
-        const data = await instance.handleRequest(request, response);
+        const { routeMatch, data } = await instance.handleRequest(request, response);
+        if (!routeMatch) {
+          response.statusCode = 404;
+          return this.toLambdaResponse({ data: 'Route not found' }, request, response, eventType);
+        }
+
+        if (getErrorType(data).isError) {
+          return this.handleError(data, event, context);
+        }
 
         return this.toLambdaResponse(data, request, response, eventType);
       } catch (error: any) {
@@ -56,7 +63,7 @@ export class LambdaAdapter {
     response: LResponse,
     eventType: string,
   ): APIGatewayProxyResult | APIGatewayProxyResultV2 | any {
-    const statusCode = data.status || 200;
+    const statusCode = data.status ?? response.statusCode ?? 200;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
@@ -126,12 +133,15 @@ export class LambdaAdapter {
   }
 
   private static handleError(error: any, event: LambdaEvent, context: Context) {
+    let serialized = serializeError(error);
+
     const eventType = getEventType(event);
-    const statusCode = error.status || 500;
+
+    const statusCode = serialized.status || 500;
 
     const body = JSON.stringify({
       success: false,
-      message: error.message || 'Internal Server Error',
+      message: serialized.message || 'Internal Server Error',
       requestId: context.awsRequestId,
     });
 
@@ -144,18 +154,9 @@ export class LambdaAdapter {
 
     switch (eventType) {
       case 'rest':
-        return {
-          statusCode,
-          headers,
-          body,
-          isBase64Encoded: false,
-        };
+        return { statusCode, headers, body, isBase64Encoded: false };
       default:
-        return {
-          statusCode,
-          headers,
-          body,
-        };
+        return { statusCode, headers, body };
     }
   }
 }

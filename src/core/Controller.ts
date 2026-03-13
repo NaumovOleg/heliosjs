@@ -6,7 +6,6 @@ import {
   INCREMENT_STATISTIC,
   INTERCEPTOR,
   MIDDLEWARES,
-  OK_STATUSES,
   ROUTE_PREFIX,
   SANITIZE,
   SSE_METADATA_KEY,
@@ -19,6 +18,7 @@ import {
   ControllerClass,
   ControllerConfig,
   InterceptorCB,
+  ResponseWithStatus,
   RouteContext,
   SeeControllerHandlers,
   WsControllerHandlers,
@@ -28,10 +28,12 @@ import {
   executeControllerMethod,
   findRouteInController,
   getControllerMethods,
+  getErrorType,
   getResponse,
   handleCORS,
 } from '@utils';
 import { ServerResponse } from 'http';
+import httErrors from 'http-errors';
 import 'reflect-metadata';
 
 /**
@@ -82,22 +84,7 @@ export function Controller(
       const descriptor = Object.getOwnPropertyDescriptor(proto, key);
       if (!descriptor || typeof descriptor.value !== 'function') continue;
 
-      const original = descriptor.value;
-
-      Object.defineProperty(proto, key, {
-        ...descriptor,
-        value: async function (...args: any[]) {
-          try {
-            return await original.apply(this, args);
-          } catch (err: any) {
-            return {
-              status: err.status ?? 400,
-              message: err.message,
-              data: err,
-            };
-          }
-        },
-      });
+      Object.defineProperty(proto, key, descriptor);
     }
 
     return class extends constructor {
@@ -138,9 +125,7 @@ export function Controller(
           subPath: Reflect.getMetadata(ROUTE_PREFIX, proto) || '',
         };
 
-        const result = await this.routeWalker(context, request, response);
-
-        return result === null ? { status: 404, message: 'Method Not Found' } : result;
+        return this.routeWalker(context, request, response);
       };
 
       async routeWalker(
@@ -195,91 +180,94 @@ export function Controller(
               ),
               corsChain: [...context.corsChain, subMeta.cors].filter((el) => !!el),
             };
-            const subResult = await this.routeWalker(walkerData, request, response);
 
-            if (subResult && subResult.status !== 404) {
-              return subResult;
-            }
+            return this.routeWalker(walkerData, request, response);
           }
         }
 
         const routeMatch = findRouteInController(controllerInstance, subPath, path, method);
 
+        if (!routeMatch) {
+          return {};
+        }
+        let data;
         try {
-          if (routeMatch) {
-            const { name, pathParams, middlewares, cors, sanitizers } = routeMatch;
-            Object.assign(request, { params: pathParams });
+          const { name, pathParams, middlewares, cors, sanitizers } = routeMatch;
+          Object.assign(request, { params: pathParams });
 
-            const handledCors = context.corsChain
-              .concat(cors ?? [])
-              .flat()
-              .reduce(
-                (acc, conf) => {
-                  const cors = handleCORS(request, response, conf);
-                  return {
-                    permitted: acc.permitted && cors.permitted,
-                    continue: acc.continue && cors.continue,
-                  };
-                },
-                { permitted: true, continue: true },
-              );
+          const handledCors = context.corsChain
+            .concat(cors ?? [])
+            .flat()
+            .reduce(
+              (acc, conf) => {
+                const cors = handleCORS(request, response, conf);
+                return {
+                  permitted: acc.permitted && cors.permitted,
+                  continue: acc.continue && cors.continue,
+                };
+              },
+              { permitted: true, continue: true },
+            );
 
-            if (!handledCors.permitted) {
-              return { status: 403, message: 'Cors: Origin not allowed' };
-            }
-            if (!handledCors.continue && handledCors.permitted) {
-              return { status: 204 };
-            }
-
-            const controllerMiddlewares = [
-              ...context.middlewareChain,
-              ...controllerMeta.middlewares,
-            ];
-
-            const controllerSanitizers = [
-              ...context.sanitizersChain,
-              ...controllerMeta.sanitizers,
-            ].filter((el) => !!el);
-
-            await applyMiddlewaresVsSanitizers(request, response, {
-              sanitizers: [controllerSanitizers, sanitizers],
-              middlewares: [controllerMiddlewares, middlewares],
-            });
-
-            let apiResponse = await getResponse({
-              interceptors: [...context.interceptorChain, controllerMeta.interceptor].filter(
-                (el) => !!el,
-              ),
-              controllerInstance,
-              name,
-              response: response,
-              request: request,
-            }).catch((err) => err);
-
-            if (!apiResponse) {
-              return { status: 200 };
-            }
-
-            const isError = !OK_STATUSES.includes(apiResponse.status);
-
-            if (isError) {
-              for (const handler of context.errorHandlerChain?.reverse() || []) {
-                apiResponse = handler(apiResponse, request, response);
-              }
-            }
-
-            return apiResponse;
+          if (!handledCors.permitted) {
+            data = httErrors[403]('Cors: Origin not allowed');
           }
-        } catch (errror: any) {
-          let data = { status: 500, ...errror };
+          if (!handledCors.continue && handledCors.permitted) {
+            response.statusCode = 204;
+            return { routeMatch };
+          }
+
+          const controllerMiddlewares = [...context.middlewareChain, ...controllerMeta.middlewares];
+
+          const controllerSanitizers = [
+            ...context.sanitizersChain,
+            ...controllerMeta.sanitizers,
+          ].filter((el) => !!el);
+
+          await applyMiddlewaresVsSanitizers(request, response, {
+            sanitizers: [controllerSanitizers, sanitizers],
+            middlewares: [controllerMiddlewares, middlewares],
+          });
+
+          data = await getResponse({
+            interceptors: [...context.interceptorChain, controllerMeta.interceptor].filter(
+              (el) => !!el,
+            ),
+            controllerInstance,
+            name,
+            response: response,
+            request: request,
+          });
+        } catch (error: any) {
+          let catched = error;
+          let statusCode = error.status ?? error.statusCode ?? 500;
+          catched.status = statusCode;
+
           for (const handler of context.errorHandlerChain?.reverse() || []) {
-            const res = await handler(errror, request, response);
-            Object.assign(data, res);
+            try {
+              catched = await Promise.resolve(handler(catched, request, response))
+                .then((resp: ResponseWithStatus) => {
+                  statusCode = 200;
+
+                  return resp;
+                })
+                .catch((err: any) => {
+                  statusCode = err.status ?? err.statusCode ?? statusCode;
+                  return err;
+                });
+            } catch (errs) {}
           }
-          return data;
+
+          response.statusCode = statusCode;
+
+          data = catched;
         }
 
-        return null;
+        if (getErrorType(data).isError && response.statusCode === 200) {
+          response.statusCode = 500;
+        }
+
+        return { routeMatch, data };
       }
 
       lookupWS() {

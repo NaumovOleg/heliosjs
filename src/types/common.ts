@@ -54,11 +54,7 @@ export type InterceptorCB = (
   res?: ServerResponse,
 ) => Promise<unknown> | unknown;
 
-export type ErrorCB = (
-  error: HttpError,
-  req?: AppRequest,
-  res?: ServerResponse,
-) => Promise<ResponseWithStatus> | ResponseWithStatus;
+export type ErrorCB = (error: HttpError, req?: AppRequest, res?: ServerResponse) => any;
 
 export type ParamDecoratorType =
   | 'body'

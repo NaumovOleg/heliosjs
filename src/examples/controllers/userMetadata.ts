@@ -50,10 +50,12 @@ export class UserMetadata {
     stripUnknown: true,
     type: 'body',
   })
-  async createMeta(
+  createMeta(
     @Multipart() mult: any,
     @Body(DTO) body: any,
     @Params('meta') params: any,
     @InjectWS() ws: IWebSocketService,
-  ) {}
+  ) {
+    return 'response';
+  }
 }

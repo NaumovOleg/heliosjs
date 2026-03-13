@@ -22,6 +22,7 @@ export class LRequest {
   sourceIp: string;
 
   constructor(lambdaEvent: LambdaEvent, context: Context) {
+    console.log(lambdaEvent);
     const event = normalizeEvent(lambdaEvent, getEventType(lambdaEvent));
     const query: Record<string, string | string[]> = {};
 
@@ -85,6 +86,7 @@ export class LRequest {
     this.cookies = cookies;
     this.params = event.pathParameters;
     this.rawBody = rawBody;
+    this.body = body;
     this.path = event.path;
     this.isBase64Encoded = event.isBase64Encoded;
     this.requestId = context.awsRequestId;

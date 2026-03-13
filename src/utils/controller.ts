@@ -6,7 +6,6 @@ import {
   OK_STATUSES,
   PARAM_METADATA_KEY,
   SANITIZE,
-  SSE_METADATA_KEY,
   TO_VALIDATE,
 } from '@constants';
 import {
@@ -32,18 +31,13 @@ const getBodyAndMultipart = (request: AppRequest) => {
   let body = request.body;
   let multipart;
   if (MultipartProcessor.isMultipart({ headers: request.headers })) {
-    try {
-      const { fields, files } = MultipartProcessor.parse({
-        body: request.rawBody || request.body,
-        headers: request.headers,
-        isBase64Encoded: request.isBase64Encoded,
-      });
-      multipart = files;
-      body = fields;
-    } catch (error) {
-      console.error('❌ Multipart parsing error:', error);
-      throw { status: 400, message: 'Invalid multipart data' };
-    }
+    const { fields, files } = MultipartProcessor.parse({
+      body: request.rawBody || request.body,
+      headers: request.headers,
+      isBase64Encoded: request.isBase64Encoded,
+    });
+    multipart = files;
+    body = fields;
   }
 
   return { multipart, body };
@@ -63,68 +57,83 @@ export const executeControllerMethod = async (
   const methodMiddlewares: MiddlewareCB[] =
     Reflect.getMetadata(MIDDLEWARES, controller, propertyName) || [];
 
-  for (let middleware of methodMiddlewares) {
-    await middleware(request, response, NextFN);
+  try {
+    for (let middleware of methodMiddlewares) {
+      await Promise.resolve(middleware(request, response, NextFN));
+    }
+
+    const prototype = Object.getPrototypeOf(controller);
+    const paramMetadata: ParamMetadata[] =
+      Reflect.getMetadata(PARAM_METADATA_KEY, prototype, propertyName) || [];
+
+    if (paramMetadata.length === 0) {
+      return fn.call(controller, request, response);
+    }
+
+    const { body, multipart } = getBodyAndMultipart(request);
+
+    const args: any[] = [];
+
+    const totalParams = Math.max(
+      paramMetadata.length ? Math.max(...paramMetadata.map((p) => p.index)) + 1 : 0,
+    );
+
+    for (let i = 0; i < totalParams; i++) {
+      const param = paramMetadata.find((p) => p.index === i);
+
+      if (!param) {
+        args[i] = undefined;
+        continue;
+      }
+
+      let value = param.name
+        ? request[param.type as keyof AppRequest]?.[param.name]
+        : request[param.type as keyof AppRequest];
+
+      if (param.type === 'multipart') {
+        value = multipart;
+      }
+      if (param.type === 'ws') {
+        value = WebSocketService.getInstance();
+      }
+      if (param.type === 'sse') {
+        value = SSEService.getInstance();
+      }
+      if (param.type === 'request') {
+        value = request;
+      }
+      if (param.type === 'body') {
+        value = body;
+      }
+      if (param.type === 'response') {
+        value = response;
+      }
+
+      if (TO_VALIDATE.includes(param.type)) {
+        value = await validate(
+          param.dto,
+          typeof value === 'string' ? { [param.name ?? '']: value } : value,
+        );
+      }
+
+      args[i] = value;
+    }
+
+    return await controller[propertyName](controller, args);
+  } catch (error: any) {
+    if (typeof error === 'string') {
+      const catched = new Error(error) as any;
+      catched.stack = `${catched.name}: ${catched.message}\n    at ${controller.constructor?.name}.${propertyName}\n${catched.stack}`;
+      catched.original = error;
+      catched.controller = controller.constructor?.name;
+      catched.method = propertyName;
+      catched.status = 501;
+
+      throw catched;
+    }
+
+    throw error;
   }
-
-  const prototype = Object.getPrototypeOf(controller);
-  const paramMetadata: ParamMetadata[] =
-    Reflect.getMetadata(PARAM_METADATA_KEY, prototype, propertyName) || [];
-  const sse = Reflect.getMetadata(SSE_METADATA_KEY, prototype, propertyName) || [];
-
-  if (paramMetadata.length === 0) {
-    return fn.call(controller, request, response);
-  }
-
-  const { body, multipart } = getBodyAndMultipart(request);
-
-  const args: any[] = [];
-
-  const totalParams = Math.max(
-    paramMetadata.length ? Math.max(...paramMetadata.map((p) => p.index)) + 1 : 0,
-  );
-
-  for (let i = 0; i < totalParams; i++) {
-    const param = paramMetadata.find((p) => p.index === i);
-    if (!param) {
-      args[i] = undefined;
-      continue;
-    }
-
-    let value = param.name
-      ? request[param.type as keyof AppRequest]?.[param.name]
-      : request[param.type as keyof AppRequest];
-
-    if (param.type === 'multipart') {
-      value = multipart;
-    }
-    if (param.type === 'ws') {
-      value = WebSocketService.getInstance();
-    }
-    if (param.type === 'sse') {
-      value = SSEService.getInstance();
-    }
-    if (param.type === 'request') {
-      value = request;
-    }
-    if (param.type === 'body') {
-      value = body;
-    }
-    if (param.type === 'response') {
-      value = response;
-    }
-
-    if (TO_VALIDATE.includes(param.type)) {
-      value = await validate(
-        param.dto,
-        typeof value === 'string' ? { [param.name ?? '']: value } : value,
-      );
-    }
-
-    args[i] = value;
-  }
-
-  return fn.apply(controller, args);
 };
 
 export const getControllerMethods = (controller: ControllerInstance) => {
@@ -238,7 +247,7 @@ export const findRouteInController = (
 
   matches.sort((a, b) => b.priority - a.priority);
 
-  return matches[0] || null;
+  return matches[0];
 };
 
 export const NextFN = (error: any) => {
@@ -252,49 +261,45 @@ export const getResponse = async (data: {
   request: AppRequest;
   response: ServerResponse;
 }) => {
-  try {
-    let appResponse = await executeControllerMethod(
-      data.controllerInstance,
-      data.name,
-      data.request,
-      data.response,
-    );
+  let appResponse = await executeControllerMethod(
+    data.controllerInstance,
+    data.name,
+    data.request,
+    data.response,
+  );
 
-    if (!appResponse) {
-      return;
-    }
-
-    data.response.statusCode = appResponse.status ?? 200;
-
-    const isError = !OK_STATUSES.includes(data.response.statusCode);
-
-    const interceptors = data.interceptors.reverse();
-
-    for (let index = 0; index < interceptors?.length && !isError; index++) {
-      const interceptor = interceptors[index];
-      appResponse = await interceptor(appResponse, data.request, data.response);
-    }
-
-    const propertyName = data.name;
-    const prototype = Object.getPrototypeOf(data.controllerInstance);
-
-    const methodOkStatus = Reflect.getMetadata(
-      OK_METADATA_KEY,
-      data.controllerInstance,
-      propertyName,
-    );
-
-    if (methodOkStatus) {
-      !isError && (data.response.statusCode = methodOkStatus);
-    } else {
-      const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
-      !isError && classOkStatus && (data.response.statusCode = classOkStatus);
-    }
-
-    return { status: data.response.statusCode, data: appResponse?.data ?? appResponse };
-  } catch (err) {
-    throw err;
+  if (!appResponse) {
+    return;
   }
+
+  data.response.statusCode = appResponse.status ?? 200;
+
+  const isError = !OK_STATUSES.includes(data.response.statusCode);
+
+  const interceptors = data.interceptors.reverse();
+
+  for (let index = 0; index < interceptors?.length && !isError; index++) {
+    const interceptor = interceptors[index];
+    appResponse = await Promise.resolve(interceptor(appResponse, data.request, data.response));
+  }
+
+  const propertyName = data.name;
+  const prototype = Object.getPrototypeOf(data.controllerInstance);
+
+  const methodOkStatus = Reflect.getMetadata(
+    OK_METADATA_KEY,
+    data.controllerInstance,
+    propertyName,
+  );
+
+  if (methodOkStatus) {
+    !isError && (data.response.statusCode = methodOkStatus);
+  } else {
+    const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
+    !isError && classOkStatus && (data.response.statusCode = classOkStatus);
+  }
+
+  return appResponse;
 };
 
 export const applyMiddlewaresVsSanitizers = async (
