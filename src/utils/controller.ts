@@ -110,16 +110,14 @@ export const executeControllerMethod = async (
       }
 
       if (TO_VALIDATE.includes(param.type)) {
-        value = await validate(
-          param.dto,
-          typeof value === 'string' ? { [param.name ?? '']: value } : value,
-        );
+        const valueToValidate = typeof value === 'string' ? { [param.name ?? '']: value } : value;
+        value = await validate(param.dto, valueToValidate);
       }
 
       args[i] = value;
     }
 
-    return await controller[propertyName](controller, args);
+    return await fn.apply(controller, args);
   } catch (error: any) {
     if (typeof error === 'string') {
       const catched = new Error(error) as any;

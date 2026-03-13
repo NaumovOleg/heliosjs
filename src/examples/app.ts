@@ -11,7 +11,6 @@ import { User } from './controllers/user';
 export class Root {
   @USE()
   use() {
-    console.log('dldldlkdldkdkdkdkd');
     return 'default';
   }
 }

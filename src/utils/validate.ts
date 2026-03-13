@@ -12,6 +12,7 @@ export async function validate(dtoClass: any, data: any) {
 
   if (typeof dtoClass === 'function') {
     const instance = plainToInstance(dtoClass, data);
+
     if (!instance) {
       throw { status: 400, message: 'Validation failed', errors: 'Empty value' };
     }
@@ -19,11 +20,10 @@ export async function validate(dtoClass: any, data: any) {
 
     if (errors.length > 0) {
       const formattedErrors = formatValidationErrors(errors);
-
       throw { status: 400, message: 'Validation failed', errors: formattedErrors };
     }
 
-    return instance;
+    return data;
   }
 
   return data;

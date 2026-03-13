@@ -22,7 +22,6 @@ export class LRequest {
   sourceIp: string;
 
   constructor(lambdaEvent: LambdaEvent, context: Context) {
-    console.log(lambdaEvent);
     const event = normalizeEvent(lambdaEvent, getEventType(lambdaEvent));
     const query: Record<string, string | string[]> = {};
 
