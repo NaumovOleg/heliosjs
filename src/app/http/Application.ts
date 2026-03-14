@@ -3,6 +3,8 @@ import {
   AppRequest,
   ControllerType,
   HTTP_METHODS,
+  HttpPlugin,
+  IHttpServer,
   MiddlewareCB,
   ServerConfig,
   StaticConfig,
@@ -25,26 +27,34 @@ import { SSEServer } from '../../sse/server';
 import { SSEService } from '../../sse/service';
 import { WebSocketServer } from '../../ws/server';
 import { WebSocketService } from '../../ws/service';
+import { Plugin } from '../plugin';
 
-export class HttpServer {
-  private app: http.Server;
+export class HttpServer extends Plugin implements IHttpServer {
+  app: http.Server;
+  plugins: HttpPlugin[] = [];
   private config: ServerConfig;
   private isRunning: boolean = false;
   private sse?: SSEServer;
   private websocket?: WebSocketServer;
   private allControllers: (new (...args: any[]) => any)[];
+  controllers: ControllerType[] = [];
+  middlewares: MiddlewareCB[] = [];
 
   constructor(configOrClass: new (...args: any[]) => any) {
+    super();
     this.config = resolveConfig(configOrClass);
+
+    this.controllers = this.controllers.concat(this.config.controllers ?? []);
+    this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);
 
     const app = http.createServer(this.requestHandler.bind(this));
 
     for (const st of this.config.statics ?? []) {
       const staticMw = staticMiddleware(st.path, st.options);
-      this.config.middlewares?.unshift(staticMw as MiddlewareCB);
+      this.middlewares?.unshift(staticMw as MiddlewareCB);
     }
 
-    this.allControllers = this.getAllControllers(this.config.controllers);
+    this.allControllers = this.getAllControllers(this.controllers);
     this.setupStaticFiles();
     if (this.config.websocket?.enabled) {
       this.websocket = new WebSocketServer(app, { path: this.config.websocket.path });
@@ -71,7 +81,7 @@ export class HttpServer {
 ║  📍 Host: ${this.config.host}                       
 ║  🔌 Port: ${this.config.port}                         
 ║  🔌 Websocket: ${!!this.config.websocket}                         
-║  🔧 Global Middlewares: ${this.config.middlewares?.length || 0}                   
+║  🔧 Global Middlewares: ${this.middlewares?.length || 0}                   
 ║  🔧 Error handler: ${!this.config.errorHandler}                   
 ║  🎯 Global Interceptors: ${!!this.config.interceptor?.length}                   
 ║  📦 Controllers: ${STATISTIC.controllers}                   
@@ -89,7 +99,7 @@ export class HttpServer {
     const listenPort = port || this.config.port || 3000;
     const listenHost = host || this.config.host || 'localhost';
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         this.app.listen(listenPort, listenHost, () => {
           this.isRunning = true;
@@ -100,8 +110,11 @@ export class HttpServer {
 ║  📊 Status: RUNNING                    
 ╚════════════════════════════════════════╝
           `);
+
           resolve(this.app);
         });
+
+        await this.callPluginMethod('onStart', this.app);
 
         this.app.on('error', (error) => {
           console.error('❌ Server error:', error);
@@ -134,7 +147,8 @@ export class HttpServer {
         return;
       }
 
-      this.app.close((err) => {
+      this.app.close(async (err) => {
+        await this.callPluginMethod('onStop', this.app);
         if (err) {
           reject(err);
         } else {
@@ -154,18 +168,25 @@ export class HttpServer {
 
   private async requestHandler(req: IncomingMessage, response: ServerResponse) {
     const startTime = Date.now();
+
     let request: AppRequest;
+
+    try {
+      await this.callPluginHook('beforeRequest', req);
+    } catch (data: any) {
+      return this.sendResponse(response, { status: 500, data }, startTime);
+    }
 
     try {
       request = await this.createRequest(req);
     } catch (err: any) {
-      return this.sendResponse(response, { status: 500, message: err.message }, startTime);
+      return this.sendResponse(response, { status: 500, data: err.message }, startTime);
     }
 
     try {
       let handledCors = { permitted: true, continue: true };
       if (this.config.cors) {
-        handledCors = handleCORS(request!, response, this.config.cors);
+        handledCors = handleCORS(request, response, this.config.cors);
       }
 
       if (!handledCors.permitted) {
@@ -173,10 +194,11 @@ export class HttpServer {
           response,
           { status: 403, message: 'CORS: Origin not allowed' },
           startTime,
+          request,
         );
       }
       if (!handledCors.continue && handledCors.permitted) {
-        return this.sendResponse(response, { status: 204 }, startTime);
+        return this.sendResponse(response, { status: 204 }, startTime, request);
       }
 
       await this.beforeRequest(request, response);
@@ -184,10 +206,16 @@ export class HttpServer {
       if (response.headersSent) {
         return;
       }
+      await this.callPluginHook('beforeRoute', request, response);
       let controllerResponse = await this.runController(request, response);
 
       if (!controllerResponse.routeMatch) {
-        return this.sendResponse(response, { status: 404, data: 'Route not found' }, Date.now());
+        return this.sendResponse(
+          response,
+          { status: 404, data: 'Route not found' },
+          Date.now(),
+          request,
+        );
       }
 
       const isError =
@@ -208,6 +236,7 @@ export class HttpServer {
         response,
         { status: response.statusCode ?? 200, data: controllerResponse.data },
         startTime,
+        request,
       );
     } catch (error: any) {
       return this.handleError(error, request, response, startTime);
@@ -251,13 +280,13 @@ export class HttpServer {
   private async beforeRequest(request: AppRequest, response: http.ServerResponse): Promise<any> {
     sanitizeRequest(request, this.config.sanitizers ?? []);
 
-    for (const middleware of this.config.middlewares?.reverse() || []) {
+    for (const middleware of this.middlewares?.reverse() || []) {
       await middleware(request, response, NextFN);
     }
   }
 
   private async runController(request: AppRequest, response?: ServerResponse): Promise<any> {
-    for (const ControllerClass of this.config.controllers || []) {
+    for (const ControllerClass of this.controllers ?? []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
         const handlerResponse = await instance.handleRequest(request, response);
@@ -273,6 +302,7 @@ export class HttpServer {
     res: http.ServerResponse,
     responseData: any,
     startTime: number,
+    appRequest?: AppRequest,
   ): Promise<void> {
     if (res.headersSent) return;
 
@@ -286,6 +316,7 @@ export class HttpServer {
     res.statusCode = status ?? data.status ?? 200;
 
     res.end(JSON.stringify(data));
+    await this.callPluginHook('afterResponse', appRequest, res);
   }
 
   private async handleError(
@@ -294,6 +325,7 @@ export class HttpServer {
     response: http.ServerResponse,
     startTime: number,
   ): Promise<void> {
+    console.log(error);
     let serialized = serializeError(error);
 
     if (!this.config.errorHandler) {
@@ -310,20 +342,17 @@ export class HttpServer {
       serialized = data ?? serialized;
     } catch (cathed) {}
 
-    return this.sendResponse(response, { data: serialized }, startTime);
+    return this.sendResponse(response, { data: serialized }, startTime, request);
   }
 
   private setupStaticFiles() {
     const staticConfigs: StaticConfig[] = [];
 
     for (const ControllerClass of this.allControllers) {
-      // console.log(this.allControllers);
       const classStatic = Reflect.getMetadata(STATIC_METADATA_KEY, ControllerClass);
       if (classStatic) {
         staticConfigs.push(classStatic);
       }
     }
-
-    // console.log('aaaaaaaaaaaaaaaaaaddddddddd', staticConfigs, this.config.controllers);
   }
 }

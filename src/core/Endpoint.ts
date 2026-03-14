@@ -9,7 +9,7 @@ import { HTTP_METHODS, MiddlewareCB } from '@types';
  *
  * It also allows attaching middlewares that will be applied when the endpoint is accessed.
  *
- * @param method - The HTTP method (e.g., 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'USE').
+ * @param method - The HTTP method (e.g., 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'ANY').
  * @param pathPattern - Optional route pattern string to match the endpoint path.
  * @param middlewares - Optional array of middlewares to apply to this endpoint.
  *
@@ -117,9 +117,9 @@ export const HEAD = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
 //  * @param middlewares - Optional array of middlewares.
 //  * @returns Method decorator for middleware usage.
 //  */
-export function USE(middlewares?: MiddlewareCB[]) {
+export function ANY(middlewares?: MiddlewareCB[]) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    Reflect.defineMetadata(ENDPOINT, ['USE', '/'], target, propertyKey);
+    Reflect.defineMetadata(ENDPOINT, ['ANY', '/'], target, propertyKey);
     Reflect.defineMetadata(MIDDLEWARES, middlewares || [], target, propertyKey);
     INCREMENT_STATISTIC('routes');
     return descriptor;

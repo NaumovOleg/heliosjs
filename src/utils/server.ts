@@ -11,6 +11,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     const interceptors = Reflect.getMetadata(INTECEPT, configOrClass);
     const middlewares = Reflect.getMetadata(USE_MIDDLEWARE, configOrClass);
     const sanitizers = Reflect.getMetadata(SANITIZE, configOrClass.prototype) || [];
+
     config = {
       port: 3000,
       host: 'localhost',

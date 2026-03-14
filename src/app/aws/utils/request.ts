@@ -1,8 +1,8 @@
-import { HTTP_METHODS, LambdaEvent, MultipartFile } from '@types';
+import { HTTP_METHODS, ILRequest, LambdaEvent, MultipartFile } from '@types';
 import { Context } from 'aws-lambda';
 import { getEventType, getSourceIp, normalizeEvent } from './helpers';
 
-export class LRequest {
+export class LRequest implements ILRequest {
   requestUrl: URL;
   method: HTTP_METHODS;
   path?: string;

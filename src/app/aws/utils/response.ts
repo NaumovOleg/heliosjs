@@ -1,9 +1,10 @@
+import { ILResponse } from '@types';
 import { ServerResponse } from 'http';
 
-export class LResponse {
+export class LResponse implements ILResponse {
   private _statusCode: number = 200;
   private _headers: Record<string, string> = {};
-  private _body: any = null;
+  body: any = null;
 
   constructor(private originalResponse?: ServerResponse) {}
 

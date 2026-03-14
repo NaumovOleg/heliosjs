@@ -4,6 +4,7 @@ export * from './cors';
 export * from './http';
 export * from './lambda';
 export * from './multipart';
+export * from './plugins';
 export * from './sanitize';
 export * from './sse';
 export * from './static';

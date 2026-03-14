@@ -1,21 +1,53 @@
 import { CORS_METADATA } from '@constants';
-import { LambdaEvent } from '@types';
+import { ControllerClass, ILambdaAdapter, LambdaEvent, LambdaPlugin } from '@types';
 import { getErrorType, handleCORS, serializeError } from '@utils';
 import { APIGatewayProxyResult, APIGatewayProxyResultV2, Context, Handler } from 'aws-lambda';
+import { Plugin } from '../plugin';
 import { LRequest, LResponse, getEventType } from './utils';
 
-export class LambdaAdapter {
-  static createHandler(Controller: any): Handler {
-    return async (event: LambdaEvent, context: Context) => {
-      const instance: any = new Controller();
+export class LambdaAdapter extends Plugin implements ILambdaAdapter {
+  handler: Handler;
+  controllers: ControllerClass[] = [];
+  plugins: LambdaPlugin[] = [];
+  constructor(Controller: ControllerClass) {
+    super();
+    this.controllers.push(Controller);
+    this.handler = this.createHandler(Controller);
+  }
 
-      if (Object.hasOwn(instance, 'beforeStart')) {
-        await instance.beforeStart?.();
-      }
+  private createHandler(Controller: ControllerClass): Handler {
+    return async (event: LambdaEvent, context: Context) => {
+      this.controllers.push(Controller);
+
+      await this.callPluginHook('beforeRequest', event, context);
 
       const eventType = getEventType(event);
+
       const request = new LRequest(event, context);
       const response = new LResponse();
+      return this.runControllers({
+        context,
+        event,
+        eventType,
+        request,
+        response,
+      });
+    };
+  }
+
+  private async runControllers(meta: {
+    request: LRequest;
+    response: LResponse;
+    eventType: 'rest' | 'http' | 'url';
+    event: LambdaEvent;
+    context: Context;
+  }): Promise<any> {
+    const { request, response, eventType, event, context } = meta;
+    let processed;
+
+    for (const ControllerClass of this.controllers ?? []) {
+      const instance = new ControllerClass();
+
       try {
         const cors = Reflect.getMetadata(CORS_METADATA, instance);
 
@@ -40,24 +72,29 @@ export class LambdaAdapter {
           throw new Error('Controller must have handleRequest method');
         }
 
-        const { routeMatch, data } = await instance.handleRequest(request, response);
-        if (!routeMatch) {
-          response.statusCode = 404;
-          return this.toLambdaResponse({ data: 'Route not found' }, request, response, eventType);
-        }
+        await this.callPluginHook('beforeRoute', request, response);
 
-        if (getErrorType(data).isError) {
-          return this.handleError(data, event, context);
-        }
+        processed = await instance.handleRequest(request, response);
 
-        return this.toLambdaResponse(data, request, response, eventType);
+        if (processed.routeMatch) break;
       } catch (error: any) {
         return this.handleError(error, event, context);
       }
-    };
+    }
+
+    if (!processed?.routeMatch) {
+      response.statusCode = 404;
+      return this.toLambdaResponse({ data: 'Route not found' }, request, response, eventType);
+    }
+
+    if (getErrorType(processed?.data).isError) {
+      return this.handleError(processed?.data, event, context);
+    }
+
+    return this.toLambdaResponse(processed?.data, request, response, eventType);
   }
 
-  private static toLambdaResponse(
+  private toLambdaResponse(
     data: any,
     request: LRequest,
     response: LResponse,
@@ -103,6 +140,7 @@ export class LambdaAdapter {
       timestamp: new Date().toISOString(),
     };
 
+    this.callPluginHook('afterResponse', request, response);
     switch (eventType) {
       case 'rest':
         return { ...commonResponse, isBase64Encoded: false };
@@ -132,7 +170,7 @@ export class LambdaAdapter {
     }
   }
 
-  private static handleError(error: any, event: LambdaEvent, context: Context) {
+  private handleError(error: any, event: LambdaEvent, context: Context) {
     let serialized = serializeError(error);
 
     const eventType = getEventType(event);

@@ -161,7 +161,7 @@ export const getControllerMethods = (controller: ControllerInstance) => {
     proto = Object.getPrototypeOf(proto);
   }
 
-  return methods.sort((a, b) => (a.httpMethod === HTTP_METHODS.USE ? 1 : -1));
+  return methods.sort((a, b) => (a.httpMethod === HTTP_METHODS.ANY ? 1 : -1));
 };
 
 export const getAllMethods = (obj: any): string[] => {
@@ -216,21 +216,22 @@ export const findRouteInController = (
 
     const [httpMethod, routePattern, middlewares] = endpointMeta;
 
-    if (httpMethod !== method && httpMethod !== 'USE') {
+    if (httpMethod !== method && httpMethod !== 'ANY') {
       continue;
     }
 
-    if (httpMethod === 'USE') {
+    if (httpMethod === 'ANY') {
       let useRoute = route.split('/');
-      useRoute.pop();
-      route = useRoute.join('/');
+
+      route = useRoute[0];
     }
+
     const current = [path, routePattern].join('/').replace(/\/+/g, '/');
 
     const pathParams = matchRoute(current, route);
 
     if (pathParams) {
-      const priority = httpMethod === 'USE' ? 0 : Object.keys(pathParams).length > 0 ? 1 : 2;
+      const priority = httpMethod === 'ANY' ? 0 : Object.keys(pathParams).length > 0 ? 1 : 2;
 
       matches.push({
         name,

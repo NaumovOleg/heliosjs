@@ -1,6 +1,7 @@
 import { IsString } from 'class-validator';
 
 import {
+  ANY,
   Body,
   Controller,
   Headers,
@@ -10,7 +11,6 @@ import {
   Query,
   Request,
   Response,
-  USE,
 } from 'quantum-flow/core';
 
 import { Status } from 'quantum-flow/middlewares';
@@ -48,7 +48,7 @@ export class User {
   }
 
   @Status(300)
-  @USE()
+  @ANY()
   async any(@Response() resp: any) {
     return 'done';
   }

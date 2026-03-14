@@ -23,6 +23,8 @@ You can use controllers and server functionality by importing controllers and cr
 - `quantum-flow/middlewares` - Core middlewares to use within the application.
 - `quantum-flow/ws` - Websocket decorators.
 - `quantum-flow/sse` - Server side events decorators.
+- `quantum-flow/plugins/aws` - Exports plugins types for lambda.
+- `quantum-flow/plugins/http` - Exports plugins types for http server.
 
 ---
 
@@ -42,7 +44,7 @@ import {
   Request,
   Response,
   Status,
-  USE,
+  ANY,
 } from 'quantum-flow/core';
 import {IsString} from  'class-validator'
 import { Catch, Cors, Sanitize, Use, SANITIZER } from 'quantum-flow/middlewares';
@@ -86,7 +88,7 @@ export class User {
   ) {
   }
 
-  @USE([...middlewares])
+  @ANY([...middlewares])
   async any(@Response() resp: any) {
     ...
   }
@@ -156,14 +158,11 @@ let dbConnection = null;
   prefix: 'api',
   controllers: [UserController, SocketController],
 })
-class RootController {
-  async beforeStart(){
-    if(!dbConnection){
-      connection = await connect()
-    }
-  }
-}
-export const handler = LambdaAdapter.createHandler(RootController);
+class RootController {}
+const lambdaAdapter = new LambdaAdapter(Root);
+lambdaAdapter.usePlugin(metricsPlugin);
+
+export const handler = lambdaAdapter.handler;
 ```
 
 # WebSocket Support
@@ -394,6 +393,52 @@ class App {}
 
 const server = new HttpServer(App);
 server.listen().catch(console.error);
+```
+
+## Custom plugins.
+
+Use plugins to extend app with custom logic.
+
+Example server setup:
+
+```typescript
+import { Server, HttpServer } from 'quantum-flow/http';
+import { User, UserMetadata } from './controllers';
+import client from 'prom-client';
+
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'path', 'status'],
+});
+
+@Controller({ prefix: 'metrics' })
+export class MetricsController {...}
+@Server({...})
+class App {}
+
+const server = new HttpServer(App);
+server.usePlugun(metricsPlugin)
+server.listen().catch(console.error);
+
+let connection;
+const dbConnectionPlugin: Plugin = {
+  name: 'metric',
+   beforeRequest: async(server) => {
+    if(!connection){
+      connection = await connetct(...)
+    }
+  },
+  hooks: {...},
+};
+
+const lambdaAdapter = new LambdaAdapter(Root);
+lambdaAdapter.usePlugin(dbConnectionPlugin);
+
+export const handler = lambdaAdapter.handler;
 ```
 
 ## Summary

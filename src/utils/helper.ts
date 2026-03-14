@@ -26,6 +26,7 @@ export function matchRoute(pattern: string, path: string): Record<string, string
       params[paramName] = pathSegment;
       i++;
       j++;
+
       continue;
     }
 

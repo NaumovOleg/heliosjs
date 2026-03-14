@@ -83,7 +83,7 @@ export type ResponseWithStatus = {
 };
 
 export enum HTTP_METHODS {
-  USE = 'USE',
+  ANY = 'ANY',
   GET = 'GET',
   POST = 'POST',
   PATCH = 'PATCH',

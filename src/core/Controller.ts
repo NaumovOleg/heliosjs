@@ -31,6 +31,7 @@ import {
   getErrorType,
   getResponse,
   handleCORS,
+  pathStartsWithPrefix,
 } from '@utils';
 import { ServerResponse } from 'http';
 import 'reflect-metadata';
@@ -162,7 +163,7 @@ export function Controller(
             .join('/')
             .replace(/\/+/g, '/');
 
-          if (path.startsWith(fullSubPath)) {
+          if (pathStartsWithPrefix(path, fullSubPath)) {
             const walkerData = {
               ...context,
               subPath: fullSubPath,
@@ -197,8 +198,10 @@ export function Controller(
           const handledCors = context.corsChain
             .concat(cors ?? [])
             .flat()
+            .filter((el) => !!el)
             .reduce(
               (acc, conf) => {
+                console.log(conf);
                 const cors = handleCORS(request, response, conf);
                 return {
                   permitted: acc.permitted && cors.permitted,

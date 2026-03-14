@@ -1,6 +1,7 @@
 import path from 'path';
-import { Controller, USE } from 'quantum-flow/core';
+import { ANY, Controller, Response } from 'quantum-flow/core';
 import { Server } from 'quantum-flow/http';
+
 import { Socket } from './controllers/socket';
 import { User } from './controllers/user';
 
@@ -10,14 +11,20 @@ import { User } from './controllers/user';
   middlewares: [function Global(req, res, next) {}],
 })
 export class Root {
-  @USE()
+  @ANY()
   use() {
     return 'default';
   }
 }
 
+@Controller({ prefix: 'metric', controllers: [] })
+export class MetricsController {
+  @ANY()
+  async any(@Response() resp: any) {}
+}
+
 @Server({
-  controllers: [Root, Socket],
+  controllers: [Root, Socket, MetricsController],
   statics: [
     {
       path: path.join(__dirname, '../../'),

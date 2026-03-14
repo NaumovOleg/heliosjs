@@ -45,6 +45,16 @@
       "import": "./dist/sse/index.js",
       "require": "./dist/sse/index.js",
       "types": "./dist/sse/index.d.ts"
+    },
+    "./plugins/http": {
+      "import": "./dist/plugins/http.js",
+      "require": "./dist/plugins/http.js",
+      "types": "./dist/plugins/http.js"
+    },
+    "./plugins/aws": {
+      "import": "./dist/plugins/aws.js",
+      "require": "./dist/plugins/aws.js",
+      "types": "./dist/plugins/aws.js"
     }
   },
   "repository": {

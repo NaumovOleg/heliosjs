@@ -1,4 +1,8 @@
-import { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyEventV2, Handler } from 'aws-lambda';
+import { HTTP_METHODS } from './common';
+import { ControllerClass } from './controller';
+import { MultipartFile } from './multipart';
+import { LambdaPlugin } from './plugins';
 
 export interface LambdaFunctionUrlEvent {
   version: string;
@@ -71,4 +75,41 @@ export interface LambdaApp {
 export interface Lambda {
   beforeStart?: () => Promise<void>;
   handleRequest(request: any): Promise<any>;
+}
+
+export interface ILRequest {
+  requestUrl: URL;
+  method: HTTP_METHODS;
+  path?: string;
+  headers: Record<string, string | string[]>;
+  query?: Record<string, string | string[]>;
+  params?: Record<string, string>;
+  body: any;
+  rawBody: Buffer<ArrayBufferLike>;
+  isBase64Encoded?: boolean;
+  cookies: Record<string, string>;
+  multipart?: Record<string, MultipartFile | MultipartFile[]>;
+  _startTime: number;
+  url: string;
+  requestId: string;
+  stage?: string;
+  userAgent: string;
+  sourceIp: string;
+
+  end(): void;
+}
+
+export interface ILResponse {
+  body: any;
+  setHeader(name: string, value: string): void;
+  statusCode: number;
+  headers: Record<string, string>;
+  send(): void;
+  original: any;
+}
+
+export interface ILambdaAdapter {
+  handler: Handler;
+  controllers: ControllerClass[];
+  plugins: LambdaPlugin[];
 }
