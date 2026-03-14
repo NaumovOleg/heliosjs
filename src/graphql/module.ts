@@ -2,8 +2,10 @@ import {
   GRAPHQL_ARG,
   GRAPHQL_FIELD,
   GRAPHQL_FIELD_RESOLVER,
+  GRAPHQL_INJECT_PUBSUB,
   GRAPHQL_INPUT_TYPE,
   GRAPHQL_MUTATION,
+  GRAPHQL_PUBSUB,
   GRAPHQL_QUERY,
   GRAPHQL_RESOLVER,
   GRAPHQL_SUBSCRIPTION,
@@ -22,6 +24,7 @@ import {
   GraphQLSchema,
   GraphQLString,
 } from 'graphql';
+import { PubSubService } from './pubsubService';
 
 interface FieldResolverData {
   fn: Function;
@@ -34,6 +37,7 @@ export class GraphQLModule {
   private inputTypeCache: Map<any, GraphQLInputObjectType> = new Map();
   private fieldResolvers: Map<string, Map<string, FieldResolverData>> = new Map();
   private resolverInstances: Map<any, any> = new Map();
+  private pubsub = PubSubService.getInstance();
 
   private typeMap: Record<string, any> = {
     String: GraphQLString,
@@ -132,6 +136,7 @@ export class GraphQLModule {
             prototype,
             methodName,
             subMeta,
+            true,
           );
         }
       }
@@ -188,12 +193,49 @@ export class GraphQLModule {
     }
   }
 
-  private createFieldConfig(instance: any, prototype: any, methodName: string, meta: any) {
+  private wrapIterator(iterator: any, config: any, args: any) {
+    const { filter, resolve } = config;
+
+    return {
+      [Symbol.asyncIterator]: () => iterator,
+      async next(): Promise<any> {
+        const result = await iterator.next();
+        if (result.done) return result;
+        if (filter && !filter(result.value, args)) {
+          return this.next();
+        }
+        if (resolve) {
+          result.value = resolve(result.value);
+        }
+
+        return result;
+      },
+    };
+  }
+
+  private createFieldConfig(
+    instance: any,
+    prototype: any,
+    methodName: string,
+    meta?: any,
+    isSubscription = false,
+  ) {
     const argMetas = Reflect.getMetadata(GRAPHQL_ARG, prototype, methodName) || [];
     argMetas.sort((a: any, b: any) => a.index - b.index);
 
+    const pubsubMetas =
+      isSubscription && Reflect.getMetadata(GRAPHQL_PUBSUB, prototype, methodName);
+
+    const injectPubSubMetas =
+      !isSubscription && Reflect.getMetadata(GRAPHQL_INJECT_PUBSUB, prototype, methodName);
+
+    const allParams = [...argMetas, pubsubMetas, injectPubSubMetas]
+      .filter((el) => !!el)
+      .sort((a, b) => a.index - b.index);
+
     const args: Record<string, any> = {};
     for (const arg of argMetas) {
+      if (arg.name === 'context' || arg.name === 'root') continue;
       const argType = this.convertToGraphQLType(arg.type);
       args[arg.name] = {
         type: arg.required ? new GraphQLNonNull(argType) : argType,
@@ -204,21 +246,62 @@ export class GraphQLModule {
 
     const returnType = this.convertToGraphQLType(meta.type);
 
+    if (isSubscription) {
+      return {
+        type: returnType,
+        args: args,
+        subscribe: async (source: any, args: any, context: any, info: any) => {
+          try {
+            const methodArgs = [];
+            let pubsubConfig = null;
+
+            for (const param of allParams) {
+              if (param.name === 'root') {
+                methodArgs.push(source);
+              } else if (param.name === 'context') {
+                methodArgs.push(context);
+              } else if (param.name === 'pubsub') {
+                pubsubConfig = param.config;
+                context.pubsub.config = param.config;
+                methodArgs.push(context.pubsub);
+              } else {
+                methodArgs.push(args[param.name]);
+              }
+            }
+
+            const iterator = await instance[methodName](...methodArgs);
+
+            if (pubsubConfig?.filter || pubsubConfig?.resolve) {
+              return this.wrapIterator(iterator, pubsubConfig, args);
+            }
+
+            return iterator;
+          } catch (error) {
+            console.error(`❌ Error in subscription ${methodName}:`, error);
+            throw error;
+          }
+        },
+      };
+    }
     return {
       type: returnType,
       args: args,
       resolve: async (source: any, args: any, context: any, info: any) => {
         try {
           const methodArgs = [];
-          for (const argMeta of argMetas) {
-            if (argMeta.name === 'root') {
+
+          for (const param of allParams) {
+            if (param.name === 'root') {
               methodArgs.push(source);
-            } else if (argMeta.name === 'context') {
+            } else if (param.name === 'context') {
               methodArgs.push(context);
+            } else if (param.name === 'pubsub') {
+              methodArgs.push(context.pubsub ?? this.pubsub);
             } else {
-              methodArgs.push(args[argMeta.name]);
+              methodArgs.push(args[param.name]);
             }
           }
+
           return await instance[methodName](...methodArgs);
         } catch (error) {
           console.error(`❌ Error in resolver ${methodName}:`, error);

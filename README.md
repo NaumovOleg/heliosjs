@@ -452,6 +452,9 @@ GraphQL support requires the `graphql` and `graphql-yoga` packages.
 | `@Arg(name?, type?, options?)` | Declares a method argument as a GraphQL argument.                         |
 | `@Root()`                      | Injects the parent object in a field resolver.                            |
 | `@Context()`                   | Injects the GraphQL context (e.g., request object).                       |
+| `@InjectPubSub()`              | Injects PubSub for publishing events.                                     |
+| `@PubSub()`                    | Injects PubSub for subscriptions.                                         |
+| `@Context()`                   | Injects the GraphQL context (e.g., request object).                       |
 
 ### Defining Object Types
 
@@ -539,9 +542,47 @@ import { Resolver, Query, Context } from 'quantum-flow/graphql';
 @Resolver()
 export class AuthResolver {
   @Query(() => User)
-  async me(@Context() ctx: any): Promise<User> {
-    if (!ctx.user) throw new Error('Not authenticated');
-    return ctx.user;
+  async me(@Context() ctx: any): Promise<User> {...}
+}
+```
+
+### Using Subscriptions
+
+To use subscriptions, please enable websocket flag on graphql config.`.
+
+```typescript
+import { Resolver, Query, Context, TPubSub } from 'quantum-flow/graphql';
+
+@Resolver()
+export class MessageResolver {
+  @Query(() => [Message])
+  async messages(): Promise<Message[]> {
+    return [];
+  }
+
+  @Mutation(() => Message)
+  async createMessage(
+    @Arg('input') input: CreateMessageInput,
+    @InjectPubSub() pubsub: TPubSub,
+  ): Promise<Message> {
+    const message: Message = {
+      id: Date.now().toString(),
+      content: input.content,
+      userId: input.userId,
+      createdAt: new Date(),
+    };
+
+    await pubsub.publish('NEW_MESSAGE', message);
+    return message;
+  }
+
+  @Subscription(() => Message)
+  async newMessage(
+    @PubSub({ filter: (payload, variables) => payload.userId === variables.userId })
+    pubsub: TPubSub,
+    @Arg('userId') userId: string,
+  ) {
+    return pubsub.asyncIterator('NEW_MESSAGE');
   }
 }
 ```
@@ -559,6 +600,7 @@ import { UserRelationsResolver } from './resolvers/user-relations.resolver';
   resolvers: [UserResolver, UserRelationsResolver], // list of resolver classes
   graphql: {
     enabled: true,
+    websocket: true //enable websocket for subscriptions
     path: '/graphql', // endpoint path (default: '/graphql')
     playground: true, // enable GraphQL Playground (default: false)
   },
@@ -573,10 +615,3 @@ export class App {}
 - All resolver classes must be listed in the `resolvers` array of the server configuration.
 - Field resolvers require the target object type to be explicitly passed to `@Resolver(() => Type)`.
 - The framework automatically builds the GraphQL schema from the decorators metadata.
-
-### Advanced Features
-
-- Subscriptions – planned for future releases.
-- Custom scalars – you can extend the type system by registering custom GraphQL scalars.
-- Validation – combine with `class-validator` by using DTO classes as input types.
-- Directives – support for custom schema directives can be added.

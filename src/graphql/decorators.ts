@@ -2,8 +2,10 @@ import {
   GRAPHQL_ARG,
   GRAPHQL_FIELD,
   GRAPHQL_FIELD_RESOLVER,
+  GRAPHQL_INJECT_PUBSUB,
   GRAPHQL_INPUT_TYPE,
   GRAPHQL_MUTATION,
+  GRAPHQL_PUBSUB,
   GRAPHQL_QUERY,
   GRAPHQL_RESOLVER,
   GRAPHQL_SUBSCRIPTION,
@@ -16,6 +18,8 @@ import {
   FieldResolverMetadata,
   GraphQLType,
   MutationMetadata,
+  PubSubConfig,
+  PubSubMetadata,
   QueryMetadata,
   ResolverMetadata,
   SubscriptionMetadata,
@@ -127,17 +131,6 @@ export function Mutation(returnType?: GraphQLType | (() => GraphQLType)): Method
   };
 }
 
-export function Subscription(returnType?: GraphQLType | (() => GraphQLType)): MethodDecorator {
-  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
-    Reflect.defineMetadata(
-      GRAPHQL_SUBSCRIPTION,
-      { type: returnType, method: propertyKey as string } as SubscriptionMetadata,
-      target,
-      propertyKey,
-    );
-  };
-}
-
 export function FieldResolver(returns?: any): MethodDecorator {
   return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     Reflect.defineMetadata(
@@ -151,5 +144,59 @@ export function FieldResolver(returns?: any): MethodDecorator {
 export function Resolver(type?: any): ClassDecorator {
   return function (target: any) {
     Reflect.defineMetadata(GRAPHQL_RESOLVER, { type } as ResolverMetadata, target);
+  };
+}
+
+export function PubSub(config?: PubSubConfig | string): ParameterDecorator {
+  return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number) {
+    if (propertyKey === undefined) {
+      throw new Error('❌ @PubSub decorator must be used on a method parameter');
+    }
+
+    let normalizedConfig: PubSubConfig = {};
+
+    if (typeof config === 'string') {
+      normalizedConfig = { channel: config };
+    } else if (config) {
+      normalizedConfig = config;
+    }
+
+    const metadata: PubSubMetadata = {
+      index: parameterIndex,
+      config: normalizedConfig,
+      name: 'pubsub',
+      type: Object,
+      required: true,
+    };
+
+    Reflect.defineMetadata(GRAPHQL_PUBSUB, metadata, target, propertyKey);
+  };
+}
+
+export function InjectPubSub(): ParameterDecorator {
+  return function (target: any, propertyKey: string | symbol | undefined, parameterIndex: number) {
+    if (propertyKey === undefined) {
+      throw new Error('❌ @InjectPubSub decorator must be used on a method parameter');
+    }
+
+    const metadata: PubSubMetadata = {
+      index: parameterIndex,
+      name: 'pubsub',
+      type: Object,
+      required: true,
+    };
+
+    Reflect.defineMetadata(GRAPHQL_INJECT_PUBSUB, metadata, target, propertyKey);
+  };
+}
+
+export function Subscription(returnType?: GraphQLType | (() => GraphQLType)): MethodDecorator {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+    Reflect.defineMetadata(
+      GRAPHQL_SUBSCRIPTION,
+      { type: returnType, method: propertyKey as string } as SubscriptionMetadata,
+      target,
+      propertyKey,
+    );
   };
 }

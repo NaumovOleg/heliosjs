@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import WebSocket from 'ws';
 
 export class WebSocketServer implements IWebSocketServer {
-  private wss: WebSocket.Server;
+  wss: WebSocket.Server;
   private clients: Map<string, WebSocketClient> = new Map();
   private topics: Map<string, Set<string>> = new Map();
   private controllers: ControllerType[] = [];
@@ -21,7 +21,7 @@ export class WebSocketServer implements IWebSocketServer {
 
     this.wss = new WebSocket.Server({
       noServer: true,
-      path: this.options?.path || '/',
+      path: this.options?.path || '/ws',
     });
 
     this.wss.on('connection', (socket, request) => {

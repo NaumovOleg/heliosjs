@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GraphQL Subscription Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 0 20px;
+      }
+      input,
+      button {
+        padding: 8px;
+        margin: 5px;
+      }
+      #log {
+        background: #f5f5f5;
+        border: 1px solid #ccc;
+        padding: 10px;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+      .connected {
+        background-color: #d4edda;
+      }
+      .disconnected {
+        background-color: #f8d7da;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📡 GraphQL Subscription Tester</h1>
+
+    <div>
+      <label for="userId">User ID:</label>
+      <input type="text" id="userId" value="1" placeholder="user id" />
+      <button id="subscribeBtn">🔌 Subscribe</button>
+      <button id="unsubscribeBtn" disabled>❌ Unsubscribe</button>
+      <span id="status" class="disconnected">⚫ Disconnected</span>
+    </div>
+
+    <hr />
+    <h3>📨 Received events:</h3>
+    <div id="log">— waiting for subscription —</div>
+
+    <hr />
+    <h3>📝 Instructions</h3>
+    <p>
+      1. Click <strong>Subscribe</strong> to start listening for notifications for the given user
+      ID.<br />
+      2. Open another tab with
+      <a href="http://localhost:3000/ws" target="_blank">GraphQL Playground</a> (if enabled) or use
+      Postman.<br />
+      3. Run a mutation that publishes an event to the <code>NOTIFICATIONS</code> channel.<br />
+      4. If you don't have a mutation yet, you can add one like this to your resolver:
+    </p>
+    <pre style="background: #eee; padding: 10px">
+@Mutation(() => Boolean)
+async sendNotification(
+    @InjectPubSub() pubsub: any,
+    @Arg('userId') userId: string,
+    @Arg('message') message: string
+) {
+    await pubsub.publish('NOTIFICATIONS', {
+        id: Date.now().toString(),
+        userId,
+        name: 'System',
+        email: 'no-reply',
+        message
+    });
+    return true;
+}
+    </pre>
+    <p>Then call it with:</p>
+    <pre style="background: #eee; padding: 10px">
+mutation {
+  sendNotification(userId: "1", message: "Hello via subscription!")
+}
+    </pre>
+
+    <script type="module">
+      import { createClient } from 'https://esm.sh/graphql-ws';
+
+      // DOM elements
+      const userIdInput = document.getElementById('userId');
+      const subscribeBtn = document.getElementById('subscribeBtn');
+      const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+      const statusSpan = document.getElementById('status');
+      const logDiv = document.getElementById('log');
+
+      let unsubscribeFn = null;
+      let wsClient = null;
+
+      function log(message, isError = false) {
+        const entry = document.createElement('div');
+        entry.style.color = isError ? 'red' : 'black';
+        entry.style.borderBottom = '1px solid #eee';
+        entry.style.padding = '2px 0';
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function setStatus(connected) {
+        if (connected) {
+          statusSpan.textContent = '🟢 Connected';
+          statusSpan.className = 'connected';
+        } else {
+          statusSpan.textContent = '⚫ Disconnected';
+          statusSpan.className = 'disconnected';
+        }
+      }
+
+      subscribeBtn.addEventListener('click', () => {
+        if (unsubscribeFn) {
+          log('⚠️ Already subscribed. Unsubscribe first.');
+          return;
+        }
+
+        const userId = userIdInput.value.trim() || '1';
+        log(`🔍 Subscribing to notifications for user "${userId}"...`);
+
+        try {
+          wsClient = createClient({
+            url: 'ws://localhost:3000/ws',
+            connectionParams: {
+              // можно передать auth токен если нужно
+            },
+            on: {
+              connected: () => {
+                log('✅ WebSocket connected');
+                setStatus(true);
+              },
+              closed: () => {
+                log('❌ WebSocket closed');
+                setStatus(false);
+                unsubscribeFn = null;
+                toggleButtons();
+              },
+              error: (err) => {
+                log(`⚠️ WebSocket error: ${err}`, true);
+              },
+            },
+          });
+
+          const subscriptionQuery = `
+                    subscription Notifications($userId: String!) {
+                        notifications(userId: $userId) {
+                            id
+                            name
+                            email
+                            bio
+                            roles
+                        }
+                    }
+                `;
+
+          unsubscribeFn = wsClient.subscribe(
+            {
+              query: subscriptionQuery,
+              variables: { userId },
+            },
+            {
+              next: (data) => {
+                log(`📩 Received: ${JSON.stringify(data.data?.notifications, null, 2)}`);
+              },
+              error: (err) => {
+                log(`❌ Subscription error: ${err}`, true);
+                unsubscribeFn = null;
+                setStatus(false);
+                toggleButtons();
+              },
+              complete: () => {
+                log('🔚 Subscription completed');
+                unsubscribeFn = null;
+                setStatus(false);
+                toggleButtons();
+              },
+            },
+          );
+
+          toggleButtons();
+        } catch (err) {
+          log(`❌ Failed to connect: ${err}`, true);
+        }
+      });
+
+      unsubscribeBtn.addEventListener('click', () => {
+        if (unsubscribeFn) {
+          unsubscribeFn();
+          unsubscribeFn = null;
+          log('👋 Unsubscribed');
+          setStatus(false);
+          toggleButtons();
+        }
+        if (wsClient) {
+          wsClient.dispose();
+          wsClient = null;
+        }
+      });
+
+      function toggleButtons() {
+        subscribeBtn.disabled = !!unsubscribeFn;
+        unsubscribeBtn.disabled = !unsubscribeFn;
+      }
+
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', () => {
+        if (unsubscribeFn) unsubscribeFn();
+        if (wsClient) wsClient.dispose();
+      });
+    </script>
+  </body>
+</html>

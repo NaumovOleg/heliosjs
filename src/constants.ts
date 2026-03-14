@@ -51,3 +51,6 @@ export const GRAPHQL_FIELD = 'graphql:field';
 export const GRAPHQL_ARG = 'graphql:arg';
 export const GRAPHQL_FIELD_RESOLVER = 'graphql:fieldresolver';
 export const GRAPHQL_RESOLVER = 'graphql:resolver';
+export const GRAPHQL_PUBSUB = 'graphql:pubsub';
+export const GRAPHQL_INJECT_PUBSUB = 'graphql:injectpubsub';
+export const GRAPHQL_PARAMETER = 'graphql:parameter';

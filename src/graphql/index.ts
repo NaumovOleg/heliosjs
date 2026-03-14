@@ -1,2 +1,2 @@
-export { GraphQLArgs, GraphQLField, GraphQLReturnType } from '@types';
+export { GraphQLArgs, GraphQLField, GraphQLReturnType, TPubSub } from '@types';
 export * from './decorators';

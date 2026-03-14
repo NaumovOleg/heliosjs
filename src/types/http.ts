@@ -22,7 +22,7 @@ export interface ServerConfig {
   };
   resolvers?: any[];
   sse?: { enabled: boolean };
-  graphql?: { enabled: boolean; playground?: boolean; path?: string };
+  graphql?: { enabled: boolean; playground?: boolean; path?: string; websocket?: boolean };
 }
 
 import { Server } from 'http';

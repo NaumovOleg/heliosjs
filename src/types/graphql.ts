@@ -1,3 +1,4 @@
+import { PubSub } from 'graphql-subscriptions';
 export type GraphQLType =
   | StringConstructor
   | NumberConstructor
@@ -39,8 +40,6 @@ export interface QueryMetadata {
 }
 
 export interface MutationMetadata extends QueryMetadata {}
-export interface SubscriptionMetadata extends QueryMetadata {}
-
 export type GraphQLField<T = any> = T;
 export type GraphQLArgs<T = any> = T;
 export type GraphQLReturnType<T = any> = T;
@@ -52,4 +51,28 @@ export interface ResolverMetadata {
 export interface FieldResolverMetadata {
   returns?: any;
   method: string;
+}
+
+export interface PubSubConfig {
+  channel?: string;
+  filter?: (payload: any, variables: any) => boolean;
+  resolve?: (payload: any) => any;
+}
+
+export interface PubSubMetadata {
+  index: number;
+  config?: PubSubConfig;
+  name: string;
+  type: Object;
+  required: boolean;
+}
+
+export interface SubscriptionMetadata {
+  type?: GraphQLType | (() => GraphQLType);
+  method: string;
+  description?: string;
+}
+
+export interface TPubSub extends PubSub {
+  config: PubSubConfig;
 }
