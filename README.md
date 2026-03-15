@@ -50,7 +50,7 @@ import {IsString} from  'class-validator'
 import { Catch, Cors, Sanitize, Use, SANITIZER } from 'quantum-flow/middlewares';
 import { InjectWS } from 'quantum-flow/ws';
 import { HttpRequest } from 'quantum-flow/http';
-// SANITIZER - prefilled Joi shema for  common data
+// SANITIZER - prefilled Joi schema for common data
 class UserDto {
   constructor() {}
   @IsString()
