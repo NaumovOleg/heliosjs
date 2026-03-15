@@ -3,15 +3,14 @@ import * as Joi from 'joi';
 import {
   Body,
   Controller,
+  Files,
   GET,
   IWebSocketService,
-  Multipart,
   Params,
   POST,
   Request,
   Response,
 } from 'quantum-flow/core';
-import { Sanitize } from 'quantum-flow/middlewares';
 import { InjectSSE, ISSEService } from 'quantum-flow/sse';
 import { InjectWS } from 'quantum-flow/ws';
 
@@ -43,16 +42,9 @@ export class UserMetadata {
   }
 
   @POST('/:meta', [function s4() {}])
-  @Sanitize({
-    schema: userSchema,
-    action: 'both',
-    options: { abortEarly: false },
-    stripUnknown: true,
-    type: 'body',
-  })
   createMeta(
-    @Multipart() mult: any,
-    @Body(DTO) body: any,
+    @Files() mult: any,
+    @Body() body: any,
     @Params('meta') params: any,
     @InjectWS() ws: IWebSocketService,
   ) {

@@ -96,11 +96,11 @@ export const Cookies = (name?: string) => createParamDecorator('cookies', undefi
  *
  * Usage:
  * ```ts
- * @Multipart() multipartData: any
- * @Multipart('file') file: File
+ * @Files() multipartData: any
+ * @Files('file') file: File
  * ```
  */
-export const Multipart = (name?: string) => createParamDecorator('multipart', undefined, name);
+export const Files = (name?: string) => createParamDecorator('multipart', undefined, name);
 
 /**
  * Parameter decorator to inject the response object.

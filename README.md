@@ -134,11 +134,12 @@ server.listen().catch(console.error);
 - Use `@Headers` to access request headers.
 - Use `@Query` to handle query parameters.
 - Use `@Params` to access route parameters.
-- Use `@Multipart` for handling multipart/form-data requests.
+- Use `@Files` to access files sent within multipart/form-data requests.
+  Text sent as multipart/form-data is exposed with `@Body` decorators
 - Use `@Request` to access the original request object.
 - Use `@Response` to access the original object.
 - Use `@InjectWS` to access the websocket service.
-- Use `@InjectSSE()` to access the server-side-event service.
+- Use `@InjectSSE` to access the server-side-event service.
 
 # AWS Lambda Support
 
