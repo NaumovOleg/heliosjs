@@ -16,19 +16,24 @@ export class WebSocketServer implements IWebSocketServer {
   private controllers: ControllerType[] = [];
   private options: any;
 
-  constructor(server: http.Server, options?: { path?: string }) {
+  constructor(server: http.Server, options?: { path: string }) {
     this.options = options;
 
     this.wss = new WebSocket.Server({
       noServer: true,
-      path: this.options?.path || '/ws',
+      path: this.options.path,
     });
 
     this.wss.on('connection', (socket, request) => {
+      console.log('connectionconnectionconnectionconnectionconnection');
       this.handleConnection(socket);
     });
 
     server.on('upgrade', (request, socket, head) => {
+      console.log(
+        'upgradeupgradeupgradeupgradeupgradeupgradeupgradeupgradeupgrade',
+        (socket as any).__wsHandled,
+      );
       if ((socket as any).__wsHandled) {
         return;
       }
@@ -45,8 +50,7 @@ export class WebSocketServer implements IWebSocketServer {
   }
 
   private shouldHandleWebSocket(url: string = ''): boolean {
-    const path = this.options?.path || '/ws';
-    return url.startsWith(path);
+    return url.startsWith(this.options.path);
   }
 
   private async handleConnection(socket: WebSocket) {

@@ -21,12 +21,10 @@ import {
   serializeError,
   staticMiddleware,
 } from '@utils';
-import { PubSub } from 'graphql-subscriptions';
 import { useServer } from 'graphql-ws/use/ws';
 import { createYoga } from 'graphql-yoga';
 import http, { IncomingMessage, ServerResponse } from 'http';
-import { GraphQLModule } from '../../graphql/module';
-import { PubSubService } from '../../graphql/pubsubService';
+import { buildSchema, NonEmptyArray } from 'type-graphql';
 import { SSEServer } from '../../sse/server';
 import { SSEService } from '../../sse/service';
 import { WebSocketServer } from '../../ws/server';
@@ -35,24 +33,21 @@ import { Plugin } from '../plugin';
 
 export class HttpServer extends Plugin implements IHttpServer {
   private config: ServerConfig;
-  private graphqlHandler?: any;
   private isRunning: boolean = false;
   private sse?: SSEServer;
   private websocket?: WebSocketServer;
-  private resolverClasses: any[] = [];
+  private websocketPath: string = '/ws';
   controllers: ControllerType[] = [];
   middlewares: MiddlewareCB[] = [];
-  graphql?: GraphQLModule;
   app: http.Server;
   plugins: HttpPlugin[] = [];
 
   constructor(configOrClass: new (...args: any[]) => any) {
     super();
     this.config = resolveConfig(configOrClass);
-
-    this.resolverClasses = (this.config.resolvers || []).filter(
-      (r) => typeof r === 'function' && r.name,
-    );
+    if (this.config.websocketPath) {
+      this.websocketPath = this.config.websocketPath;
+    }
 
     this.controllers = this.controllers.concat(this.config.controllers ?? []);
     this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);
@@ -65,13 +60,13 @@ export class HttpServer extends Plugin implements IHttpServer {
       this.middlewares?.unshift(staticMw as MiddlewareCB);
     }
 
-    if (this.config.websocket?.enabled || this.config.graphql?.websocket) {
-      this.websocket = new WebSocketServer(app, { path: this.config.websocket?.path ?? '/ws' });
+    if (this.config.websocket?.enabled || this.config.graphql?.pubSub) {
+      this.websocket = new WebSocketServer(app, { path: this.websocketPath });
       this.websocket.registerControllers(this.controllers);
       WebSocketService.getInstance().initialize(this.websocket!);
     }
 
-    if (this.config.graphql?.enabled) {
+    if (this.config.graphql && this.config.graphql?.resolvers?.length) {
       this.setupGraphQL();
     }
 
@@ -112,7 +107,7 @@ export class HttpServer extends Plugin implements IHttpServer {
 ║  🎯 Global Interceptors: ${!!this.config.interceptor?.length}                   
 ║  📦 Controllers: ${STATISTIC.controllers}                   
 ║  📦 Routes: ${this.controllers.length}                   
-║  📦 GraphQL resolvers: ${this.resolverClasses.length}                   
+║  📦 GraphQL resolvers: ${this.config.graphql?.resolvers?.length ?? 0}                   
 ╚════════════════════════════════════════╝
     `);
   }
@@ -355,42 +350,40 @@ export class HttpServer extends Plugin implements IHttpServer {
     return this.sendResponse(response, { data: serialized }, startTime, request);
   }
 
-  private setupGraphQL() {
-    if (!this.config.graphql?.enabled) return;
+  private async setupGraphQL() {
+    if (!this.config.graphql || !this.config.graphql?.resolvers?.length) return;
 
-    if (this.resolverClasses.length === 0) {
-      return;
+    const schemaConfig = {
+      resolvers: this.config.graphql?.resolvers as NonEmptyArray<Function>,
+      validate: true,
+    };
+
+    if (this.config.graphql.pubSub) {
+      Object.assign(schemaConfig, { pubSub: this.config.graphql.pubSub });
     }
-    const pubsub = PubSubService.getInstance();
-    const graphqlModule = new GraphQLModule(this.resolverClasses);
-    const schema = graphqlModule.getSchema();
 
-    console.log('📦 PubSub instance created:', {
-      isPubSub: pubsub instanceof PubSub,
-      hasPublish: typeof pubsub.publish === 'function',
-      hasAsyncIterator: typeof pubsub.asyncIterator === 'function',
-    });
+    const schema = await buildSchema(schemaConfig);
 
     const yoga = createYoga({
       schema,
       context: (ctx) => {
-        const req = ctx.request || (ctx as any).req;
-        return { req, headers: req?.headers, pubsub };
+        const req = ctx.request ?? (ctx as any).req;
+        return { req, headers: req?.headers, pubSub: this.config.graphql?.pubSub };
       },
       graphiql: !!this.config.graphql?.playground,
     });
 
-    this.graphqlHandler = yoga;
-    if (this.websocket) {
-      useServer({ schema, context: () => ({ pubsub }) }, this.websocket.wss);
+    if (this.config.graphql.pubSub) {
+      useServer(
+        { schema, context: () => ({ pubSub: this.config.graphql?.pubSub }) },
+        this.websocket!.wss,
+      );
+      this.use(async (req, res) => {
+        if (req.requestUrl.pathname?.startsWith(this.websocketPath)) {
+          return yoga(req, res);
+        }
+      });
     }
-
-    this.use(async (req, res) => {
-      const path = this.config.graphql?.path ?? '/graphql';
-      if (req.requestUrl.pathname?.startsWith(path)) {
-        await this.graphqlHandler(req, res);
-      }
-    });
   }
 
   public use(middleware: MiddlewareCB): this {

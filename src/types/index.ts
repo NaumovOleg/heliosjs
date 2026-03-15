@@ -1,7 +1,6 @@
 export * from './common';
 export * from './controller';
 export * from './cors';
-export * from './graphql';
 export * from './http';
 export * from './lambda';
 export * from './multipart';

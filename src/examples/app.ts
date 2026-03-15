@@ -2,7 +2,7 @@ import path from 'path';
 import { ANY, Controller, Response } from 'quantum-flow/core';
 import { Server } from 'quantum-flow/http';
 
-import { UserResolver } from './controllers/resolver';
+import { UserResolver, pubSub } from './controllers/resolver';
 import { Socket } from './controllers/socket';
 import { User } from './controllers/user';
 
@@ -26,14 +26,14 @@ export class MetricsController {
 
 @Server({
   controllers: [Root, Socket, MetricsController],
-  resolvers: [UserResolver],
   statics: [
     {
       path: path.join(__dirname, '../../'),
       options: { index: 'index.html' },
     },
   ],
-  graphql: { enabled: true, websocket: true },
+  websocketPath: '/graphql',
+  graphql: { resolvers: [UserResolver], pubSub },
   sse: { enabled: true },
 })
 export class App {}

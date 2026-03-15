@@ -1,18 +1,27 @@
+import { IsEmail, MinLength } from 'class-validator';
 import {
   Arg,
+  Ctx,
   Field,
-  InjectPubSub,
   InputType,
   Mutation,
   ObjectType,
-  PubSub,
   Query,
   Resolver,
+  Root,
   Subscription,
-  TPubSub,
-} from 'quantum-flow/graphql';
+} from 'type-graphql';
 
-@ObjectType('User')
+import { createPubSub } from 'graphql-yoga';
+
+export type PubSubChannels = {
+  NOTIFICATIONS: [{ id: string; userId: string; message: string }];
+  USER_UPDATED: [{ user: User }];
+};
+
+export const pubSub = createPubSub<PubSubChannels>();
+
+@ObjectType()
 export class User {
   @Field()
   id: string;
@@ -20,101 +29,42 @@ export class User {
   name: string;
   @Field()
   email: string;
-  @Field({ nullable: true })
-  bio?: string;
-  @Field(() => [String])
-  roles: string[];
 }
 
-@InputType('CreateUserInput')
+@InputType()
 export class CreateUserInput {
   @Field()
+  @MinLength(2)
   name: string;
+
   @Field()
+  @IsEmail()
   email: string;
-  @Field({ nullable: true })
-  bio?: string;
-  @Field(() => [String])
-  roles?: string[];
 }
 
 @Resolver()
 export class UserResolver {
-  @Query(() => User)
-  async getUser(@Arg('id', String, { required: true }) id: string) {
-    return {
-      id: '2',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      bio: 'Product Manager',
-      roles: ['user'],
-    };
-  }
-
-  @Mutation(() => User)
-  async createUser(@Arg('input', CreateUserInput, { required: true }) input: CreateUserInput) {
-    return {
-      id: 'id',
-      name: input.name,
-      email: input.email,
-      bio: input.bio,
-      roles: input.roles || ['user'],
-    };
-  }
-}
-
-@ObjectType()
-export class Message {
-  @Field()
-  id: string;
-  @Field()
-  content: string;
-  @Field()
-  userId: string;
-  @Field()
-  createdAt: Date;
-}
-
-@InputType()
-export class CreateMessageInput {
-  @Field()
-  content: string;
-
-  @Field()
-  userId: string;
-}
-
-@Resolver()
-export class MessageResolver {
-  @Query(() => [Message])
-  async messages(): Promise<Message[]> {
+  @Query(() => [User])
+  async users(): Promise<User[]> {
+    // pubSub.publish('USER_UPDATED', {...});
     return [];
   }
 
-  @Mutation(() => Message)
-  async createMessage(
-    @Arg('input') input: CreateMessageInput,
-    @InjectPubSub() pubsub: TPubSub,
-  ): Promise<Message> {
-    const message: Message = {
+  @Mutation(() => User)
+  async createUser(@Ctx() ctx: any, @Arg('input') input: CreateUserInput): Promise<User> {
+    const user = {
       id: Date.now().toString(),
-      content: input.content,
-      userId: input.userId,
-      createdAt: new Date(),
+      ...input,
     };
 
-    await pubsub.publish('NEW_MESSAGE', message);
-    return message;
+    return user;
   }
 
-  @Subscription(() => Message)
-  async newMessage(
-    @PubSub({
-      filter: (payload, variables) => payload.userId === variables.userId,
-    })
-    pubsub: TPubSub,
-    @Arg('userId') userId: string,
-  ) {
-    return pubsub.asyncIterator('NEW_MESSAGE');
+  @Subscription(() => User, {
+    topics: 'USER_UPDATED',
+    filter: ({ payload, args }) => true,
+  })
+  newUser(@Root() user: User): User {
+    return user;
   }
 }

@@ -1,3 +1,4 @@
+import { PubSub } from 'type-graphql';
 import { ErrorCB, InterceptorCB, MiddlewareCB } from './common';
 import { ControllerClass, ControllerType } from './controller';
 import { CORSConfig } from './cors';
@@ -15,14 +16,14 @@ export interface ServerConfig {
   cors?: CORSConfig;
   sanitizers?: SanitizerConfig[];
   statics?: StaticConfig[];
-  websocket?: {
-    enabled: boolean;
-    path?: string;
-    lazy?: boolean;
-  };
-  resolvers?: any[];
+  websocket?: { enabled: boolean; lazy?: boolean };
   sse?: { enabled: boolean };
-  graphql?: { enabled: boolean; playground?: boolean; path?: string; websocket?: boolean };
+  websocketPath?: string;
+  graphql?: {
+    playground?: boolean;
+    pubSub?: PubSub;
+    resolvers?: Function[];
+  };
 }
 
 import { Server } from 'http';

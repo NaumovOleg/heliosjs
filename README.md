@@ -25,7 +25,6 @@ You can use controllers and server functionality by importing controllers and cr
 - `quantum-flow/sse` - Server side events decorators.
 - `quantum-flow/plugins/aws` - Exports plugins types for lambda.
 - `quantum-flow/plugins/http` - Exports plugins types for http server.
-- `quantum-flow/graphql` - Graphql components.
 
 ---
 
@@ -168,12 +167,12 @@ Enable WebSocket in the server configuration and register WebSocket controllers.
 
 ## Enabling WebSocket Support in Server
 
-To enable SSE support, configure your HTTP server with the `sse: true` option and register controllers that use SSE.
+To enable WS support, configure your HTTP server with the `enabled: true` option and register controllers that use SSE.
 
 Example server setup:
 
 ```typescript
-@Server( {websocket: { enabled: true, path: '/ws' } })
+@Server( {websocketPath:'/ws',    websocket: { enabled: true } })
 ```
 
 ## Injecting WebSocket events in Controller
@@ -435,183 +434,100 @@ export const handler = lambdaAdapter.handler;
 
 ## GraphQL
 
-Quantum Flow provides first‑class GraphQL support through a set of declarative decorators, inspired by TypeGraphQL. You can build a fully typed GraphQL schema by annotating your resolvers and types directly in TypeScript.
-GraphQL support requires the `graphql` and `graphql-yoga` packages.
+Quantum Flow provides seamless GraphQL integration using the popular **TypeGraphQL** library. You can build fully typed GraphQL APIs with decorators, while the framework handles the server setup, subscriptions, and PubSub.
 
-### Core GraphQL Decorators
+### Installation
 
-| Decorator                      | Description                                                               |
-| ------------------------------ | ------------------------------------------------------------------------- |
-| `@ObjectType()`                | Marks a class as a GraphQL object type.                                   |
-| `@Field(type?)`                | Defines a field on an object or input type.                               |
-| `@InputType()`                 | Marks a class as a GraphQL input type (for arguments).                    |
-| `@Resolver(type?)`             | Marks a class as a GraphQL resolver (optionally specifies the root type). |
-| `@Query(returns?)`             | Defines a method as a GraphQL query (field of the Query type).            |
-| `@Mutation(returns?)`          | Defines a method as a GraphQL mutation (field of the Mutation type).      |
-| `@FieldResolver(returns?)`     | Defines a method that resolves a field of an object type.                 |
-| `@Arg(name?, type?, options?)` | Declares a method argument as a GraphQL argument.                         |
-| `@Root()`                      | Injects the parent object in a field resolver.                            |
-| `@Context()`                   | Injects the GraphQL context (e.g., request object).                       |
-| `@InjectPubSub()`              | Injects PubSub for publishing events.                                     |
-| `@PubSub()`                    | Injects PubSub for subscriptions.                                         |
-| `@Context()`                   | Injects the GraphQL context (e.g., request object).                       |
-
-### Defining Object Types
+```bash
+npm install type-graphql graphql graphql-yoga @graphql-yoga/subscriptions
+# or
+yarn add type-graphql graphql graphql-yoga @graphql-yoga/subscriptions
+```
 
 ```typescript
-import { ObjectType, Field, ID } from 'quantum-flow/graphql';
+@Server({
+  controllers: [/* your REST controllers */],
+  websocketPath:'/ws',  //GraphQL subscriptions uses same ws server as  main application
+  graphql: {
+    enabled: true,                     // GraphQL endpoint (default: '/graphql')
+    playground: true,                  // Enable GraphQL Playground
+    resolvers: [UserResolver, MessageResolver], // Your resolver classes
+    pubSub: pubSub,                    // Your PubSub instance (required for subscriptions)
+  },
+})
+```
+
+## Usage example
+
+```typescript
+import { IsEmail, MinLength } from 'class-validator';
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+  Root,
+  Subscription,
+} from 'type-graphql';
+
+import { createPubSub } from 'graphql-yoga';
+
+export type PubSubChannels = {
+  NOTIFICATIONS: [{ id: string; userId: string; message: string }];
+  USER_UPDATED: [{ user: User }];
+};
+
+export const pubSub = createPubSub<PubSubChannels>();
 
 @ObjectType()
 export class User {
-  @Field(() => ID)
-  id: string;
   @Field()
-  name: string;
-  @Field({ nullable: true })
-  email?: string;
-  @Field(() => [String])
-  roles: string[];
-}
-```
-
-### Defining Input Types
-
-```typescript
-import { InputType, Field } from 'quantum-flow/graphql';
-
-@InputType()
-export class CreateUserInput {
+  id: string;
   @Field()
   name: string;
   @Field()
   email: string;
-  @Field({ nullable: true })
-  bio?: string;
-  @Field(() => [String], { nullable: true })
-  roles?: string[];
 }
-```
 
-### Writing Resolvers
+@InputType()
+export class CreateUserInput {
+  @Field()
+  @MinLength(2)
+  name: string;
 
-GraphQL resolvers are classes decorated with `@Resolver`. They contain methods annotated with `@Query`, `@Mutation`, or `@FieldResolver`.
-
-```typescript
-import { Resolver, Query, Mutation, Arg } from 'quantum-flow/graphql';
-import { User, CreateUserInput } from './user.types';
+  @Field()
+  @IsEmail()
+  email: string;
+}
 
 @Resolver()
 export class UserResolver {
-  private users: User[] = [];
   @Query(() => [User])
-  async getUsers(): Promise<User[]> {...}
-  @Query(() => User, { nullable: true })
-  async getUser(@Arg('id', () => String) id: string): Promise<User | undefined> {...}
-
-  @Mutation(() => User)
-  async createUser(@Arg('input', () => CreateUserInput) input: CreateUserInput): Promise<User> {...}
-}
-```
-
-### Field Resolvers (Resolving Relationships)
-
-Field resolvers allow you to add fields to an existing object type without modifying the original class. They are especially useful for loading related data.
-
-```typescript
-import { Resolver, FieldResolver, Root } from 'quantum-flow/graphql';
-import { User } from './user.types';
-import { Post } from './post.types';
-
-@Resolver(() => User)
-export class UserRelationsResolver {
-  constructor(private posts: Post[] = []) {}
-
-  @FieldResolver(() => [Post])
-  async posts(@Root() user: User): Promise<Post[]> {...}
-}
-```
-
-### Using Context
-
-Context can be used to share information across resolvers (e.g., authenticated user, database connection, request headers). It is defined in the server configuration and injected with `@Context()`.
-Server setup (inside your main server class, e.g., HttpServer):
-
-```typescript
-import { Resolver, Query, Context } from 'quantum-flow/graphql';
-
-@Resolver()
-export class AuthResolver {
-  @Query(() => User)
-  async me(@Context() ctx: any): Promise<User> {...}
-}
-```
-
-### Using Subscriptions
-
-To use subscriptions, please enable websocket flag on graphql config.`.
-
-```typescript
-import { Resolver, Query, Context, TPubSub } from 'quantum-flow/graphql';
-
-@Resolver()
-export class MessageResolver {
-  @Query(() => [Message])
-  async messages(): Promise<Message[]> {
+  async users(): Promise<User[]> {
+    // pubSub.publish('USER_UPDATED', {...});
     return [];
   }
 
-  @Mutation(() => Message)
-  async createMessage(
-    @Arg('input') input: CreateMessageInput,
-    @InjectPubSub() pubsub: TPubSub,
-  ): Promise<Message> {
-    const message: Message = {
+  @Mutation(() => User)
+  async createUser(@Ctx() ctx: any, @Arg('input') input: CreateUserInput): Promise<User> {
+    const user = {
       id: Date.now().toString(),
-      content: input.content,
-      userId: input.userId,
-      createdAt: new Date(),
+      ...input,
     };
 
-    await pubsub.publish('NEW_MESSAGE', message);
-    return message;
+    return user;
   }
 
-  @Subscription(() => Message)
-  async newMessage(
-    @PubSub({ filter: (payload, variables) => payload.userId === variables.userId })
-    pubsub: TPubSub,
-    @Arg('userId') userId: string,
-  ) {
-    return pubsub.asyncIterator('NEW_MESSAGE');
+  @Subscription(() => User, {
+    topics: 'USER_UPDATED',
+    filter: ({ payload, args }) => true,
+  })
+  newUser(@Root() user: User): User {
+    return user;
   }
 }
 ```
-
-### Server Configuration
-
-To enable GraphQL, add a `graphql` field to your `@Server` decorator:
-
-```typescript
-import { Server } from 'quantum-flow/http';
-import { UserResolver } from './resolvers/user.resolver';
-import { UserRelationsResolver } from './resolvers/user-relations.resolver';
-
-@Server({
-  resolvers: [UserResolver, UserRelationsResolver], // list of resolver classes
-  graphql: {
-    enabled: true,
-    websocket: true //enable websocket for subscriptions
-    path: '/graphql', // endpoint path (default: '/graphql')
-    playground: true, // enable GraphQL Playground (default: false)
-  },
-})
-export class App {}
-```
-
-### Important Notes
-
-- Resolvers must be separate from REST controllers. Do not put GraphQL methods in classes decorated with `@Controller`.
-- Always use `@Resolver` for GraphQL.
-- All resolver classes must be listed in the `resolvers` array of the server configuration.
-- Field resolvers require the target object type to be explicitly passed to `@Resolver(() => Type)`.
-- The framework automatically builds the GraphQL schema from the decorators metadata.
