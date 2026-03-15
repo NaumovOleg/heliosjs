@@ -146,7 +146,8 @@ Use `LambdaAdapter` to convert API Gateway events to requests and responses. Cre
 
 ```typescript
 Example Lambda handler creation
-import { LambdaAdapter, LambdaRequest, Request } from 'quantum-flow/aws';
+import { LambdaAdapter, LambdaRequest } from 'quantum-flow/aws';
+import { Request, Query, Headers, Params, Response } from  'quantum-flow/core'
 
 @Controller({ prefix: 'user' })
 class UserController {
@@ -155,13 +156,17 @@ class UserController {
     @Headers() headers: Record<string, string | string[]>,
     @Params(ParamDTO, 'param') params: string,
     @Request() req: LambdaRequest,
-    @Response() resp: ServerResponse,
-    @InjectWS() ws: IWebSocketService,
-  ) {}
+    @Response() res: ServerResponse
+  ) { }
 }
 const lambdaAdapter = new LambdaAdapter(UserController);
 export const handler = lambdaAdapter.handler;
 ```
+
+You can access context and event throught @Request() decorator:
+@Request() request: LambdaRequest
+request.context
+request.event
 
 # WebSocket Support
 
