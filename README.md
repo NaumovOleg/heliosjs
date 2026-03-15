@@ -94,7 +94,7 @@ export class User {
 @Controller({
   prefix: 'api',
   controllers: [UserController, SocketController],
-  middelwares: [...middlewares],
+  middlewares: [...middlewares],
   interceptor: (data, req, res) => data,
 })
 @Catch((error) => ({ status: 400, error }))
@@ -156,8 +156,6 @@ let dbConnection = null;
 })
 class RootController {}
 const lambdaAdapter = new LambdaAdapter(Root);
-lambdaAdapter.usePlugin(metricsPlugin);
-
 export const handler = lambdaAdapter.handler;
 ```
 
@@ -411,7 +409,7 @@ export class MetricsController {...}
 class App {}
 
 const server = new HttpServer(App);
-server.usePlugun(metricsPlugin)
+server.usePligun(metricsPlugin)
 server.listen().catch(console.error);
 
 // Lambda setup
