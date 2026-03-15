@@ -95,3 +95,15 @@ export enum HTTP_METHODS {
   OPTIONS = 'OPTIONS',
   HEAD = 'HEAD',
 }
+
+export interface CookieOptions {
+  maxAge?: number;
+  expires?: Date;
+  domain?: string;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+  priority?: 'Low' | 'Medium' | 'High';
+  partitioned?: boolean;
+}

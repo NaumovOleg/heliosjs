@@ -1,2 +1,2 @@
-export { LambdaEvent, LambdaRequest } from '@types';
+export { LambdaEvent, LambdaRequest, LambdaResponse } from '@types';
 export * from './lambda';

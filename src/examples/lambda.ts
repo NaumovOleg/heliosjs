@@ -1,5 +1,5 @@
-import { LambdaAdapter, Request } from 'quantum-flow/aws';
-import { ANY, Controller } from 'quantum-flow/core';
+import { LambdaAdapter } from 'quantum-flow/aws';
+import { ANY, Controller, Request } from 'quantum-flow/core';
 import { Plugin } from 'quantum-flow/plugins/aws';
 
 @Controller({ prefix: 'metric' })

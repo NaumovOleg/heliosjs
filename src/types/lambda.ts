@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyEventV2, Context, Handler } from 'aws-lambda';
-import { HTTP_METHODS } from './common';
+import { CookieOptions, HTTP_METHODS } from './common';
 import { ControllerClass } from './controller';
 import { MultipartFile } from './multipart';
 import { LambdaPlugin } from './plugins';
@@ -59,15 +59,6 @@ export interface LambdaRequestMeta {
   userAgent?: string;
 }
 
-export interface LambdaResponse {
-  statusCode: number;
-  headers?: Record<string, string>;
-  body: string;
-  isBase64Encoded?: boolean;
-  multiValueHeaders?: Record<string, string[]>;
-  cookies?: string[];
-}
-
 export interface LambdaApp {
   beforeStart?: () => void;
 }
@@ -98,13 +89,18 @@ export interface LambdaRequest {
   end(): void;
 }
 
-export interface ILResponse {
+export interface LambdaResponse {
   body: any;
-  setHeader(name: string, value: string): void;
   statusCode: number;
-  headers: Record<string, string>;
-  send(): void;
-  original: any;
+  headers?: Record<string, string>;
+  cookies?: string[];
+  isBase64Encoded?: boolean;
+
+  setHeader(name: string, value: string): void;
+  setCookie(name: string, value: string, options?: CookieOptions): void;
+  clearCookie(name: string, options?: { path?: string; domain?: string }): void;
+  getCookies(): string[];
+  clearAllCookies(): void;
 }
 
 export interface ILambdaAdapter {

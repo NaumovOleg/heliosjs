@@ -146,7 +146,7 @@ Use `LambdaAdapter` to convert API Gateway events to requests and responses. Cre
 
 ```typescript
 Example Lambda handler creation
-import { LambdaAdapter, LambdaRequest } from 'quantum-flow/aws';
+import { LambdaAdapter, LambdaRequest, LambdaResponse } from 'quantum-flow/aws';
 import { Request, Query, Headers, Params, Response } from  'quantum-flow/core'
 
 @Controller({ prefix: 'user' })
@@ -156,7 +156,7 @@ class UserController {
     @Headers() headers: Record<string, string | string[]>,
     @Params(ParamDTO, 'param') params: string,
     @Request() req: LambdaRequest,
-    @Response() res: ServerResponse
+    @Response() res: LambdaResponse
   ) { }
 }
 const lambdaAdapter = new LambdaAdapter(UserController);
