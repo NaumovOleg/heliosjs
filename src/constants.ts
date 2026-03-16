@@ -28,15 +28,6 @@ export const STOPPED = `
 export const OK_STATUSES = [200, 201, 202, 203, 204, 205, 206, 207, 208, 226];
 export const TO_VALIDATE = ['headers', 'params', 'multipart', 'query', 'body'];
 
-export const STATISTIC: Record<'controllers' | 'routes', number> = {
-  controllers: 0,
-  routes: 0,
-};
-
-export const INCREMENT_STATISTIC = (prop: 'controllers' | 'routes') => {
-  STATISTIC[prop] = STATISTIC[prop] + 1;
-};
-
 export const CORS_METADATA = 'cors:config';
 export const SSE_METADATA_KEY = 'sse:handlers';
 export const SSE_TOPIC_KEY = 'sse:topics';

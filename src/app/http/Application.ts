@@ -1,4 +1,4 @@
-import { CONTROLLERS, OK_STATUSES, STATISTIC } from '@constants';
+import { CONTROLLERS, OK_STATUSES } from '@constants';
 import {
   AppRequest,
   ControllerType,
@@ -41,6 +41,7 @@ export class HttpServer extends Plugin implements IHttpServer {
   middlewares: MiddlewareCB[] = [];
   app: http.Server;
   plugins: HttpPlugin[] = [];
+  allContriollers: ControllerType[] = [];
 
   constructor(configOrClass: new (...args: any[]) => any) {
     super();
@@ -49,9 +50,8 @@ export class HttpServer extends Plugin implements IHttpServer {
       this.websocketPath = this.config.websocketPath;
     }
 
-    this.controllers = this.controllers.concat(this.config.controllers ?? []);
     this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);
-    this.collectControllers(this.config.controllers);
+    this.controllers = this.collectControllers(this.config.controllers ?? []);
 
     const app = http.createServer(this.requestHandler.bind(this));
 
@@ -80,18 +80,28 @@ export class HttpServer extends Plugin implements IHttpServer {
     this.logConfig();
   }
 
-  private collectControllers(controllers: ControllerType[] = []) {
-    for (const ControllerClass of controllers || []) {
+  private collectControllers(controllers: ControllerType[] = []): ControllerType[] {
+    const result: ControllerType[] = [];
+    for (const ControllerClass of controllers) {
       if (typeof ControllerClass !== 'function') {
         continue;
       }
-
-      this.controllers.push(ControllerClass);
+      if (!result.includes(ControllerClass)) {
+        result.push(ControllerClass);
+      }
       const subControllers = Reflect.getMetadata(CONTROLLERS, ControllerClass.prototype) || [];
+
       if (subControllers.length > 0) {
-        this.collectControllers(subControllers);
+        const nestedControllers = this.collectControllers(subControllers);
+        for (const nested of nestedControllers) {
+          if (!result.includes(nested)) {
+            result.push(nested);
+          }
+        }
       }
     }
+
+    return result;
   }
 
   private logConfig() {
@@ -101,12 +111,13 @@ export class HttpServer extends Plugin implements IHttpServer {
 ╠════════════════════════════════════════╣
 ║  📍 Host: ${this.config.host}                       
 ║  🔌 Port: ${this.config.port}                         
-║  🔌 Websocket: ${!!this.config.websocket}                         
+║  🔌 Websocket: ${!!this.config.websocket && this.config.graphql?.pubSub}                         
+║  🔌 Websocket path prefix: ${this.config.websocketPath}                       
 ║  🔧 Global Middlewares: ${this.middlewares?.length || 0}                   
 ║  🔧 Error handler: ${!this.config.errorHandler}                   
 ║  🎯 Global Interceptors: ${!!this.config.interceptor?.length}                   
-║  📦 Controllers: ${STATISTIC.controllers}                   
-║  📦 Routes: ${this.controllers.length}                   
+║  📦 Root controllers: ${this.config.controllers?.length ?? 0}                   
+║  📦 Sub controllers: ${this.controllers.length - (this.config.controllers?.length ?? 0)}                                    
 ║  📦 GraphQL resolvers: ${this.config.graphql?.resolvers?.length ?? 0}                   
 ╚════════════════════════════════════════╝
     `);

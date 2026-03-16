@@ -3,7 +3,6 @@ import {
   CATCH,
   CONTROLLERS,
   CORS_METADATA,
-  INCREMENT_STATISTIC,
   INTERCEPTOR,
   MIDDLEWARES,
   ROUTE_PREFIX,
@@ -61,7 +60,6 @@ export function Controller(
   config: string | ControllerConfig,
   middlewares: Array<InterceptorCB> = [],
 ) {
-  INCREMENT_STATISTIC('controllers');
   // Handle both string and config object
   const routePrefix = typeof config === 'string' ? config : config.prefix;
   const controllers = typeof config === 'object' ? config.controllers : undefined;
