@@ -85,7 +85,10 @@ export interface LambdaRequest {
   requestId: string;
   stage?: string;
   userAgent: string;
-  sourceIp: string;
+  event: LambdaEvent;
+  context: Context;
+  id: string;
+  ip: string;
   end(): void;
 }
 
@@ -95,6 +98,7 @@ export interface LambdaResponse {
   headers?: Record<string, string>;
   cookies?: string[];
   isBase64Encoded?: boolean;
+  status: number;
 
   setHeader(name: string, value: string): void;
   setCookie(name: string, value: string, options?: CookieOptions): void;

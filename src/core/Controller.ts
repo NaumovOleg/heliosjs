@@ -199,7 +199,6 @@ export function Controller(
             .filter((el) => !!el)
             .reduce(
               (acc, conf) => {
-                console.log(conf);
                 const cors = handleCORS(request, response, conf);
                 return {
                   permitted: acc.permitted && cors.permitted,
@@ -268,7 +267,6 @@ export function Controller(
         if (getErrorType(data).isError && response.statusCode === 200) {
           response.statusCode = 500;
         }
-
         return { routeMatch, data };
       }
 

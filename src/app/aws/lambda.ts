@@ -1,6 +1,13 @@
 import { CORS_METADATA } from '@constants';
-import { ControllerClass, ILambdaAdapter, LambdaEvent, LambdaPlugin } from '@types';
-import { getErrorType, handleCORS, serializeError } from '@utils';
+import {
+  ControllerClass,
+  ILambdaAdapter,
+  LambdaEvent,
+  LambdaPlugin,
+  LambdaRequest,
+  LambdaResponse,
+} from '@types';
+import { ApplicationError, getErrorType, handleCORS } from '@utils';
 import { APIGatewayProxyResult, APIGatewayProxyResultV2, Context, Handler } from 'aws-lambda';
 import { Plugin } from '../plugin';
 import { LRequest, LResponse, getEventType } from './utils';
@@ -11,19 +18,19 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
   plugins: LambdaPlugin[] = [];
   constructor(Controller: ControllerClass) {
     super();
+
     this.controllers.push(Controller);
-    this.handler = this.createHandler(Controller);
+
+    this.handler = this.createHandler();
   }
 
-  private createHandler(Controller: ControllerClass): Handler {
+  private createHandler(): Handler {
     return async (event: LambdaEvent, context: Context) => {
-      this.controllers.push(Controller);
-
       await this.callPluginHook('beforeRequest', event, context);
 
       const eventType = getEventType(event);
-
       const request = new LRequest(event, context);
+
       const response = new LResponse();
       return this.runControllers({
         context,
@@ -78,7 +85,7 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
 
         if (processed.routeMatch) break;
       } catch (error: any) {
-        return this.handleError(error, event, context);
+        return this.handleError(error, request, response);
       }
     }
 
@@ -88,10 +95,8 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
     }
 
     if (getErrorType(processed?.data).isError) {
-      return this.handleError(processed?.data, event, context);
+      return this.handleError(processed?.data, request, response);
     }
-
-    console.log(processed);
 
     return this.toLambdaResponse(processed?.data, request, response, eventType);
   }
@@ -167,19 +172,21 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
     }
   }
 
-  private handleError(error: any, event: LambdaEvent, context: Context) {
-    let serialized = serializeError(error);
-    const eventType = getEventType(event);
+  private handleError(error: any, request: LambdaRequest, response: LambdaResponse) {
+    const config = {
+      includeStack: process.env.NODE_ENV !== 'production',
+      logErrors: true,
+      status: response.status === 200 ? 500 : response.status,
+    };
+
+    let serialized = new ApplicationError({ request, status: response.status, error, config });
+    const eventType = getEventType(request.event);
     const statusCode = serialized.status || 500;
-    const body = JSON.stringify({
-      success: false,
-      message: serialized.message || 'Internal Server Error',
-      requestId: context.awsRequestId,
-    });
+    const body = JSON.stringify(serialized);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Request-Id': context.awsRequestId,
+      'X-Request-Id': request.id,
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
     };

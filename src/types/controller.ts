@@ -82,3 +82,4 @@ export type SeeControllerHandlers = {
     error: HandlerMeta[];
   };
 };
+export type NextFunction = (error?: unknown) => void;

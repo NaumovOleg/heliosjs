@@ -19,9 +19,10 @@ export class LRequest implements LambdaRequest {
   requestId: string;
   stage?: string;
   userAgent: string;
-  sourceIp: string;
   event: LambdaEvent;
   context: Context;
+  id: string;
+  ip: string;
 
   constructor(lambdaEvent: LambdaEvent, context: Context) {
     const event = normalizeEvent(lambdaEvent, getEventType(lambdaEvent));
@@ -83,7 +84,6 @@ export class LRequest implements LambdaRequest {
     const fullUrl = `${protocol}://${host}${event.path}`;
 
     let url = new URL(fullUrl);
-
     this.method = event.httpMethod.toUpperCase() as HTTP_METHODS;
     this.url = fullUrl;
     this.headers = event.headers;
@@ -96,13 +96,15 @@ export class LRequest implements LambdaRequest {
     this.requestId = context.awsRequestId;
     this.requestUrl = url;
     this.stage = event.requestContext?.stage || '$default';
-    this.sourceIp = getSourceIp(event);
+    this.ip = getSourceIp(event);
+    this.id = context.awsRequestId;
 
     this.userAgent =
       typeof event.headers['user-agent'] === 'string'
         ? event.headers['user-agent']
         : event.headers['user-agent']?.[0] || 'unknown';
   }
+  sourceIp: string;
 
   end() {
     console.log('NOT implemented for  lambda');

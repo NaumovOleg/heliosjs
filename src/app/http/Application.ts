@@ -9,22 +9,23 @@ import {
   ServerConfig,
 } from '@types';
 import {
+  ApplicationError,
   collectRawBody,
   getErrorType,
   handleCORS,
-  NextFN,
+  NextFunction,
   ParseBody,
   ParseCookies,
   ParseQuery,
   resolveConfig,
   sanitizeRequest,
-  serializeError,
   staticMiddleware,
 } from '@utils';
 import { useServer } from 'graphql-ws/use/ws';
 import { createYoga } from 'graphql-yoga';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { buildSchema, NonEmptyArray } from 'type-graphql';
+import { v4 } from 'uuid';
 import { SSEServer } from '../../sse/server';
 import { SSEService } from '../../sse/service';
 import { WebSocketServer } from '../../ws/server';
@@ -224,14 +225,15 @@ export class HttpServer extends Plugin implements IHttpServer {
         return;
       }
       await this.callPluginHook('beforeRoute', request, response);
+
       let controllerResponse = await this.runController(request, response);
 
       if (!controllerResponse.routeMatch) {
-        return this.sendResponse(
-          response,
+        return this.handleError(
           { status: 404, data: 'Route not found' },
-          Date.now(),
           request,
+          response,
+          Date.now(),
         );
       }
 
@@ -274,10 +276,12 @@ export class HttpServer extends Plugin implements IHttpServer {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || 'localhost';
     const fullUrl = `${protocol}://${host}${req.url}`;
+    const id = (req.headers['x-request-id'] as string) || v4();
 
     const requestUrl = new URL(fullUrl);
 
     const parsedRequest = {
+      id,
       method: req.method?.toUpperCase() as HTTP_METHODS,
       requestUrl,
       headers: req.headers,
@@ -286,6 +290,7 @@ export class HttpServer extends Plugin implements IHttpServer {
       query: ParseQuery(requestUrl),
       params: {},
       cookies: ParseCookies(req),
+      ip: req.socket.remoteAddress,
       isBase64Encoded: false,
       _startTime: Date.now(),
     };
@@ -298,7 +303,7 @@ export class HttpServer extends Plugin implements IHttpServer {
     sanitizeRequest(request, this.config.sanitizers ?? []);
 
     for (const middleware of this.middlewares?.reverse() || []) {
-      await middleware(request, response, NextFN);
+      await middleware(request, response, NextFunction);
     }
   }
 
@@ -322,7 +327,6 @@ export class HttpServer extends Plugin implements IHttpServer {
     appRequest?: AppRequest,
   ): Promise<void> {
     if (res.headersSent) return;
-
     const { status, data } = responseData;
 
     if (!res.getHeader('Content-Type')) {
@@ -331,9 +335,14 @@ export class HttpServer extends Plugin implements IHttpServer {
 
     res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
     res.statusCode = status ?? data.status ?? 200;
-
-    res.end(JSON.stringify(data));
-    await this.callPluginHook('afterResponse', appRequest, res);
+    try {
+      const repsData = JSON.stringify(data);
+      res.end(repsData);
+      await this.callPluginHook('afterResponse', appRequest, res);
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(err);
+    }
   }
 
   private async handleError(
@@ -342,23 +351,26 @@ export class HttpServer extends Plugin implements IHttpServer {
     response: http.ServerResponse,
     startTime: number,
   ): Promise<void> {
-    let serialized = serializeError(error);
+    const config = {
+      includeStack: process.env.NODE_ENV !== 'production',
+      logErrors: !!process.env.LOG_ERRORS,
+      status: response.statusCode,
+    };
+    let appError = new ApplicationError({ error, request, config });
 
     if (!this.config.errorHandler) {
-      return this.sendResponse(response, { data: serialized }, startTime);
+      return this.sendResponse(response, { data: appError }, startTime);
     }
 
     try {
       const intercepted = await this.config.errorHandler(error, request, response);
 
-      let data = intercepted.data ?? intercepted;
-      if (data instanceof Error) {
-        data = serializeError(data);
-      }
-      serialized = data ?? serialized;
-    } catch (cathed) {}
+      appError = intercepted.data ?? intercepted;
+    } catch (cathed) {
+      appError = new ApplicationError({ error, request, config });
+    }
 
-    return this.sendResponse(response, { data: serialized }, startTime, request);
+    return this.sendResponse(response, { data: appError ?? appError }, startTime, request);
   }
 
   private async setupGraphQL() {

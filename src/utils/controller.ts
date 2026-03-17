@@ -59,7 +59,7 @@ export const executeControllerMethod = async (
 
   try {
     for (let middleware of methodMiddlewares) {
-      await Promise.resolve(middleware(request, response, NextFN));
+      await Promise.resolve(middleware(request, response, NextFunction));
     }
 
     const prototype = Object.getPrototypeOf(controller);
@@ -251,7 +251,7 @@ export const findRouteInController = (
   return matches[0];
 };
 
-export const NextFN = (error: any) => {
+export const NextFunction = (error: any) => {
   if (error) throw { status: error.status ?? 500, message: error.message ?? error };
 };
 
@@ -317,7 +317,7 @@ export const applyMiddlewaresVsSanitizers = async (
 
     sanitizeRequest(request, sntzs);
     for (let middleware of mws) {
-      await middleware(request, response, NextFN);
+      await middleware(request, response, NextFunction);
     }
   }
 };

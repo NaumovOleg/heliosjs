@@ -1,6 +1,7 @@
 import { CookieOptions, LambdaResponse } from '@types';
 
 export class LResponse implements LambdaResponse {
+  cookies?: string[] | undefined;
   private _statusCode: number = 200;
   private _headers: Record<string, string> = {};
   body: any = null;
@@ -57,6 +58,9 @@ export class LResponse implements LambdaResponse {
   }
 
   set statusCode(code: number) {
+    this._statusCode = code;
+  }
+  set status(code: number) {
     this._statusCode = code;
   }
 

@@ -26,7 +26,7 @@ const userSchema = Joi.object({
 export class UserMetadata {
   @GET('/:meta')
   async getUserMetadata(@Request() req: any, @Response() res: any) {
-    return req.body;
+    throw new Error('errorororororo');
   }
 
   @GET('/subscribesse')
@@ -41,13 +41,11 @@ export class UserMetadata {
     return 'hellow';
   }
 
-  @POST('/:meta', [function s4() {}])
+  @POST('/:meta')
   createMeta(
     @Files() mult: any,
-    @Body() body: any,
+    @Body(DTO) body: any,
     @Params('meta') params: any,
     @InjectWS() ws: IWebSocketService,
-  ) {
-    return 'response';
-  }
+  ) {}
 }

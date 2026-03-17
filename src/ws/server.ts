@@ -25,15 +25,10 @@ export class WebSocketServer implements IWebSocketServer {
     });
 
     this.wss.on('connection', (socket, request) => {
-      console.log('connectionconnectionconnectionconnectionconnection');
       this.handleConnection(socket);
     });
 
     server.on('upgrade', (request, socket, head) => {
-      console.log(
-        'upgradeupgradeupgradeupgradeupgradeupgradeupgradeupgradeupgrade',
-        (socket as any).__wsHandled,
-      );
       if ((socket as any).__wsHandled) {
         return;
       }
@@ -116,7 +111,6 @@ export class WebSocketServer implements IWebSocketServer {
         message,
       });
     } catch (error) {
-      console.log(error);
       client.socket.send(
         JSON.stringify({ type: 'error', data: { message: 'Invalid message format' } }),
       );

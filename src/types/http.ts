@@ -1,7 +1,9 @@
+import { ServerResponse } from 'http';
 import { PubSub } from 'type-graphql';
-import { ErrorCB, InterceptorCB, MiddlewareCB } from './common';
+import { AppRequest, InterceptorCB, MiddlewareCB } from './common';
 import { ControllerClass, ControllerType } from './controller';
 import { CORSConfig } from './cors';
+import { AppError } from './error';
 import { HttpPlugin } from './plugins';
 import { SanitizerConfig } from './sanitize';
 import { StaticConfig } from './static';
@@ -35,7 +37,11 @@ export interface ServerConfig {
    * Error handling callback
    * @type {ErrorCB}
    */
-  errorHandler?: ErrorCB;
+  errorHandler?: (
+    error: AppError,
+    req: AppRequest,
+    response: LambdaResponse | ServerResponse,
+  ) => any;
 
   /**
    * Array of controller types
@@ -91,6 +97,7 @@ export interface ServerConfig {
 }
 
 import { Server } from 'http';
+import { LambdaResponse } from './lambda';
 
 export interface IHttpServer {
   readonly app: Server;

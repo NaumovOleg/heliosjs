@@ -15,6 +15,7 @@ type Request = {
   requestUrl: URL;
   method: HTTP_METHODS;
   path?: string;
+  id: string;
   headers: Record<string, string | string[]>;
   query?: Record<string, string | string[]>;
   params?: Record<string, string>;
@@ -24,6 +25,7 @@ type Request = {
   cookies: Record<string, string>;
   multipart?: Record<string, MultipartFile | MultipartFile[]>;
   _startTime: number;
+  ip: string;
   end: () => any;
 };
 
