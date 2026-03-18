@@ -1,8 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyEventV2, Context, Handler } from 'aws-lambda';
-import { CookieOptions, HTTP_METHODS } from './common';
+import { HTTP_METHODS } from './common';
 import { ControllerClass } from './controller';
 import { MultipartFile } from './multipart';
 import { LambdaPlugin } from './plugins';
+import { CookieOptions } from './response';
 
 export interface LambdaFunctionUrlEvent {
   version: string;

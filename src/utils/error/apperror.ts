@@ -1,4 +1,4 @@
-import { AppError, AppRequest, ErrorCode, ErrorDetails, ErrorHandlerConfig } from '@types';
+import { AppError, ErrorCode, ErrorDetails, ErrorHandlerConfig, Meta } from '@types';
 import { UnauthorizedError } from './authorizations';
 import { BaseError } from './base';
 import { NotFoundError } from './notfound';
@@ -13,16 +13,9 @@ export class ApplicationError {
   timestamp: Date;
   requestId?: string;
   path?: string;
-  statck?: string;
-  id: string;
   stack?: unknown;
 
-  constructor(data: {
-    request: AppRequest;
-    error: unknown;
-    config: ErrorHandlerConfig;
-    status?: number;
-  }) {
+  constructor(error: unknown, data: { meta: Meta; config: ErrorHandlerConfig; status?: number }) {
     this.config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: true,
@@ -30,43 +23,46 @@ export class ApplicationError {
       ...(data.config ?? {}),
     };
 
-    const appError = this.normalizeError(data.error, data.request);
+    const appError = this.normalizeError(error, data.meta);
 
     if (this.config.logErrors) {
-      this.logError(appError, data.request);
+      this.logError(appError, data.meta);
     }
     this.code = appError.code;
     this.status = appError.status;
     this.message = appError.code;
     this.details = appError.details;
     this.timestamp = appError.timestamp ?? new Date();
-    this.id = data.request.id;
+    this.requestId = data.meta.requestId;
     this.path = appError.path;
     this.details = appError.details;
     this.stack = (appError.cause as any)?.stack?.split('\n').map((line: string) => line.trim());
   }
 
-  private normalizeError(error: any, request: AppRequest): AppError {
+  private normalizeError(
+    error: any,
+    request: { requestId: string; requestUrl: URL; method: string },
+  ): AppError {
     if (error instanceof BaseError) {
       return error;
     }
 
     if (error?.errors) {
       const details = this.formatValidationErrors(error?.errors);
-      console.log('dkdkdkdkdkdkdkdkdkdkd', error, details);
       return new ValidationError(details, request);
     }
 
     const base = {
-      requestId: request.id,
+      requestId: request.requestId,
       path: request.requestUrl.pathname,
       method: request.method,
     };
+
     if ((error.status ?? error.statusCode) == 401) {
       return new UnauthorizedError(ErrorCode.UNAUTHORIZED, base);
     }
     if ((error.status ?? error.statusCode) == 404) {
-      return new NotFoundError(request.requestUrl.pathname, request.id);
+      return new NotFoundError(request.requestUrl.pathname, request.requestId);
     }
     if (error instanceof Error) {
       return new BaseError(ErrorCode.INTERNAL_ERROR, error.message, {
@@ -107,7 +103,7 @@ export class ApplicationError {
     }));
   }
 
-  private logError(error: AppError, req: AppRequest): void {
+  private logError(error: AppError, meta: Meta): void {
     const logEntry = {
       timestamp: error.timestamp.toISOString(),
       requestId: error.requestId,
@@ -118,8 +114,8 @@ export class ApplicationError {
       message: error.message,
       details: error.details,
       stack: this.config.includeStack ? error.stack : undefined,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
+      ip: meta.sourceIp,
+      userAgent: meta.userAgent,
     };
 
     if (error.status >= 500) {
@@ -138,7 +134,7 @@ export class ApplicationError {
       message: this.code,
       details: this.details,
       timestamp: this.timestamp ?? new Date(),
-      id: this.id,
+      requestId: this.requestId,
       path: this.path,
       stack: this.stack,
     };

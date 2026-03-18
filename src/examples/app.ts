@@ -26,14 +26,10 @@ export class MetricsController {
 
 @Server({
   controllers: [Root, Socket, MetricsController],
-  statics: [
-    {
-      path: path.join(__dirname, '../../'),
-      options: { index: 'index.html' },
-    },
-  ],
-  websocketPath: '/graphql',
-  graphql: { resolvers: [UserResolver], pubSub },
+  statics: [{ path: path.join(__dirname, '../../'), options: { index: 'index.html' } }],
+  // websocket: { path: '/ws' },
+  graphql: { path: '/graphql', resolvers: [UserResolver], pubSub },
+
   sse: { enabled: true },
 })
 export class App {}

@@ -1,6 +1,6 @@
 import { ServerResponse } from 'http';
-import { AppRequest } from './common';
 import { LambdaResponse } from './lambda';
+import { IRequest } from './request';
 
 export enum ErrorCode {
   BAD_REQUEST = 'BAD_REQUEST',
@@ -80,6 +80,6 @@ export interface ErrorHandlerConfig {
 
 export type ErorrHandler = (
   error: Error,
-  req: AppRequest,
+  req: IRequest,
   response: LambdaResponse | ServerResponse,
 ) => any;

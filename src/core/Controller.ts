@@ -13,30 +13,21 @@ import {
   WS_TOPIC_KEY,
 } from '@constants';
 import {
-  AppRequest,
   ControllerClass,
   ControllerConfig,
   ControllerMetadata,
   CORSConfig,
   ErorrHandler,
   InterceptorCB,
+  IRequest,
+  IResponse,
   MiddlewareCB,
-  ResponseWithStatus,
   RouteContext,
+  SanitizerConfig,
   SeeControllerHandlers,
   WsControllerHandlers,
 } from '@types';
-import {
-  applyMiddlewaresVsSanitizers,
-  executeControllerMethod,
-  findRouteInController,
-  getControllerMethods,
-  getErrorType,
-  getResponse,
-  handleCORS,
-  pathStartsWithPrefix,
-} from '@utils';
-import { ServerResponse } from 'http';
+import { executeControllerMethod, getControllerMethods, routeWalker } from '@utils';
 import 'reflect-metadata';
 
 /**
@@ -108,7 +99,7 @@ export function Controller(
         this.lookupSSE();
       }
 
-      handleRequest = async (request: AppRequest, response: ServerResponse) => {
+      handleRequest = async (request: IRequest, response: IResponse) => {
         const middlewares = this.middlewares
           .concat(Reflect.getMetadata(MIDDLEWARES, proto))
           .concat(Reflect.getMetadata(USE_MIDDLEWARE, constructor))
@@ -138,157 +129,26 @@ export function Controller(
           middlewareChain: [],
           interceptorChain: [],
           sanitizersChain: [],
-          corsChain: cors,
+          corsChain: [cors],
           errorHandlerChain: [errorHandler],
           subPath: routePrefix,
         };
 
-        return this.routeWalker(context, request, response);
-      };
-
-      async routeWalker(
-        context: RouteContext,
-        request: AppRequest,
-        response: ServerResponse,
-      ): Promise<any> {
-        const { controllerInstance, controllerMeta, path, method, subPath } = context;
-
-        for (const SubController of controllerMeta.subControllers) {
-          const subInstance = new SubController();
-
-          const middlewares = []
-            .concat(Reflect.getMetadata(MIDDLEWARES, SubController.prototype))
-            .concat(Reflect.getMetadata(USE_MIDDLEWARE, SubController))
-            .filter((el) => !!el);
-
-          const sanitizers = []
-            .concat(Reflect.getMetadata(SANITIZE, SubController.prototype))
-            .concat(Reflect.getMetadata(SANITIZE, SubController))
-            .filter((el) => !!el);
-
-          const subMeta = {
-            routePrefix: Reflect.getMetadata(ROUTE_PREFIX, SubController.prototype) || '',
-            middlewares,
-            interceptor: Reflect.getMetadata(INTERCEPTOR, SubController.prototype),
-            errorHandler: Reflect.getMetadata(CATCH, SubController),
-            subControllers: Reflect.getMetadata(CONTROLLERS, SubController.prototype) || [],
-            cors: Reflect.getMetadata(CORS_METADATA, SubController.prototype) || [],
-            sanitizers,
-          };
-
-          const fullSubPath = [subPath, subMeta.routePrefix]
-            .filter(Boolean)
-            .join('/')
-            .replace(/\/+/g, '/');
-
-          if (pathStartsWithPrefix(path, fullSubPath)) {
-            const walkerData = {
-              ...context,
-              subPath: fullSubPath,
-              controllerInstance: subInstance,
-              controllerMeta: subMeta,
-              path,
-              middlewareChain: [...context.middlewareChain, ...controllerMeta.middlewares],
-              sanitizersChain: [...context.sanitizersChain, ...controllerMeta.sanitizers],
-              errorHandlerChain: [...context.errorHandlerChain, subMeta.errorHandler].filter(
-                (el) => !!el,
-              ),
-              interceptorChain: [...context.interceptorChain, controllerMeta.interceptor].filter(
-                (el) => !!el,
-              ),
-              corsChain: [...context.corsChain, subMeta.cors].filter((el) => !!el),
-            };
-
-            return this.routeWalker(walkerData, request, response);
-          }
-        }
-
-        const routeMatch = findRouteInController(controllerInstance, subPath, path, method);
-
-        if (!routeMatch) {
-          return {};
-        }
-        let data;
         try {
-          const { name, pathParams, middlewares, cors, sanitizers } = routeMatch;
-          Object.assign(request, { params: pathParams });
+          const done = await routeWalker(context, request, response);
 
-          const handledCors = context.corsChain
-            .concat(cors ?? [])
-            .flat()
-            .filter((el) => !!el)
-            .reduce(
-              (acc, conf) => {
-                const cors = handleCORS(request, response, conf);
-                return {
-                  permitted: acc.permitted && cors.permitted,
-                  continue: acc.continue && cors.continue,
-                };
-              },
-              { permitted: true, continue: true },
-            );
-
-          if (!handledCors.permitted) {
-            response.statusCode = 403;
-            data = 'Cors: Origin not allowed';
-            return { routeMatch, data };
-          }
-          if (!handledCors.continue && handledCors.permitted) {
-            response.statusCode = 204;
-            return { routeMatch };
+          if (!done) {
+            response.status = 404;
+            response.data = 'Route not found';
+            return false;
           }
 
-          const controllerMiddlewares = [...context.middlewareChain, ...controllerMeta.middlewares];
-
-          const controllerSanitizers = [
-            ...context.sanitizersChain,
-            ...controllerMeta.sanitizers,
-          ].filter((el) => !!el);
-
-          await applyMiddlewaresVsSanitizers(request, response, {
-            sanitizers: [controllerSanitizers, sanitizers],
-            middlewares: [controllerMiddlewares, middlewares],
-          });
-
-          data = await getResponse({
-            interceptors: [...context.interceptorChain, controllerMeta.interceptor].filter(
-              (el) => !!el,
-            ),
-            controllerInstance,
-            name,
-            response: response,
-            request: request,
-          });
-        } catch (error: any) {
-          let catched = error;
-          let statusCode = error.status ?? error.statusCode ?? 500;
-          catched.status = statusCode;
-
-          for (const handler of context.errorHandlerChain?.reverse() || []) {
-            try {
-              catched = await Promise.resolve(handler(catched, request, response))
-                .then((resp: ResponseWithStatus) => {
-                  statusCode = 200;
-
-                  return resp;
-                })
-                .catch((err: any) => {
-                  statusCode = err.status ?? err.statusCode ?? statusCode;
-                  return err;
-                });
-            } catch (errs) {}
-          }
-
-          response.statusCode = statusCode;
-
-          data = catched;
+          return true;
+        } catch (err) {
+          response.error(err);
+          return true;
         }
-
-        if (getErrorType(data).isError && response.statusCode === 200) {
-          response.statusCode = 500;
-        }
-        return { routeMatch, data };
-      }
+      };
 
       lookupWS() {
         const connection = this.getWSHandlers('connection');

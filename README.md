@@ -45,6 +45,8 @@ import {
   Response,
   Status,
   ANY,
+  IRequest,
+  IResponse
 } from 'quantum-flow/core';
 import {IsString} from  'class-validator'
 import { Catch, Cors, Sanitize, Use, SANITIZER } from 'quantum-flow/middlewares';
@@ -81,8 +83,8 @@ export class User {
     @Query() query: Record<string, string | string[]>,
     @Headers() headers: Record<string, string | string[]>,
     @Params(ParamDTO, 'param') params: string,
-    @Request() req: HttpRequest,
-    @Response() resp: ServerResponse,
+    @Request() req: IResponse,
+    @Response() resp: IRequest,
     @InjectWS() ws: IWebSocketService,
   ) {}
 
@@ -148,7 +150,7 @@ Use `LambdaAdapter` to convert API Gateway events to requests and responses. Cre
 ```typescript
 Example Lambda handler creation
 import { LambdaAdapter, LambdaRequest, LambdaResponse } from 'quantum-flow/aws';
-import { Request, Query, Headers, Params, Response } from  'quantum-flow/core'
+import { Request, Query, Headers, Params, Response, IResponse, IRequest } from  'quantum-flow/core'
 
 @Controller({ prefix: 'user' })
 class UserController {
@@ -156,8 +158,8 @@ class UserController {
     @Query() query: Record<string, string | string[]>,
     @Headers() headers: Record<string, string | string[]>,
     @Params(ParamDTO, 'param') params: string,
-    @Request() req: LambdaRequest,
-    @Response() res: LambdaResponse
+    @Request() req: IRequest,
+    @Response() res: IResponse
   ) { }
 }
 const lambdaAdapter = new LambdaAdapter(UserController);
@@ -175,12 +177,12 @@ Enable WebSocket in the server configuration and register WebSocket controllers.
 
 ## Enabling WebSocket Support in Server
 
-To enable WS support, configure your HTTP server with the `enabled: true` option and register controllers that use SSE.
+To enable WS support, configure your HTTP server with the `path: string` option and register controllers that use SSE.
 
 Example server setup:
 
 ```typescript
-@Server( {websocketPath:'/ws',    websocket: { enabled: true } })
+@Server( { websocket: { path:'/ws' } })
 ```
 
 ## Injecting WebSocket events in Controller
@@ -308,19 +310,19 @@ import { OnSSEConnection, OnSSEError, OnSSEClose } from 'quantum-flow/sse';
 @Controller('user')
 export class User {
   @OnSSEConnection()
-  async onsseconnection(@Request() req: any, @Response() res: any) {
+  async onsseconnection(@Request() req, @Response() res) {
     console.log('SSE connection established');
     return req.body;
   }
 
   @OnSSEError()
-  async onsseerror(@Request() req: any, @Response() res: any) {
+  async onsseerror(@Request() req, @Response() res) {
     console.log('SSE error occurred');
     return req.body;
   }
 
   @OnSSEClose()
-  async onsseclose(@Request() req: any, @Response() res: any) {
+  async onsseclose(@Request() req, @Response() res) {
     console.log('SSE connection closed');
     return req.body;
   }
@@ -455,9 +457,8 @@ yarn add type-graphql graphql graphql-yoga @graphql-yoga/subscriptions
 ```typescript
 @Server({
   controllers: [/* your REST controllers */],
-  websocketPath:'/ws',  //GraphQL subscriptions uses same ws server as  main application
   graphql: {                   // GraphQL endpoint (default: '/graphql')
-    playground: true,                  // Enable GraphQL Playground
+    path: '/graphql',                  // Enable GraphQL Playground
     resolvers: [UserResolver, MessageResolver], // Your resolver classes
     pubSub: pubSub,                    // Your PubSub instance (required for subscriptions)
   },

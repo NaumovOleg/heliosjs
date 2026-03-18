@@ -1,65 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IncomingMessage, ServerResponse } from 'http';
-import { LambdaRequestMeta } from './lambda';
-import { MultipartFile } from './multipart';
-
-export interface HttpError extends Error {
-  statusCode?: number;
-  status: number;
-  data?: any;
-  messages?: string[];
-  errors?: Array<{ message: string }>;
-}
-
-type Request = {
-  requestUrl: URL;
-  method: HTTP_METHODS;
-  path?: string;
-  id: string;
-  headers: Record<string, string | string[]>;
-  query?: Record<string, string | string[]>;
-  params?: Record<string, string>;
-  body: any;
-  rawBody: Buffer<ArrayBufferLike>;
-  isBase64Encoded?: boolean;
-  cookies: Record<string, string>;
-  multipart?: Record<string, MultipartFile | MultipartFile[]>;
-  _startTime: number;
-  ip: string;
-  end: () => any;
-};
-
-export type AppRequest = Request & (IncomingMessage | LambdaRequestMeta);
-export type HttpRequest = Request & IncomingMessage;
+import { IRequest, IResponse } from '@types';
+import { ServerResponse } from 'http';
+import { AppError } from './error';
 
 export type Router = (
-  req: AppRequest,
+  req: IRequest,
   res?: ServerResponse,
 ) => Promise<{ status: number; data: any; message?: string }>;
-
-export type EndpointResponse<T = any> = {
-  status: number;
-  data?: T;
-  error?: any;
-};
 
 export interface IController {
   handleRequest: Router;
 }
 
 export type MiddlewareCB = (
-  request: AppRequest,
-  response: ServerResponse,
+  request: IRequest,
+  response: IResponse,
   next: (args?: any) => any,
-) => void | Promise<AppRequest> | AppRequest | Promise<void> | void;
+) => void | Promise<IRequest> | IRequest | Promise<void> | void;
 
 export type InterceptorCB = (
   data: any,
-  req?: AppRequest,
-  res?: ServerResponse,
+  req?: IRequest,
+  res?: IResponse,
 ) => Promise<unknown> | unknown;
 
-export type ErrorCB = (error: HttpError, req?: AppRequest, res?: ServerResponse) => any;
+export type ErrorCB = (error: AppError, req?: IRequest, res?: IResponse) => any;
 
 export type ParamDecoratorType =
   | 'body'
@@ -98,14 +63,11 @@ export enum HTTP_METHODS {
   HEAD = 'HEAD',
 }
 
-export interface CookieOptions {
-  maxAge?: number;
-  expires?: Date;
-  domain?: string;
-  path?: string;
-  secure?: boolean;
-  httpOnly?: boolean;
-  sameSite?: 'Strict' | 'Lax' | 'None';
-  priority?: 'Low' | 'Medium' | 'High';
-  partitioned?: boolean;
-}
+export type Meta = {
+  requestUrl: URL;
+  method: string;
+  requestId: string;
+  sourceIp: string;
+  userAgent: string;
+  startTime: number;
+};

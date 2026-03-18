@@ -2,15 +2,21 @@ import { CORS_METADATA } from '@constants';
 import {
   ControllerClass,
   ILambdaAdapter,
+  IRequest,
+  IResponse,
   LambdaEvent,
   LambdaPlugin,
-  LambdaRequest,
-  LambdaResponse,
 } from '@types';
-import { ApplicationError, getErrorType, handleCORS } from '@utils';
+import {
+  ApplicationError,
+  getErrorType,
+  getEventType,
+  handleCORS,
+  RequestFactory,
+  ResponseFactory,
+} from '@utils';
 import { APIGatewayProxyResult, APIGatewayProxyResultV2, Context, Handler } from 'aws-lambda';
 import { Plugin } from '../plugin';
-import { LRequest, LResponse, getEventType } from './utils';
 
 export class LambdaAdapter extends Plugin implements ILambdaAdapter {
   handler: Handler;
@@ -20,7 +26,6 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
     super();
 
     this.controllers.push(Controller);
-
     this.handler = this.createHandler();
   }
 
@@ -29,9 +34,10 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
       await this.callPluginHook('beforeRequest', event, context);
 
       const eventType = getEventType(event);
-      const request = new LRequest(event, context);
+      const request = RequestFactory.fromLambda(event, context);
 
-      const response = new LResponse();
+      const response = ResponseFactory.forLambda(request);
+
       return this.runControllers({
         context,
         event,
@@ -43,8 +49,8 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
   }
 
   private async runControllers(meta: {
-    request: LRequest;
-    response: LResponse;
+    request: IRequest;
+    response: IResponse;
     eventType: 'rest' | 'http' | 'url';
     event: LambdaEvent;
     context: Context;
@@ -83,19 +89,14 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
 
         processed = await instance.handleRequest(request, response);
 
-        if (processed.routeMatch) break;
+        if (processed) break;
       } catch (error: any) {
-        return this.handleError(error, request, response);
+        return this.handleError(error, request);
       }
     }
 
-    if (!processed?.routeMatch) {
-      response.statusCode = 404;
-      return this.toLambdaResponse({ data: 'Route not found' }, request, response, eventType);
-    }
-
-    if (getErrorType(processed?.data).isError) {
-      return this.handleError(processed?.data, request, response);
+    if (getErrorType(response?.data).isError) {
+      return this.handleError(processed?.data, request);
     }
 
     return this.toLambdaResponse(processed?.data, request, response, eventType);
@@ -103,11 +104,11 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
 
   private toLambdaResponse(
     data: any | undefined | null,
-    request: LRequest,
-    response: LResponse,
+    request: IRequest,
+    response: IResponse,
     eventType: string,
   ): APIGatewayProxyResult | APIGatewayProxyResultV2 | any {
-    const statusCode = data?.status ?? response?.statusCode ?? 200;
+    const statusCode = data?.status ?? response?.status ?? 200;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
@@ -172,21 +173,23 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
     }
   }
 
-  private handleError(error: any, request: LambdaRequest, response: LambdaResponse) {
+  private handleError(error: any, request: IRequest) {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: true,
-      status: response.status === 200 ? 500 : response.status,
     };
 
-    let serialized = new ApplicationError({ request, status: response.status, error, config });
-    const eventType = getEventType(request.event);
+    let serialized = new ApplicationError(error, {
+      meta: request,
+      config,
+    });
+    const eventType = getEventType(request.getLambdaEvent());
     const statusCode = serialized.status || 500;
     const body = JSON.stringify(serialized);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Request-Id': request.id,
+      'X-Request-Id': request.requestId,
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
     };

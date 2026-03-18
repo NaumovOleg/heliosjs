@@ -1,31 +1,26 @@
-import { CONTROLLERS, OK_STATUSES } from '@constants';
+import { CONTROLLERS } from '@constants';
 import {
-  AppRequest,
   ControllerType,
-  HTTP_METHODS,
   HttpPlugin,
   IHttpServer,
+  IRequest,
+  IResponse,
   MiddlewareCB,
   ServerConfig,
 } from '@types';
 import {
-  ApplicationError,
-  collectRawBody,
-  getErrorType,
   handleCORS,
   NextFunction,
-  ParseBody,
-  ParseCookies,
-  ParseQuery,
+  RequestFactory,
   resolveConfig,
+  ResponseFactory,
   sanitizeRequest,
   staticMiddleware,
 } from '@utils';
 import { useServer } from 'graphql-ws/use/ws';
-import { createYoga } from 'graphql-yoga';
+import { createPubSub, createYoga } from 'graphql-yoga';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { buildSchema, NonEmptyArray } from 'type-graphql';
-import { v4 } from 'uuid';
 import { SSEServer } from '../../sse/server';
 import { SSEService } from '../../sse/service';
 import { WebSocketServer } from '../../ws/server';
@@ -37,37 +32,35 @@ export class HttpServer extends Plugin implements IHttpServer {
   private isRunning: boolean = false;
   private sse?: SSEServer;
   private websocket?: WebSocketServer;
-  private websocketPath: string = '/ws';
   controllers: ControllerType[] = [];
   middlewares: MiddlewareCB[] = [];
   app: http.Server;
   plugins: HttpPlugin[] = [];
   allContriollers: ControllerType[] = [];
+  staticMiddlewares: any = [];
 
   constructor(configOrClass: new (...args: any[]) => any) {
     super();
     this.config = resolveConfig(configOrClass);
-    if (this.config.websocketPath) {
-      this.websocketPath = this.config.websocketPath;
-    }
 
     this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);
     this.controllers = this.collectControllers(this.config.controllers ?? []);
 
-    const app = http.createServer(this.requestHandler.bind(this));
+    this.app = http.createServer(this.requestHandler.bind(this));
 
     for (const st of this.config.statics ?? []) {
       const staticMw = staticMiddleware(st.path, st.options);
-      this.middlewares?.unshift(staticMw as MiddlewareCB);
+      this.staticMiddlewares.push(staticMw);
     }
 
-    if (this.config.websocket?.enabled || this.config.graphql?.pubSub) {
-      this.websocket = new WebSocketServer(app, { path: this.websocketPath });
-      this.websocket.registerControllers(this.controllers);
-      WebSocketService.getInstance().initialize(this.websocket!);
+    if (this.config.websocket && this.config.graphql) {
+      throw new Error(`You  cant't use custom websocket with graphql`);
+    }
+    if (this.config.websocket) {
+      this.setUpWebsocket();
     }
 
-    if (this.config.graphql && this.config.graphql?.resolvers?.length) {
+    if (this.config.graphql) {
       this.setupGraphQL();
     }
 
@@ -77,8 +70,13 @@ export class HttpServer extends Plugin implements IHttpServer {
       SSEService.getInstance().initialize(this.sse);
     }
 
-    this.app = app;
     this.logConfig();
+  }
+
+  setUpWebsocket() {
+    this.websocket = new WebSocketServer(this.app, { path: this.config.websocket?.path ?? '/ws' });
+    this.websocket.registerControllers(this.controllers);
+    WebSocketService.getInstance().initialize(this.websocket!);
   }
 
   private collectControllers(controllers: ControllerType[] = []): ControllerType[] {
@@ -113,7 +111,7 @@ export class HttpServer extends Plugin implements IHttpServer {
 ║  📍 Host: ${this.config.host}                       
 ║  🔌 Port: ${this.config.port}                         
 ║  🔌 Websocket: ${!!this.config.websocket && this.config.graphql?.pubSub}                         
-║  🔌 Websocket path prefix: ${this.config.websocketPath}                       
+║  🔌 Websocket path prefix: ${this.config.websocket?.path ?? '/ws'}                       
 ║  🔧 Global Middlewares: ${this.middlewares?.length || 0}                   
 ║  🔧 Error handler: ${!this.config.errorHandler}                   
 ║  🎯 Global Interceptors: ${!!this.config.interceptor?.length}                   
@@ -177,204 +175,110 @@ export class HttpServer extends Plugin implements IHttpServer {
     });
   }
 
-  public status(): { running: boolean; config: ServerConfig } {
-    return {
-      running: this.isRunning,
-      config: this.config,
-    };
+  public status() {
+    return { running: this.isRunning, config: this.config };
   }
 
-  private async requestHandler(req: IncomingMessage, response: ServerResponse) {
+  private async requestHandler(req: IncomingMessage, res: ServerResponse) {
     const startTime = Date.now();
 
-    let request: AppRequest;
+    const request = await RequestFactory.fromHttp(req);
+    const response = ResponseFactory.forHttp(res, request);
 
     try {
       await this.callPluginHook('beforeRequest', req);
-    } catch (data: any) {
-      return this.sendResponse(response, { status: 500, data }, startTime);
+    } catch (error: any) {
+      response.status = 500;
+      response.data = error;
+      return this.sendResponse(request, response, startTime);
     }
+    if (response.headersSent) return;
 
     try {
-      request = await this.createRequest(req);
-    } catch (err: any) {
-      return this.sendResponse(response, { status: 500, data: err.message }, startTime);
-    }
-
-    try {
-      let handledCors = { permitted: true, continue: true };
-      if (this.config.cors) {
-        handledCors = handleCORS(request, response, this.config.cors);
-      }
+      let handledCors = this.config.cors
+        ? handleCORS(request, response, this.config.cors)
+        : { permitted: true, continue: true };
 
       if (!handledCors.permitted) {
-        return this.sendResponse(
-          response,
-          { status: 403, message: 'CORS: Origin not allowed' },
-          startTime,
-          request,
-        );
+        response.status = 403;
+        response.data = 'CORS: Origin not allowed';
+        return this.sendResponse(request, response, startTime);
       }
       if (!handledCors.continue && handledCors.permitted) {
-        return this.sendResponse(response, { status: 204 }, startTime, request);
+        response.status = 204;
+        return this.sendResponse(request, response, startTime);
       }
 
       await this.beforeRequest(request, response);
 
-      if (response.headersSent) {
-        return;
-      }
+      if (response.headersSent) return;
       await this.callPluginHook('beforeRoute', request, response);
+      if (response.headersSent) return;
 
-      let controllerResponse = await this.runController(request, response);
+      await this.runController(request, response);
 
-      if (!controllerResponse.routeMatch) {
-        return this.handleError(
-          { status: 404, data: 'Route not found' },
-          request,
-          response,
-          Date.now(),
-        );
-      }
-
-      const isError =
-        getErrorType(controllerResponse.data).isError || !OK_STATUSES.includes(response.statusCode);
-      if (isError) {
-        return this.handleError(controllerResponse.data, request, response, startTime);
-      }
-
-      if (this.config.interceptor && controllerResponse) {
-        controllerResponse.data = await this.config.interceptor(
-          controllerResponse,
-          request,
-          response,
-        );
-      }
-
-      return this.sendResponse(
-        response,
-        { status: response.statusCode ?? 200, data: controllerResponse.data },
-        startTime,
-        request,
-      );
+      return this.sendResponse(request, response, startTime);
     } catch (error: any) {
-      return this.handleError(error, request, response, startTime);
+      response.error(error);
+      return this.sendResponse(request, response, startTime);
     }
   }
 
-  private async createRequest(req: http.IncomingMessage): Promise<AppRequest> {
-    const rawBody = await collectRawBody(req);
-
-    const parseRequest = {
-      body: rawBody,
-      headers: req.headers,
-      isBase64Encoded: false,
-    };
-
-    const parsedBody = ParseBody(parseRequest);
-
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host || 'localhost';
-    const fullUrl = `${protocol}://${host}${req.url}`;
-    const id = (req.headers['x-request-id'] as string) || v4();
-
-    const requestUrl = new URL(fullUrl);
-
-    const parsedRequest = {
-      id,
-      method: req.method?.toUpperCase() as HTTP_METHODS,
-      requestUrl,
-      headers: req.headers,
-      body: parsedBody,
-      rawBody: rawBody,
-      query: ParseQuery(requestUrl),
-      params: {},
-      cookies: ParseCookies(req),
-      ip: req.socket.remoteAddress,
-      isBase64Encoded: false,
-      _startTime: Date.now(),
-    };
-
-    Object.assign(req, parsedRequest);
-    return req as AppRequest;
-  }
-
-  private async beforeRequest(request: AppRequest, response: http.ServerResponse): Promise<any> {
+  private async beforeRequest(request: IRequest, response: IResponse): Promise<any> {
     sanitizeRequest(request, this.config.sanitizers ?? []);
 
+    for (const middleware of this.staticMiddlewares) {
+      await middleware(request.raw, response.raw, NextFunction);
+    }
+    if (response.raw.headersSent) {
+      return;
+    }
     for (const middleware of this.middlewares?.reverse() || []) {
       await middleware(request, response, NextFunction);
     }
   }
 
-  private async runController(request: AppRequest, response?: ServerResponse): Promise<any> {
+  private async runController(request: IRequest, response: IResponse): Promise<any> {
     for (const ControllerClass of this.controllers ?? []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
-        const handlerResponse = await instance.handleRequest(request, response);
-        if (handlerResponse.routeMatch) {
-          return handlerResponse;
+        const done = await instance.handleRequest(request, response);
+        if (done) {
+          break;
         }
       }
     }
-    return {};
   }
 
   private async sendResponse(
-    res: http.ServerResponse,
-    responseData: any,
+    request: IRequest,
+    response: IResponse,
     startTime: number,
-    appRequest?: AppRequest,
   ): Promise<void> {
-    if (res.headersSent) return;
-    const { status, data } = responseData;
+    if (response.headersSent) return;
 
-    if (!res.getHeader('Content-Type')) {
-      res.setHeader('Content-Type', 'application/json');
+    if (!response.getHeader('Content-Type')) {
+      response.setHeader('Content-Type', 'application/json');
     }
 
-    res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
-    res.statusCode = status ?? data.status ?? 200;
+    response.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+
     try {
-      const repsData = JSON.stringify(data);
-      res.end(repsData);
-      await this.callPluginHook('afterResponse', appRequest, res);
+      response.end(response.data);
+      await this.callPluginHook('afterResponse', request, response);
     } catch (err) {
-      res.statusCode = 500;
-      res.end(err);
+      response.status = 500;
+      response.error(err);
+      response.end(err);
     }
-  }
-
-  private async handleError(
-    error: any,
-    request: AppRequest,
-    response: http.ServerResponse,
-    startTime: number,
-  ): Promise<void> {
-    const config = {
-      includeStack: process.env.NODE_ENV !== 'production',
-      logErrors: !!process.env.LOG_ERRORS,
-      status: response.statusCode,
-    };
-    let appError = new ApplicationError({ error, request, config });
-
-    if (!this.config.errorHandler) {
-      return this.sendResponse(response, { data: appError }, startTime);
-    }
-
-    try {
-      const intercepted = await this.config.errorHandler(error, request, response);
-
-      appError = intercepted.data ?? intercepted;
-    } catch (cathed) {
-      appError = new ApplicationError({ error, request, config });
-    }
-
-    return this.sendResponse(response, { data: appError ?? appError }, startTime, request);
   }
 
   private async setupGraphQL() {
     if (!this.config.graphql || !this.config.graphql?.resolvers?.length) return;
+
+    const graphqlWsServer = new WebSocketServer(this.app, {
+      path: this.config.graphql.path ?? '/graphql',
+    });
 
     const schemaConfig = {
       resolvers: this.config.graphql?.resolvers as NonEmptyArray<Function>,
@@ -389,9 +293,14 @@ export class HttpServer extends Plugin implements IHttpServer {
 
     const yoga = createYoga({
       schema,
-      context: (ctx) => {
+      context: (ctx: any) => {
         const req = ctx.request ?? (ctx as any).req;
-        return { req, headers: req?.headers, pubSub: this.config.graphql?.pubSub };
+
+        return {
+          request: req.raw,
+          headers: req?.headers,
+          pubSub: this.config.graphql?.pubSub ?? createPubSub(),
+        };
       },
       graphiql: !!this.config.graphql?.playground,
     });
@@ -399,11 +308,11 @@ export class HttpServer extends Plugin implements IHttpServer {
     if (this.config.graphql.pubSub) {
       useServer(
         { schema, context: () => ({ pubSub: this.config.graphql?.pubSub }) },
-        this.websocket!.wss,
+        graphqlWsServer.wss,
       );
       this.use(async (req, res) => {
-        if (req.requestUrl.pathname?.startsWith(this.websocketPath)) {
-          return yoga(req, res);
+        if (req.requestUrl.pathname?.startsWith('/graphql')) {
+          await yoga(req.raw as any, res.raw);
         }
       });
     }

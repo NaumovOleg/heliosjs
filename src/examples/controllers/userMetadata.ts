@@ -11,6 +11,7 @@ import {
   Request,
   Response,
 } from 'quantum-flow/core';
+import { Catch } from 'quantum-flow/middlewares';
 import { InjectSSE, ISSEService } from 'quantum-flow/sse';
 import { InjectWS } from 'quantum-flow/ws';
 
@@ -23,6 +24,9 @@ const userSchema = Joi.object({
 });
 
 @Controller({ prefix: 'metadata' })
+@Catch((err) => {
+  return 'ddd';
+})
 export class UserMetadata {
   @GET('/:meta')
   async getUserMetadata(@Request() req: any, @Response() res: any) {
@@ -47,5 +51,7 @@ export class UserMetadata {
     @Body(DTO) body: any,
     @Params('meta') params: any,
     @InjectWS() ws: IWebSocketService,
-  ) {}
+  ) {
+    throw 'eee';
+  }
 }

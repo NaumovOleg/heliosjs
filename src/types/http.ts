@@ -1,6 +1,6 @@
-import { ServerResponse } from 'http';
+import { IRequest, IResponse } from '@types';
 import { PubSub } from 'type-graphql';
-import { AppRequest, InterceptorCB, MiddlewareCB } from './common';
+import { InterceptorCB, MiddlewareCB } from './common';
 import { ControllerClass, ControllerType } from './controller';
 import { CORSConfig } from './cors';
 import { AppError } from './error';
@@ -37,11 +37,7 @@ export interface ServerConfig {
    * Error handling callback
    * @type {ErrorCB}
    */
-  errorHandler?: (
-    error: AppError,
-    req: AppRequest,
-    response: LambdaResponse | ServerResponse,
-  ) => any;
+  errorHandler?: (error: AppError, req: IRequest, response: IResponse) => any;
 
   /**
    * Array of controller types
@@ -69,9 +65,9 @@ export interface ServerConfig {
 
   /**
    * WebSocket enablement and lazy loading
-   * @type {{ enabled: boolean; lazy?: boolean }}
+   * @type {{ path: string; lazy?: boolean }}
    */
-  websocket?: { enabled: boolean; lazy?: boolean };
+  websocket?: { path: string; lazy?: boolean };
 
   /**
    * Server-Sent Events enablement
@@ -80,16 +76,11 @@ export interface ServerConfig {
   sse?: { enabled: boolean };
 
   /**
-   * Path for WebSocket connections
-   * @type {string}
-   */
-  websocketPath?: string;
-
-  /**
    * GraphQL configuration including playground, pubSub, and resolvers
    * @type {{ playground?: boolean; pubSub?: PubSub; resolvers?: Function[] }}
    */
   graphql?: {
+    path: string;
     playground?: boolean;
     pubSub?: PubSub;
     resolvers?: Function[];
@@ -97,7 +88,6 @@ export interface ServerConfig {
 }
 
 import { Server } from 'http';
-import { LambdaResponse } from './lambda';
 
 export interface IHttpServer {
   readonly app: Server;

@@ -9,17 +9,17 @@ import {
   TO_VALIDATE,
 } from '@constants';
 import {
-  AppRequest,
   ControllerInstance,
   ControllerMethods,
   CORSConfig,
   HTTP_METHODS,
   InterceptorCB,
+  IRequest,
+  IResponse,
   MiddlewareCB,
   ParamMetadata,
   SanitizerConfig,
 } from '@types';
-import { ServerResponse } from 'http';
 import { SSEService } from '../sse/service';
 import { WebSocketService } from '../ws/service';
 import { matchRoute } from './helper';
@@ -27,7 +27,7 @@ import { MultipartProcessor } from './multipart';
 import { sanitizeRequest } from './sanitize';
 import { validate } from './validate';
 
-const getBodyAndMultipart = (request: AppRequest) => {
+const getBodyAndMultipart = (request: IRequest) => {
   let body = request.body;
   let multipart;
   if (MultipartProcessor.isMultipart({ headers: request.headers })) {
@@ -46,8 +46,8 @@ const getBodyAndMultipart = (request: AppRequest) => {
 export const executeControllerMethod = async (
   controller: ControllerInstance,
   propertyName: string,
-  request: AppRequest,
-  response: ServerResponse,
+  request: IRequest,
+  response: IResponse,
 ) => {
   const fn = controller[propertyName];
   if (typeof fn !== 'function') return null;
@@ -59,7 +59,7 @@ export const executeControllerMethod = async (
 
   try {
     for (let middleware of methodMiddlewares) {
-      await Promise.resolve(middleware(request, response, NextFunction));
+      await middleware(request, response, NextFunction);
     }
 
     const prototype = Object.getPrototypeOf(controller);
@@ -86,11 +86,7 @@ export const executeControllerMethod = async (
         continue;
       }
 
-      let value = request[param.type as keyof AppRequest];
-
-      // param.name
-      //   ? request[param.type as keyof AppRequest]?.[param.name]
-      //   : request[param.type as keyof AppRequest];
+      let value = request[param.type as keyof IRequest];
 
       if (param.type === 'multipart') {
         value = multipart;
@@ -127,7 +123,9 @@ export const executeControllerMethod = async (
       catched.original = error;
       catched.controller = controller.constructor?.name;
       catched.method = propertyName;
-      catched.status = 501;
+      catched.status = 500;
+
+      response.error(catched);
 
       throw catched;
     }
@@ -259,8 +257,8 @@ export const getResponse = async (data: {
   controllerInstance: ControllerInstance;
   name: string;
   interceptors: InterceptorCB[];
-  request: AppRequest;
-  response: ServerResponse;
+  request: IRequest;
+  response: IResponse;
 }) => {
   let appResponse = await executeControllerMethod(
     data.controllerInstance,
@@ -273,8 +271,8 @@ export const getResponse = async (data: {
     return;
   }
 
-  data.response.statusCode = appResponse.status ?? 200;
-  const isError = !OK_STATUSES.includes(data.response.statusCode);
+  data.response.status = appResponse.status ?? 200;
+  const isError = !OK_STATUSES.includes(data.response.status);
   const interceptors = data.interceptors.reverse();
 
   for (let index = 0; index < interceptors?.length && !isError; index++) {
@@ -292,18 +290,18 @@ export const getResponse = async (data: {
   );
 
   if (methodOkStatus) {
-    !isError && (data.response.statusCode = methodOkStatus);
+    !isError && (data.response.status = methodOkStatus);
   } else {
     const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
-    !isError && classOkStatus && (data.response.statusCode = classOkStatus);
+    !isError && classOkStatus && (data.response.status = classOkStatus);
   }
 
   return appResponse;
 };
 
 export const applyMiddlewaresVsSanitizers = async (
-  request: AppRequest,
-  response: ServerResponse,
+  request: IRequest,
+  response: IResponse,
   functions: {
     sanitizers: SanitizerConfig[][];
     middlewares: MiddlewareCB[][];

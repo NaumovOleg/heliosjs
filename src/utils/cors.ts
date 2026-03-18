@@ -1,9 +1,9 @@
 import { CORS_METADATA } from '@constants';
-import { AppRequest, CORSConfig } from '@types';
+import { CORSConfig, IRequest } from '@types';
 import { getOrigin } from './headers';
 
 export function handleCORS(
-  req: AppRequest,
+  req: IRequest,
   res: any,
   config: CORSConfig,
 ): { permitted: boolean; continue: boolean } {

@@ -11,7 +11,7 @@ export class Plugin {
       const hook = plugin.hooks?.[hookName];
       if (hook) {
         try {
-          await Promise.resolve((hook as any)(...args));
+          await (hook as any)(...args);
         } catch (error) {
           console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
         }
@@ -26,7 +26,7 @@ export class Plugin {
       const hook = plugin?.[hookName];
       if (hook) {
         try {
-          await Promise.resolve((hook as any)(...args));
+          await (hook as any)(...args);
         } catch (error) {
           console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
         }

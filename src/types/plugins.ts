@@ -1,13 +1,14 @@
+import { IRequest } from '@types';
 import { Context } from 'aws-lambda';
 import { IncomingMessage, Server, ServerResponse } from 'http';
-import { AppRequest, MiddlewareCB } from './common';
+import { MiddlewareCB } from './common';
 import { IHttpServer } from './http';
 import { ILambdaAdapter, LambdaEvent, LambdaRequest, LambdaResponse } from './lambda';
 
 export interface HttpPluginHooks {
   beforeRequest?: (req: IncomingMessage) => void | Promise<void>;
-  beforeRoute?: (req: AppRequest, response: ServerResponse) => void | Promise<void>;
-  afterResponse?: (req: AppRequest, res: ServerResponse) => void | Promise<void>;
+  beforeRoute?: (req: IRequest, response: ServerResponse) => void | Promise<void>;
+  afterResponse?: (req: IRequest, res: ServerResponse) => void | Promise<void>;
 }
 
 export interface HttpPlugin {

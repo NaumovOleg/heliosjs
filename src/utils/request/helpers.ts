@@ -14,8 +14,8 @@ const parseCookie = (cookies: string) => {
 };
 
 export const parseRequestCookie = (
-  cookies: string | string[],
   source: RequestSource,
+  cookies?: string | string[],
 ): Record<string, string> => {
   if (!cookies || source === 'unknown') return {};
 
