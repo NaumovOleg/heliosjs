@@ -1,4 +1,4 @@
-import { IWebSocketService } from '../../types/http';
+import { IWebSocketService } from '../../types/ws';
 import { WebSocketServer } from './server';
 
 export class WebSocketService implements IWebSocketService {

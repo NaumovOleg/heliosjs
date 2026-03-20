@@ -1,9 +1,9 @@
-import { PluginHookKeys, PluginKeys } from '../../types/aws';
+import { PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/aws';
 import { MiddlewareCB } from '../../types/core';
 
 export class Plugin {
-  plugins: any[];
-  middlewares: MiddlewareCB[];
+  plugins: TPlugin[] = [];
+  middlewares: MiddlewareCB[] = [];
   protected async callPluginHook<K extends PluginHookKeys>(
     hookName: K,
     ...args: any

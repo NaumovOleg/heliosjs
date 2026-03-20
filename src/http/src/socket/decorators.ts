@@ -1,5 +1,5 @@
 import { WS_HANDLER, WS_TOPIC_KEY } from '../constants';
-import { WebSocketHandlerType } from '../types/http';
+import { WebSocketHandlerType } from '../types/ws';
 import { createParamDecorator } from '../utils/core';
 
 /**

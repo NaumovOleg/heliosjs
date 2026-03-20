@@ -1,5 +1,5 @@
 {
-  "name": "@quantum-flow/core",
+  "name": "@quantum-flow/aws",
   "version": "1.0.0",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",

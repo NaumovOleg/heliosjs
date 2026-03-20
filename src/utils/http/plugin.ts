@@ -1,9 +1,9 @@
 import { MiddlewareCB } from '../../types/core';
-import { PluginHookKeys, PluginKeys } from '../../types/http';
+import { Plugin as HttpPlgin, PluginHookKeys, PluginKeys } from '../../types/http';
 
 export class Plugin {
-  plugins: any[];
-  middlewares: MiddlewareCB[];
+  plugins: HttpPlgin[] = [];
+  middlewares: MiddlewareCB[] = [];
   protected async callPluginHook<K extends PluginHookKeys>(
     hookName: K,
     ...args: any

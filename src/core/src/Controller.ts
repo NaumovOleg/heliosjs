@@ -1,20 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  ControllerClass,
-  ControllerConfig,
-  ControllerMetadata,
-  CORSConfig,
-  ErorrHandler,
-  InterceptorCB,
-  IRequest,
-  IResponse,
-  MiddlewareCB,
-  RouteContext,
-  SanitizerConfig,
-  SeeControllerHandlers,
-  WsControllerHandlers,
-} from '@types';
-import { executeControllerMethod, getControllerMethods, routeWalker } from '@utils';
 import 'reflect-metadata';
 import {
   CATCH,
@@ -29,6 +13,22 @@ import {
   WS_HANDLER,
   WS_TOPIC_KEY,
 } from './constants';
+import {
+  ControllerClass,
+  ControllerConfig,
+  ControllerMetadata,
+  CORSConfig,
+  ErorrHandler,
+  InterceptorCB,
+  IRequest,
+  IResponse,
+  MiddlewareCB,
+  RouteContext,
+  SanitizerConfig,
+  SeeControllerHandlers,
+  WsControllerHandlers,
+} from './types/core';
+import { executeControllerMethod, getControllerMethods, routeWalker } from './utils/core';
 
 /**
  * Class decorator to define a controller with optional configuration.

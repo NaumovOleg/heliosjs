@@ -1,6 +1,7 @@
-import { LambdaAdapter } from 'quantum-flow/aws';
-import { ANY, Controller, Request } from 'quantum-flow/core';
-import { Plugin } from 'quantum-flow/plugins/aws';
+import 'reflect-metadata';
+
+import { LambdaAdapter, Plugin } from '@quantum-flow/aws';
+import { ANY, Controller, Request } from '@quantum-flow/core';
 
 @Controller({ prefix: 'metric' })
 export class MetricsController {

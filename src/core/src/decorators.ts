@@ -1,4 +1,4 @@
-import { createParamDecorator } from '@utils';
+import { createParamDecorator } from './utils/core';
 
 /**
  * Parameter decorator to extract and validate the request body.

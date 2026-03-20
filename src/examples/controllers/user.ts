@@ -5,17 +5,21 @@ import {
   Body,
   Controller,
   Headers,
-  IWebSocketService,
   Params,
   PUT,
   Query,
   Request,
   Response,
-} from 'quantum-flow/core';
+} from '@quantum-flow/core';
 
-import { Status } from 'quantum-flow/middlewares';
-import { OnSSEClose, OnSSEConnection, OnSSEError } from 'quantum-flow/sse';
-import { InjectWS } from 'quantum-flow/ws';
+import {
+  InjectWS,
+  IWebSocketService,
+  OnSSEClose,
+  OnSSEConnection,
+  OnSSEError,
+} from '@quantum-flow/http';
+import { Status } from '@quantum-flow/middlewares';
 
 import { UserMetadata } from './userMetadata';
 

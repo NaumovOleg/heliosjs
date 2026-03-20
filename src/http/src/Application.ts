@@ -3,7 +3,6 @@ import { createPubSub, createYoga } from 'graphql-yoga';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { buildSchema, NonEmptyArray } from 'type-graphql';
 import { CONTROLLERS } from './constants';
-import { SSEServer, SSEService } from './sse';
 import { ControllerType, IRequest, IResponse, MiddlewareCB } from './types/core';
 import { Plugin as HttpPlugin, IHttpServer, ServerConfig } from './types/http';
 import { handleCORS, NextFunction, sanitizeRequest } from './utils/core';
@@ -15,6 +14,7 @@ import {
   staticMiddleware,
 } from './utils/http';
 import { WebSocketServer, WebSocketService } from './utils/socket';
+import { SSEServer, SSEService } from './utils/sse';
 
 export class HttpServer extends Plugin implements IHttpServer {
   private config: ServerConfig;

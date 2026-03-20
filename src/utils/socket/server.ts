@@ -1,16 +1,16 @@
 import http from 'http';
 import { v4 as uuidv4 } from 'uuid';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer as Server } from 'ws';
 import { ControllerType } from '../../types/core';
 import {
   IWebSocketServer,
   WebSocketClient,
   WebSocketEvent,
   WebSocketMessage,
-} from '../../types/http';
+} from '../../types/ws';
 
 export class WebSocketServer implements IWebSocketServer {
-  wss: WebSocket.Server;
+  wss: Server;
   private clients: Map<string, WebSocketClient> = new Map();
   private topics: Map<string, Set<string>> = new Map();
   private controllers: ControllerType[] = [];
@@ -19,7 +19,7 @@ export class WebSocketServer implements IWebSocketServer {
   constructor(server: http.Server, options?: { path: string }) {
     this.options = options;
 
-    this.wss = new WebSocket.Server({
+    this.wss = new Server({
       noServer: true,
       path: this.options.path,
     });

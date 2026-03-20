@@ -3,6 +3,7 @@ import { ErrorCB, HTTP_METHODS, InterceptorCB, MiddlewareCB } from './common';
 import { CORSConfig } from './cors';
 import { IRequest } from './request';
 import { SanitizerConfig } from './sanitize';
+
 export type ControllerClass = { new (...args: any[]): any };
 // export type ControllerInstance = InstanceType<ControllerClass>;
 

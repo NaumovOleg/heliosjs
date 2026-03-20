@@ -3,14 +3,10 @@ import {
   APIGatewayProxyEvent,
   APIGatewayProxyEventV2,
   CloudFrontRequestEvent,
-  Context,
   Handler,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
-import { HTTP_METHODS } from '../core/common';
 import { ControllerClass } from '../core/controller';
-import { MultipartFile } from '../core/multipart';
-import { CookieOptions } from '../core/response';
 import { Plugin } from './plugin';
 
 export interface LambdaFunctionUrlEvent {
@@ -62,15 +58,6 @@ export interface NormalizedEvent {
   requestContext: any;
 }
 
-export interface LambdaRequestMeta {
-  event: LambdaEvent;
-  context: Context;
-  requestId?: string;
-  stage?: string;
-  sourceIp?: string;
-  userAgent?: string;
-}
-
 export interface LambdaApp {
   beforeStart?: () => void;
 }
@@ -78,45 +65,6 @@ export interface LambdaApp {
 export interface Lambda {
   beforeStart?: () => Promise<void>;
   handleRequest(request: any): Promise<any>;
-}
-
-export interface LambdaRequest {
-  requestUrl: URL;
-  method: HTTP_METHODS;
-  path?: string;
-  headers: Record<string, string | string[]>;
-  query?: Record<string, string | string[]>;
-  params?: Record<string, string>;
-  body: any;
-  rawBody: Buffer<ArrayBufferLike>;
-  isBase64Encoded?: boolean;
-  cookies: Record<string, string>;
-  multipart?: Record<string, MultipartFile | MultipartFile[]>;
-  _startTime: number;
-  url: string;
-  requestId: string;
-  stage?: string;
-  userAgent: string;
-  event: LambdaEvent;
-  context: Context;
-  id: string;
-  ip: string;
-  end(): void;
-}
-
-export interface LambdaResponse {
-  body: any;
-  statusCode: number;
-  headers?: Record<string, string>;
-  cookies?: string[];
-  isBase64Encoded?: boolean;
-  status: number;
-
-  setHeader(name: string, value: string): void;
-  setCookie(name: string, value: string, options?: CookieOptions): void;
-  clearCookie(name: string, options?: { path?: string; domain?: string }): void;
-  getCookies(): string[];
-  clearAllCookies(): void;
 }
 
 export interface ILambdaAdapter {

@@ -1,19 +1,8 @@
+import { Body, Controller, Files, GET, Params, POST, Request, Response } from '@quantum-flow/core';
+import { InjectSSE, InjectWS, ISSEService, IWebSocketService } from '@quantum-flow/http';
+import { Catch } from '@quantum-flow/middlewares';
 import { IsString } from 'class-validator';
 import * as Joi from 'joi';
-import {
-  Body,
-  Controller,
-  Files,
-  GET,
-  IWebSocketService,
-  Params,
-  POST,
-  Request,
-  Response,
-} from 'quantum-flow/core';
-import { Catch } from 'quantum-flow/middlewares';
-import { InjectSSE, ISSEService } from 'quantum-flow/sse';
-import { InjectWS } from 'quantum-flow/ws';
 
 class DTO {
   @IsString()

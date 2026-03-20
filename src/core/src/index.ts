@@ -4,6 +4,9 @@
  * This module provides centralized exports for controller and endpoint decorators,
  * as well as related types and utility functions used throughout the core framework.
  */
+export * from './Controller';
+export * from './decorators';
+export * from './Endpoint';
 export {
   AppError,
   CORSConfig,
@@ -11,14 +14,8 @@ export {
   InterceptorCB,
   IRequest,
   IResponse,
-  IWebSocketService,
   MiddlewareCB,
   MultipartFile,
-  WebSocketClient,
-  WebSocketEvent,
-  WebSocketMessage,
-} from '@types';
-export { SANITIZER } from '@utils';
-export * from './Controller';
-export * from './decorators';
-export * from './Endpoint';
+  SanitizerConfig,
+} from './types/core';
+export { SANITIZER } from './utils/core';

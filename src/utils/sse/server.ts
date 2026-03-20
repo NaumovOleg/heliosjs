@@ -1,12 +1,11 @@
 // server/SSEServer.ts
 import { ServerResponse } from 'http';
 import { v4 as uuidv4 } from 'uuid';
-import { ControllerType } from '../types/core';
-import { ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../types/http';
+import { ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
 
 export class SSEServer implements ISSEServer {
   private clients: Map<string, SSEClient> = new Map();
-  controllers: any[];
+  controllers: any[] = [];
 
   public createConnection(res: ServerResponse): SSEClient {
     const clientId = uuidv4();

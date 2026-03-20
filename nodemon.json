@@ -1,5 +1,5 @@
 {
-  "watch": ["src"],
+  "watch": ["src/aws/src", "src/lambda/src", "src/middlewares/src", "src/core/src"],
   "ext": "ts,tsx",
   "exec": "NODE_ENV=development && yarn build && ts-node --files -r tsconfig-paths/register ./src/examples/server.ts"
 }

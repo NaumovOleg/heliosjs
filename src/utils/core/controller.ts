@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import {
   CORS_METADATA,
   ENDPOINT,
@@ -20,12 +21,12 @@ import {
   ParamMetadata,
   SanitizerConfig,
 } from '../../types/core';
-import { WebSocketService } from '../http/src/socket';
-import { SSEService } from '../http/src/sse/service';
+import { validate } from '../shared';
+import { WebSocketService } from '../socket';
+import { SSEService } from '../sse';
 import { matchRoute } from './helper';
 import { MultipartProcessor } from './multipart';
 import { sanitizeRequest } from './sanitize';
-import { validate } from './validate';
 
 const getBodyAndMultipart = (request: IRequest) => {
   let body = request.body;

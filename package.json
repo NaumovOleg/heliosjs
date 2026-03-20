@@ -7,14 +7,17 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "yarn clean && tsc -p tsconfig.build.json && resolve-tspaths --workspaces",
-    "prepublishOnly": "yarn build --workspaces",
+    "build": "yarn build:core && yarn build:http && yarn build:aws && yarn build:middlewares",
+    "build:core": "yarn workspace @quantum-flow/core run build",
+    "build:http": "yarn workspace @quantum-flow/http run build",
+    "build:aws": "yarn workspace @quantum-flow/aws run build",
+    "build:middlewares": "yarn workspace @quantum-flow/middlewares run build",
     "dev": "nodemon --config ./nodemon.json",
     "link-packages": "chmod +x ./setup-symlinks.sh && ./setup-symlinks.sh",
-    "publish:public": "yarn publish --access public",
-    "publish:patch": "yarn version --patch && yarn publish --access public --workspaces",
-    "publish:minor": "yarn version --minor && yarn publish --access public --workspaces",
-    "publish:major": "yarn version --major && yarn publish --access public --workspaces"
+    "publish:public": "yarn workspaces run publish --access public",
+    "publish:patch": "yarn version --patch && yarn workspaces run publish --access public",
+    "publish:minor": "yarn version --minor && yarn workspaces run publish --access public",
+    "publish:major": "yarn version --major && yarn workspaces run publish --access public"
   },
   "exports": {
     "./core": {
@@ -62,7 +65,8 @@
     "src/core",
     "src/socket",
     "src/middlewares",
-    "src/http"
+    "src/http",
+    "src/aws"
   ],
   "repository": {
     "type": "git",
@@ -84,9 +88,10 @@
     "README.md"
   ],
   "author": "Naumov Oleh",
-  "dependencies": {
+  "dependencies": {},
+  "peerDependencies": {},
+  "devDependencies": {
     "aws-lambda": "^1.0.7",
-    "axios": "^1.13.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "graphql": "^16.13.1",
@@ -98,15 +103,8 @@
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",
     "type-graphql": "^2.0.0-rc.3",
-    "typescript": ">=4.0.0",
     "uuid": "^13.0.0",
-    "ws": "^8.19.0"
-  },
-  "peerDependencies": {
-    "ts-node": ">=10.9.2",
-    "typescript": ">=4.0.0"
-  },
-  "devDependencies": {
+    "ws": "^8.19.0",
     "@eslint/js": "^10.0.1",
     "@types/aws-lambda": "^8.10.161",
     "@types/node": "^25.5.0",

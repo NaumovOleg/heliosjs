@@ -1,5 +1,6 @@
-import { CATCH, INTECEPT, SANITIZE, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '@constants';
 import http from 'http';
+import 'reflect-metadata';
+import { CATCH, INTECEPT, SANITIZE, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '../../constants';
 import { ServerConfig } from '../../types/http';
 
 /**

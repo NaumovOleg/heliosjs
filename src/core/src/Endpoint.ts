@@ -1,5 +1,5 @@
-import { ENDPOINT, MIDDLEWARES } from '@constants';
-import { HTTP_METHODS, MiddlewareCB } from '@types';
+import { ENDPOINT, MIDDLEWARES } from './constants';
+import { HTTP_METHODS, MiddlewareCB } from './types/core';
 
 /**
  * Method decorator to define HTTP method and route pattern metadata on controller methods.

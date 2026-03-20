@@ -1,6 +1,6 @@
+import { ANY, Controller, Response } from '@quantum-flow/core';
+import { Server } from '@quantum-flow/http';
 import path from 'path';
-import { ANY, Controller, Response } from 'quantum-flow/core';
-import { Server } from 'quantum-flow/http';
 
 import { UserResolver, pubSub } from './controllers/resolver';
 import { Socket } from './controllers/socket';

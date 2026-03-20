@@ -1,5 +1,5 @@
-import { Controller, WebSocketEvent } from 'quantum-flow/core';
-import { OnConnection, OnMessage, Subscribe } from 'quantum-flow/ws';
+import { Controller } from '@quantum-flow/core';
+import { OnConnection, OnMessage, Subscribe, WebSocketEvent } from '@quantum-flow/http';
 
 @Controller('socket')
 export class Socket {

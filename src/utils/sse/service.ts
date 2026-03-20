@@ -1,5 +1,5 @@
 import { ServerResponse } from 'http';
-import { ISSEService, SSEClient, SSEMessage } from '../types/http';
+import { ISSEService, SSEClient, SSEMessage } from '../../types/core';
 import { SSEServer } from './server';
 
 export class SSEService implements ISSEService {

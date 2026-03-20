@@ -1,4 +1,4 @@
-import { HttpServer } from 'quantum-flow/http';
+import { HttpServer } from '@quantum-flow/http';
 import { App } from './app';
 
 const server = new HttpServer(App);
