@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "rawPath": "/api/user/metadata/123",
+  "rawQueryString": "wq=qqq&xwq=qqqaa",
+  "headers": {
+    "content-type": "application/json",
+    "authorization": "Bearer exampletoken123",
+    "cookie": "cookie1=value1; cookie2=value2",
+    "host": "api-id.execute-api.region.amazonaws.com",
+    "x-forwarded-proto": "https"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/api/user/metadata/123",
+      "sourceIp": "123.123.123.123"
+    }
+  },
+  "body": "{\"key1\":\"value1\",\"key2\":\"value2\"}",
+  "isBase64Encoded": false
+}

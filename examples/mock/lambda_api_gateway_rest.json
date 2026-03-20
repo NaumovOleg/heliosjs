@@ -1,0 +1,21 @@
+{
+  "resource": "/metric/{id}",
+  "path": "/metric",
+  "httpMethod": "POST",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer exampletoken123",
+    "Cookie": "cookie1=value1; cookie2=value2",
+    "host": "api-id.execute-api.region.amazonaws.com",
+    "x-forwarded-proto": "https"
+  },
+  "queryStringParameters": {
+    "wq": "qqq",
+    "xwq": "qqqaa"
+  },
+  "pathParameters": {
+    "id": "123"
+  },
+  "body": "{\"name\":\"value1\",\"key2\":\"value2\"}",
+  "isBase64Encoded": false
+}

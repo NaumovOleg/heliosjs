@@ -6,6 +6,7 @@
     "types": [
       "node"
     ],
+    "preserveSymlinks": true,
     "sourceMap": true,
     "declaration": true,
     "outDir": "./dist",
@@ -17,7 +18,8 @@
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "typeRoots": [
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "../../node_modules/@types"
     ],
     "paths": {
       "@controllers": [

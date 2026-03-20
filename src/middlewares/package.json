@@ -1,0 +1,17 @@
+{
+  "name": "@quantum-flow/middlewares",
+  "version": "1.0.0",
+  "description": "Core functionality for Quantum Flow",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  }
+}
