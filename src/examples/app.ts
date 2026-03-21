@@ -1,5 +1,5 @@
-import { ANY, Controller, Response } from '@quantum-flow/core';
-import { Server } from '@quantum-flow/http';
+import { ANY, Controller, Response } from '@heliosjs/core';
+import { Server } from '@heliosjs/http';
 import path from 'path';
 
 import { UserResolver, pubSub } from './controllers/resolver';

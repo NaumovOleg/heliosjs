@@ -1,6 +1,6 @@
-import { Body, Controller, Files, GET, Params, POST, Request, Response } from '@quantum-flow/core';
-import { InjectSSE, InjectWS, ISSEService, IWebSocketService } from '@quantum-flow/http';
-import { Catch } from '@quantum-flow/middlewares';
+import { Body, Controller, Files, GET, Params, POST, Request, Response } from '@heliosjs/core';
+import { InjectSSE, InjectWS, ISSEService, IWebSocketService } from '@heliosjs/http';
+import { Catch } from '@heliosjs/middlewares';
 import { IsString } from 'class-validator';
 import * as Joi from 'joi';
 

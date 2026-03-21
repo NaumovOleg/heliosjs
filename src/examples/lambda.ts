@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
-import { LambdaAdapter, Plugin } from '@quantum-flow/aws';
-import { ANY, Controller, Request } from '@quantum-flow/core';
+import { LambdaAdapter, Plugin } from '@heliosjs/aws';
+import { ANY, Controller, Request } from '@heliosjs/core';
 
 @Controller({ prefix: 'metric' })
 export class MetricsController {

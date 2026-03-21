@@ -1,5 +1,5 @@
-import { Controller } from '@quantum-flow/core';
-import { OnConnection, OnMessage, Subscribe, WebSocketEvent } from '@quantum-flow/http';
+import { Controller } from '@heliosjs/core';
+import { OnConnection, OnMessage, Subscribe, WebSocketEvent } from '@heliosjs/http';
 
 @Controller('socket')
 export class Socket {

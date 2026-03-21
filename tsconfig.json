@@ -10,7 +10,7 @@
     "sourceMap": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "/",
+    "rootDir": ".",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -22,11 +22,8 @@
       "../../node_modules/@types"
     ],
     "paths": {
-      "@controllers": [
-        "./src/controllers/index.ts"
-      ],
-      "@utils": [
-        "./src/utils/index.ts"
+      "@utils/core": [
+        "./src/utils/core/index.ts"
       ],
       "@types": [
         "./src/types/index.ts"

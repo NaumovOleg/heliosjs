@@ -10,7 +10,7 @@ import {
   Query,
   Request,
   Response,
-} from '@quantum-flow/core';
+} from '@heliosjs/core';
 
 import {
   InjectWS,
@@ -18,8 +18,8 @@ import {
   OnSSEClose,
   OnSSEConnection,
   OnSSEError,
-} from '@quantum-flow/http';
-import { Status } from '@quantum-flow/middlewares';
+} from '@heliosjs/http';
+import { Status } from '@heliosjs/middlewares';
 
 import { UserMetadata } from './userMetadata';
 
