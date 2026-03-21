@@ -8,15 +8,15 @@ import {
   SANITIZE,
   USE_MIDDLEWARE,
 } from '../../constants';
-import { IRequest, IResponse, RouteContext } from '../../types/core';
+import { Request, Response, RouteContext } from '../../types/core';
 import { applyMiddlewaresVsSanitizers, findRouteInController, getResponse } from './controller';
 import { handleCORS } from './cors';
 import { pathStartsWithPrefix } from './endpoint';
 
 export const routeWalker = async (
   context: RouteContext,
-  request: IRequest,
-  response: IResponse,
+  request: Request,
+  response: Response,
 ): Promise<any> => {
   const { controllerInstance, controllerMeta, path, method, subPath } = context;
 

@@ -1,10 +1,10 @@
 import { OK_STATUSES } from '../../constants';
-import { CookieOptions, IResponse } from '../../types/core';
+import { CookieOptions, Response } from '../../types/core';
 import { Meta } from '../../types/core/common';
 import { ResponseSource } from '../../types/core/response';
 import { ApplicationError } from './error';
 
-export class Response implements IResponse {
+export class Res implements Response {
   private _status: number = 200;
   private _headers: Record<string, string | string[]> = {};
   private _data: any;
@@ -31,7 +31,6 @@ export class Response implements IResponse {
       this.setHeader('Content-Type', 'application/json');
     }
   }
-  requestId: string;
 
   get headers(): Record<string, string | string[]> {
     return { ...this._headers };

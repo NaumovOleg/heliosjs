@@ -1,11 +1,11 @@
 import { IncomingMessage, Server } from 'http';
-import { IRequest, IResponse, MiddlewareCB } from '../core';
+import { MiddlewareCB, Request, Response } from '../core';
 import { IHttpServer } from './http';
 
 export interface HttpPluginHooks {
   beforeRequest?: (req: IncomingMessage) => void | Promise<void>;
-  beforeRoute?: (req: IRequest, response: IResponse) => void | Promise<void>;
-  afterResponse?: (req: IRequest, res: IResponse) => void | Promise<void>;
+  beforeRoute?: (req: Request, response: Response) => void | Promise<void>;
+  afterResponse?: (req: Request, res: Response) => void | Promise<void>;
 }
 
 export interface Plugin {

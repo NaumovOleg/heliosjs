@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { IRequest, SanitizerConfig } from '../../types/core';
+import { Request, SanitizerConfig } from '../../types/core';
 
 export const SANITIZER = {
   string: {
@@ -104,7 +104,7 @@ export function applyJoiSanitization(
   }
 }
 
-export const sanitizeRequest = (request: IRequest, config: SanitizerConfig[]) => {
+export const sanitizeRequest = (request: Request, config: SanitizerConfig[]) => {
   config.forEach((conf) => {
     const { value, error } = applyJoiSanitization(request[conf.type], conf);
 

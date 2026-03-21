@@ -58,10 +58,10 @@ export const Query = (dto?: any, name?: string) =>
  *
  * Usage:
  * ```ts
- * @Request() req: Request
+ * @Req() req: Request
  * ```
  */
-export const Request = () => createParamDecorator('request');
+export const Req = () => createParamDecorator('request');
 
 /**
  * Parameter decorator to extract headers from the request.
@@ -110,4 +110,4 @@ export const Files = (name?: string) => createParamDecorator('multipart', undefi
  * @Response() res: Response
  * ```
  */
-export const Response = () => createParamDecorator('response');
+export const Res = () => createParamDecorator('response');

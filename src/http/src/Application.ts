@@ -3,7 +3,7 @@ import { createPubSub, createYoga } from 'graphql-yoga';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { buildSchema, NonEmptyArray } from 'type-graphql';
 import { CONTROLLERS } from './constants';
-import { ControllerType, IRequest, IResponse, MiddlewareCB } from './types/core';
+import { ControllerType, MiddlewareCB, Request, Response } from './types/core';
 import { Plugin as HttpPlugin, IHttpServer, ServerConfig } from './types/http';
 import { handleCORS, NextFunction, sanitizeRequest } from './utils/core';
 import {
@@ -213,7 +213,7 @@ export class HttpServer extends Plugin implements IHttpServer {
     }
   }
 
-  private async beforeRequest(request: IRequest, response: IResponse): Promise<any> {
+  private async beforeRequest(request: Request, response: Response): Promise<any> {
     sanitizeRequest(request, this.config.sanitizers ?? []);
 
     for (const middleware of this.staticMiddlewares) {
@@ -227,7 +227,7 @@ export class HttpServer extends Plugin implements IHttpServer {
     }
   }
 
-  private async runController(request: IRequest, response: IResponse): Promise<any> {
+  private async runController(request: Request, response: Response): Promise<any> {
     for (const ControllerClass of this.controllers ?? []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
@@ -240,8 +240,8 @@ export class HttpServer extends Plugin implements IHttpServer {
   }
 
   private async sendResponse(
-    request: IRequest,
-    response: IResponse,
+    request: Request,
+    response: Response,
     startTime: number,
   ): Promise<void> {
     if (response.headersSent) return;

@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/core",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "yarn clean && tsc -p tsconfig.build.json && resolve-tspaths",
+    "build": "yarn clean && tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "prepublishOnly": "yarn build",
     "publish:public": "yarn publish --access public --no-git-tag-version",
@@ -24,10 +24,12 @@
   "dependencies": {
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "http": "^0.0.1-security",
     "joi": "^18.0.2",
     "parse-multipart-data": "^1.5.0",
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",
+    "url": "^0.11.4",
     "uuid": "^13.0.0",
     "ws": "^8.19.0"
   },

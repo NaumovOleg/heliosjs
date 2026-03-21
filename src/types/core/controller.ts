@@ -1,7 +1,7 @@
 import { ServerResponse } from 'http';
 import { ErrorCB, HTTP_METHODS, InterceptorCB, MiddlewareCB } from './common';
 import { CORSConfig } from './cors';
-import { IRequest } from './request';
+import { Request } from './request';
 import { SanitizerConfig } from './sanitize';
 
 export type ControllerClass = { new (...args: any[]): any };
@@ -15,7 +15,7 @@ export type ControllerMethods = Array<{
 }>;
 
 export type ControllerType = {
-  handleRequest?(request: IRequest, response: ServerResponse): Promise<any>;
+  handleRequest?(request: Request, response: ServerResponse): Promise<any>;
   ws?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
   new (...args: any[]): any;

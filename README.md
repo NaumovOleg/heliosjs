@@ -45,8 +45,8 @@ import {
   Response,
   Status,
   ANY,
-  IRequest,
-  IResponse
+  Request,
+  Response
 } from 'quantum-flow/core';
 import {IsString} from  'class-validator'
 import { Catch, Cors, Sanitize, Use, SANITIZER } from 'quantum-flow/middlewares';
@@ -83,8 +83,8 @@ export class User {
     @Query() query: Record<string, string | string[]>,
     @Headers() headers: Record<string, string | string[]>,
     @Params(ParamDTO, 'param') params: string,
-    @Request() req: IResponse,
-    @Response() resp: IRequest,
+    @Req() req: Response,
+    @Response() resp: Request,
     @InjectWS() ws: IWebSocketService,
   ) {}
 
@@ -138,7 +138,7 @@ server.listen().catch(console.error);
 - Use `@Params` to access route parameters.
 - Use `@Files` to access files sent within multipart/form-data requests.
   Text sent as multipart/form-data is exposed with `@Body` decorators
-- Use `@Request` to access the original request object.
+- Use `@Req` to access the original request object.
 - Use `@Response` to access the original object.
 - Use `@InjectWS` to access the websocket service.
 - Use `@InjectSSE` to access the server-side-event service.
@@ -150,7 +150,7 @@ Use `LambdaAdapter` to convert API Gateway events to requests and responses. Cre
 ```typescript
 Example Lambda handler creation
 import { LambdaAdapter, LambdaRequest, LambdaResponse } from 'quantum-flow/aws';
-import { Request, Query, Headers, Params, Response, IResponse, IRequest } from  'quantum-flow/core'
+import { Request, Query, Headers, Params, Response, Response, Request } from  'quantum-flow/core'
 
 @Controller({ prefix: 'user' })
 class UserController {
@@ -158,16 +158,16 @@ class UserController {
     @Query() query: Record<string, string | string[]>,
     @Headers() headers: Record<string, string | string[]>,
     @Params(ParamDTO, 'param') params: string,
-    @Request() req: IRequest,
-    @Response() res: IResponse
+    @Req() req: Request,
+    @Response() res: Response
   ) { }
 }
 const lambdaAdapter = new LambdaAdapter(UserController);
 export const handler = lambdaAdapter.handler;
 ```
 
-You can access context and event throught @Request() decorator:
-@Request() request: LambdaRequest
+You can access context and event throught @Req() decorator:
+@Req() request: LambdaRequest
 request.context
 request.event
 
@@ -310,19 +310,19 @@ import { OnSSEConnection, OnSSEError, OnSSEClose } from 'quantum-flow/sse';
 @Controller('user')
 export class User {
   @OnSSEConnection()
-  async onsseconnection(@Request() req, @Response() res) {
+  async onsseconnection(@Req() req, @Response() res) {
     console.log('SSE connection established');
     return req.body;
   }
 
   @OnSSEError()
-  async onsseerror(@Request() req, @Response() res) {
+  async onsseerror(@Req() req, @Response() res) {
     console.log('SSE error occurred');
     return req.body;
   }
 
   @OnSSEClose()
-  async onsseclose(@Request() req, @Response() res) {
+  async onsseclose(@Req() req, @Response() res) {
     console.log('SSE connection closed');
     return req.body;
   }

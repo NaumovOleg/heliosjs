@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'http';
 import { v4 } from 'uuid';
-import { Request } from '../core/request';
+import { Req } from '../core/request';
 import { parseBody, parseQuery, parseRequestCookie } from '../shared';
 import { collectRawBody } from './server';
 
@@ -8,7 +8,7 @@ export class RequestFactory {
   /**
    * Create Request from HTTP IncomingMessage
    */
-  static async create(req: IncomingMessage): Promise<Request> {
+  static async create(req: IncomingMessage): Promise<Req> {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || 'localhost';
     const fullUrl = `${protocol}://${host}${req.url}`;
@@ -33,7 +33,7 @@ export class RequestFactory {
 
     Object.assign(req, { body });
 
-    return new Request({
+    return new Req({
       url: req.url ?? '/',
       requestUrl,
       source: 'http',

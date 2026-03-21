@@ -2,7 +2,7 @@ import { CORS_METADATA } from './constants';
 import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 
 import { APIGatewayProxyResult, APIGatewayProxyResultV2, Context, Handler } from 'aws-lambda';
-import { ControllerClass, IRequest, IResponse } from './types/core';
+import { ControllerClass, Request, Response } from './types/core';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
 import { ApplicationError, getErrorType, handleCORS } from './utils/core';
 
@@ -36,8 +36,8 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
   }
 
   private async runControllers(meta: {
-    request: IRequest;
-    response: IResponse;
+    request: Request;
+    response: Response;
     eventType: 'rest' | 'http' | 'url';
     event: LambdaEvent;
     context: Context;
@@ -91,8 +91,8 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
 
   private toLambdaResponse(
     data: any | undefined | null,
-    request: IRequest,
-    response: IResponse,
+    request: Request,
+    response: Response,
     eventType: string,
   ): APIGatewayProxyResult | APIGatewayProxyResultV2 | any {
     const statusCode = data?.status ?? response?.status ?? 200;
@@ -160,7 +160,7 @@ export class LambdaAdapter extends Plugin implements ILambdaAdapter {
     }
   }
 
-  private handleError(error: any, request: IRequest) {
+  private handleError(error: any, request: Request) {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: true,

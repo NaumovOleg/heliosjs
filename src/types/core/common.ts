@@ -1,10 +1,10 @@
 import { ServerResponse } from 'http';
 import { AppError } from './error';
-import { IRequest } from './request';
-import { IResponse } from './response';
+import { Request } from './request';
+import { Response } from './response';
 
 export type Router = (
-  req: IRequest,
+  req: Request,
   res?: ServerResponse,
 ) => Promise<{ status: number; data: any; message?: string }>;
 
@@ -13,18 +13,18 @@ export interface IController {
 }
 
 export type MiddlewareCB = (
-  request: IRequest,
-  response: IResponse,
+  request: Request,
+  response: Response,
   next: (args?: any) => any,
-) => void | Promise<IRequest> | IRequest | Promise<void> | void;
+) => void | Promise<Request> | Request | Promise<void> | void;
 
 export type InterceptorCB = (
   data: any,
-  req?: IRequest,
-  res?: IResponse,
+  req?: Request,
+  res?: Response,
 ) => Promise<unknown> | unknown;
 
-export type ErrorCB = (error: AppError, req?: IRequest, res?: IResponse) => any;
+export type ErrorCB = (error: AppError, req?: Request, res?: Response) => any;
 
 export type ParamDecoratorType =
   | 'body'

@@ -1,13 +1,13 @@
 // core/ResponseFactory.ts
 import { ServerResponse } from 'http';
 import { Meta } from '../../types/core';
-import { Response } from '../core/response';
+import { Res } from '../core/response';
 
 export class ResponseFactory {
   /**
    * Create Response for HTTP server
    */
-  static create(res: ServerResponse, meta: Meta): Response {
-    return new Response('http', meta, res);
+  static create(res: ServerResponse, meta: Meta): Res {
+    return new Res('http', meta, res);
   }
 }

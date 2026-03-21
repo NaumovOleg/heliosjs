@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/middlewares",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "yarn clean && tsc -p tsconfig.build.json && resolve-tspaths",
+    "build": "yarn clean && tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "prepublishOnly": "yarn build",
     "publish:public": "yarn publish --access public --no-git-tag-version",

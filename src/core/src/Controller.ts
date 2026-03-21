@@ -20,9 +20,9 @@ import {
   CORSConfig,
   ErorrHandler,
   InterceptorCB,
-  IRequest,
-  IResponse,
   MiddlewareCB,
+  Request,
+  Response,
   RouteContext,
   SanitizerConfig,
   SeeControllerHandlers,
@@ -99,7 +99,7 @@ export function Controller(
         this.lookupSSE();
       }
 
-      handleRequest = async (request: IRequest, response: IResponse) => {
+      handleRequest = async (request: Request, response: Response) => {
         const middlewares = this.middlewares
           .concat(Reflect.getMetadata(MIDDLEWARES, proto))
           .concat(Reflect.getMetadata(USE_MIDDLEWARE, constructor))

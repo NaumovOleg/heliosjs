@@ -1,9 +1,9 @@
 // core/Request.ts
 import { IncomingHttpHeaders } from 'http';
 import { URL } from 'url';
-import { IRequest, RequestOptions, RequestSource } from '../../types/core/request';
+import { Request, RequestOptions, RequestSource } from '../../types/core/request';
 
-export class Request implements IRequest {
+export class Req implements Request {
   method: string;
   path: string;
   requestUrl: URL;
@@ -194,8 +194,8 @@ export class Request implements IRequest {
   /**
    * Clone request with modifications
    */
-  clone(overrides?: Partial<RequestOptions>): Request {
-    return new Request({
+  clone(overrides?: Partial<RequestOptions>): Req {
+    return new Req({
       method: overrides?.method || this.method,
       path: overrides?.path || this.path,
       headers: overrides?.headers || this.headers,

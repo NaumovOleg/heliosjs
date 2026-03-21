@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 
 import { LambdaAdapter, Plugin } from '@heliosjs/aws';
-import { ANY, Controller, Request } from '@heliosjs/core';
+import { ANY, Controller } from '@heliosjs/core';
 
 @Controller({ prefix: 'metric' })
 export class MetricsController {
   @ANY()
-  async any(@Request() resp: any) {}
+  async any(@Req() resp: any) {}
 }
 
 export const metricsPlugin: Plugin = {

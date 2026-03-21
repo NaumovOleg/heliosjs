@@ -1,12 +1,12 @@
 import { Context } from 'aws-lambda';
 import { IncomingMessage } from 'http';
-import { IRequest, IResponse } from '../core';
+import { Request, Response } from '../core';
 import { ILambdaAdapter, LambdaEvent } from './lambda';
 
 export interface Hooks {
   beforeRequest?: (req: IncomingMessage) => void | Promise<void>;
-  beforeRoute?: (req: IRequest, response: IResponse) => void | Promise<void>;
-  afterResponse?: (req: IRequest, res: IResponse) => void | Promise<void>;
+  beforeRoute?: (req: Request, response: Response) => void | Promise<void>;
+  afterResponse?: (req: Request, res: Response) => void | Promise<void>;
 }
 
 export type PluginHookKeys = keyof Hooks;

@@ -1,4 +1,4 @@
-import { Body, Controller, Files, GET, Params, POST, Request, Response } from '@heliosjs/core';
+import { Body, Controller, Files, GET, Params, POST, Response } from '@heliosjs/core';
 import { InjectSSE, InjectWS, ISSEService, IWebSocketService } from '@heliosjs/http';
 import { Catch } from '@heliosjs/middlewares';
 import { IsString } from 'class-validator';
@@ -18,7 +18,7 @@ const userSchema = Joi.object({
 })
 export class UserMetadata {
   @GET('/:meta')
-  async getUserMetadata(@Request() req: any, @Response() res: any) {
+  async getUserMetadata(@Req() req: any, @Response() res: any) {
     throw new Error('errorororororo');
   }
 

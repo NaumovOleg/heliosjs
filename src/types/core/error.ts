@@ -1,5 +1,5 @@
-import { IRequest } from './request';
-import { IResponse } from './response';
+import { Request } from './request';
+import { Response } from './response';
 
 export enum ErrorCode {
   BAD_REQUEST = 'BAD_REQUEST',
@@ -77,4 +77,4 @@ export interface ErrorHandlerConfig {
   customHandlers?: Record<ErrorCode, (error: AppError) => any>;
 }
 
-export type ErorrHandler = (error: Error, req: IRequest, response: IResponse) => any;
+export type ErorrHandler = (error: Error, req: Request, response: Response) => any;

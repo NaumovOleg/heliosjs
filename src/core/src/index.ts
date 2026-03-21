@@ -12,10 +12,10 @@ export {
   CORSConfig,
   ErrorCB,
   InterceptorCB,
-  IRequest,
-  IResponse,
   MiddlewareCB,
   MultipartFile,
+  Request,
+  Response,
   SanitizerConfig,
 } from './types/core';
 export { SANITIZER } from './utils/core';

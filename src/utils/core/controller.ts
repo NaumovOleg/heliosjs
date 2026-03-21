@@ -15,10 +15,10 @@ import {
   CORSConfig,
   HTTP_METHODS,
   InterceptorCB,
-  IRequest,
-  IResponse,
   MiddlewareCB,
   ParamMetadata,
+  Request,
+  Response,
   SanitizerConfig,
 } from '../../types/core';
 import { validate } from '../shared';
@@ -28,7 +28,7 @@ import { matchRoute } from './helper';
 import { MultipartProcessor } from './multipart';
 import { sanitizeRequest } from './sanitize';
 
-const getBodyAndMultipart = (request: IRequest) => {
+const getBodyAndMultipart = (request: Request) => {
   let body = request.body;
   let multipart;
   if (MultipartProcessor.isMultipart({ headers: request.headers })) {
@@ -47,8 +47,8 @@ const getBodyAndMultipart = (request: IRequest) => {
 export const executeControllerMethod = async (
   controller: ControllerInstance,
   propertyName: string,
-  request: IRequest,
-  response: IResponse,
+  request: Request,
+  response: Response,
 ) => {
   const fn = controller[propertyName];
   if (typeof fn !== 'function') return null;
@@ -87,7 +87,7 @@ export const executeControllerMethod = async (
         continue;
       }
 
-      let value = request[param.type as keyof IRequest];
+      let value = request[param.type as keyof Request];
 
       if (param.type === 'multipart') {
         value = multipart;
@@ -258,8 +258,8 @@ export const getResponse = async (data: {
   controllerInstance: ControllerInstance;
   name: string;
   interceptors: InterceptorCB[];
-  request: IRequest;
-  response: IResponse;
+  request: Request;
+  response: Response;
 }) => {
   let appResponse = await executeControllerMethod(
     data.controllerInstance,
@@ -301,8 +301,8 @@ export const getResponse = async (data: {
 };
 
 export const applyMiddlewaresVsSanitizers = async (
-  request: IRequest,
-  response: IResponse,
+  request: Request,
+  response: Response,
   functions: {
     sanitizers: SanitizerConfig[][];
     middlewares: MiddlewareCB[][];

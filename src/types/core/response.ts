@@ -21,7 +21,7 @@ export interface ResponseOptions {
   encoding?: BufferEncoding;
 }
 
-export interface IResponse {
+export interface Response {
   headers: Record<string, string | string[]>;
   data: any;
   cookies: string[];

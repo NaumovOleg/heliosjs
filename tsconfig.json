@@ -10,7 +10,7 @@
     "sourceMap": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -18,23 +18,8 @@
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "typeRoots": [
-      "./node_modules/@types",
-      "../../node_modules/@types"
+      "./node_modules/@types"
     ],
-    "paths": {
-      "@utils/core": [
-        "./src/utils/core/index.ts"
-      ],
-      "@types": [
-        "./src/types/index.ts"
-      ],
-      "@validators": [
-        "./src/validators/index.ts"
-      ],
-      "@constants": [
-        "./src/constants.ts"
-      ]
-    },
   },
   "include": [
     "src/**/*",

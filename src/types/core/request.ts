@@ -35,7 +35,7 @@ export interface RequestOptions {
   source: RequestSource;
 }
 
-export interface IRequest {
+export interface Request {
   // Readonly properties
   method: string;
   path: string;
@@ -92,7 +92,7 @@ export interface IRequest {
   getFullUrl(): string;
 
   // Clone method
-  clone(overrides?: Partial<RequestOptions>): IRequest;
+  clone(overrides?: Partial<RequestOptions>): Request;
 
   // Serialization
   toJSON(): Record<string, any>;
