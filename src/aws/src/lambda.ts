@@ -6,7 +6,7 @@ import { ControllerClass, Request, Response } from './types/core';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
 import { ApplicationError, getErrorType, handleCORS } from './utils/core';
 
-export class LambdaAdapter extends Plugin implements ILambdaAdapter {
+export class Helios extends Plugin implements ILambdaAdapter {
   handler: Handler;
   controllers: ControllerClass[] = [];
   plugins: LambdaPlugin[] = [];

@@ -1,24 +1,14 @@
-import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: [
-      'dist/**',
-      'data/**',
-      'node_modules/**',
-      'build/**',
-      'coverage/**',
-      '.next/**',
-      'cdk.out/**',
-    ],
+    ignores: ['dist/**', 'build/**', 'node_modules/**', 'coverage/**', '**/*.js', '**/*.md'],
   },
 
-  js.configs.recommended,
   ...tseslint.configs.recommended,
-
   {
-    files: ['**/*.{ts,js,mts,mjs}'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [

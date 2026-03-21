@@ -1,6 +1,6 @@
 import 'reflect-metadata';
-export * from './Application';
 export * from './decorators';
+export * from './Helios';
 export * from './socket';
 export * from './sse';
 export { ISSEService } from './types/core';

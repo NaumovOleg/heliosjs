@@ -1,4 +1,4 @@
-import { ANY, Controller, Response } from '@heliosjs/core';
+import { ANY, Controller, Req } from '@heliosjs/core';
 import { Server } from '@heliosjs/http';
 import path from 'path';
 
@@ -21,7 +21,7 @@ export class Root {
 @Controller({ prefix: 'metric', controllers: [] })
 export class MetricsController {
   @ANY()
-  async any(@Response() resp: any) {}
+  async any(@Req() resp: any) {}
 }
 
 @Server({

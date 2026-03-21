@@ -1,4 +1,4 @@
-import { Body, Controller, Files, GET, Params, POST, Response } from '@heliosjs/core';
+import { Body, Controller, Files, GET, Params, POST, Req, Res, Response } from '@heliosjs/core';
 import { InjectSSE, InjectWS, ISSEService, IWebSocketService } from '@heliosjs/http';
 import { Catch } from '@heliosjs/middlewares';
 import { IsString } from 'class-validator';
@@ -8,6 +8,7 @@ class DTO {
   @IsString()
   name: string;
 }
+
 const userSchema = Joi.object({
   name: Joi.string().trim().min(2).max(50).required(),
 });
@@ -18,12 +19,12 @@ const userSchema = Joi.object({
 })
 export class UserMetadata {
   @GET('/:meta')
-  async getUserMetadata(@Req() req: any, @Response() res: any) {
+  async getUserMetadata(@Req() req: any, @Res() res: Response) {
     throw new Error('errorororororo');
   }
 
   @GET('/subscribesse')
-  async subscribesse(@InjectSSE() sse: ISSEService, @Response() res: any) {
+  async subscribesse(@InjectSSE() sse: ISSEService, @Res() res: any) {
     const client = sse.createConnection(res);
 
     sse.sendToClient(client.id, {

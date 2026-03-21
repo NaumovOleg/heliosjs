@@ -283,7 +283,7 @@ import { InjectSSE } from 'quantum-flow/sse';
 
 @Controller('user')
 export class UserMetadata {
-  @GET('/subscribesse')
+  @Get('/subscribesse')
   async subscribesse(@InjectSSE() sse) {
     const client = sse.createConnection(res);
     sse.sendToClient(client.id, {

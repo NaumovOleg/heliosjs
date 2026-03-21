@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-import { ANY, Body, Controller, Headers, Params, PUT, Query, Response } from '@heliosjs/core';
+import { ANY, Body, Controller, Headers, Params, PUT, Query, Req, Res } from '@heliosjs/core';
 
 import {
   InjectWS,
@@ -36,26 +36,26 @@ export class User {
     @InjectWS() ws: IWebSocketService,
     @Req() req: any,
     @Params(DTO, 'id') params: any,
-    @Response() resp: any,
+    @Res() resp: any,
   ) {
     return { body, query, headers, params };
   }
 
   @Status(300)
   @ANY()
-  async any(@Response() resp: any) {
+  async any(@Res() resp: any) {
     return 'done';
   }
   @OnSSEConnection()
-  async onsseconnection(@Req() req: any, @Response() res: any) {
+  async onsseconnection(@Req() req: any, @Res() res: any) {
     return req.body;
   }
   @OnSSEError()
-  async onsseerror(@Req() req: any, @Response() res: any) {
+  async onsseerror(@Req() req: any, @Res() res: any) {
     return req.body;
   }
   @OnSSEClose()
-  async onsseclose(@Req() req: any, @Response() res: any) {
+  async onsseclose(@Req() req: any, @Res() res: any) {
     return req.body;
   }
 }

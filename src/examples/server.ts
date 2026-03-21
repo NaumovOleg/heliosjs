@@ -1,5 +1,5 @@
-import { HttpServer } from '@heliosjs/http';
+import { Helios } from '@heliosjs/http';
 import { App } from './app';
 
-const server = new HttpServer(App);
+const server = new Helios(App);
 server.listen().catch(console.error);

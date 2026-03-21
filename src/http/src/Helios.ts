@@ -16,7 +16,7 @@ import {
 import { WebSocketServer, WebSocketService } from './utils/socket';
 import { SSEServer, SSEService } from './utils/sse';
 
-export class HttpServer extends Plugin implements IHttpServer {
+export class Helios extends Plugin implements IHttpServer {
   private config: ServerConfig;
   private isRunning: boolean = false;
   private sse?: SSEServer;

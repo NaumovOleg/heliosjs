@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
-import { LambdaAdapter, Plugin } from '@heliosjs/aws';
-import { ANY, Controller } from '@heliosjs/core';
+import { Helios, Plugin } from '@heliosjs/aws';
+import { ANY, Controller, Req } from '@heliosjs/core';
 
 @Controller({ prefix: 'metric' })
 export class MetricsController {
@@ -19,7 +19,7 @@ export const metricsPlugin: Plugin = {
   },
 };
 
-const lambdaAdapter = new LambdaAdapter(MetricsController);
+const lambdaAdapter = new Helios(MetricsController);
 lambdaAdapter.usePlugin(metricsPlugin);
 
 export const handler = lambdaAdapter.handler;

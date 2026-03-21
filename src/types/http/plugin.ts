@@ -1,6 +1,5 @@
 import { IncomingMessage, Server } from 'http';
 import { MiddlewareCB, Request, Response } from '../core';
-import { IHttpServer } from './http';
 
 export interface HttpPluginHooks {
   beforeRequest?: (req: IncomingMessage) => void | Promise<void>;
@@ -11,7 +10,7 @@ export interface HttpPluginHooks {
 export interface Plugin {
   name: string;
 
-  onInit?(server: IHttpServer): void | Promise<void>;
+  onInit?(server: Server): void | Promise<void>;
   onStart?(server: Server): void | Promise<void>;
   onStop?(server: Server): void | Promise<void>;
   middleware?: MiddlewareCB;
