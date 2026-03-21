@@ -1,12 +1,25 @@
 {
-  "name": "@quantum-flow/middlewares",
-  "version": "1.0.0",
+  "name": "@heliosjs/middlewares",
+  "version": "1.0.1",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/*",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist"
+    "build": "yarn clean && tsc -p tsconfig.build.json && resolve-tspaths",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "yarn build",
+    "publish:public": "yarn publish --access public",
+    "publish:patch": "yarn version --patch && yarn build && npm pack && npm publish *.tgz --access public && rm *.tgz",
+    "publish:minor": "yarn version --minor && yarn publish --access public",
+    "publish:major": "yarn version --major && yarn publish --access public"
   },
   "dependencies": {
     "reflect-metadata": "^0.2.2"
