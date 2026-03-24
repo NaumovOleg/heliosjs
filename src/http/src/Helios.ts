@@ -184,7 +184,7 @@ export class Helios extends Plugin implements IHttpServer {
     if (response.headersSent) return;
 
     try {
-      let handledCors = this.config.cors
+      const handledCors = this.config.cors
         ? handleCORS(request, response, this.config.cors)
         : { permitted: true, continue: true };
 

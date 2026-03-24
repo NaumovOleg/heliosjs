@@ -82,6 +82,8 @@ export class Helios extends Plugin implements ILambdaAdapter {
       }
     }
 
+    console.log(response);
+
     if (getErrorType(response?.data).isError) {
       return this.handleError(processed?.data, request);
     }
@@ -166,7 +168,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
       logErrors: true,
     };
 
-    let serialized = new ApplicationError(error, {
+    const serialized = new ApplicationError(error, {
       meta: request,
       config,
     });

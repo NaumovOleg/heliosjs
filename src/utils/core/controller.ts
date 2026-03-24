@@ -59,7 +59,7 @@ export const executeControllerMethod = async (
     Reflect.getMetadata(MIDDLEWARES, controller, propertyName) || [];
 
   try {
-    for (let middleware of methodMiddlewares) {
+    for (const middleware of methodMiddlewares) {
       await middleware(request, response, NextFunction);
     }
 
@@ -166,7 +166,7 @@ export const getControllerMethods = (controller: ControllerInstance) => {
 };
 
 export const getAllMethods = (obj: any): string[] => {
-  let methods = new Set<string>();
+  const methods = new Set<string>();
   let current = Object.getPrototypeOf(obj);
 
   while (current && current !== Object.prototype) {
@@ -222,7 +222,7 @@ export const findRouteInController = (
     }
 
     if (httpMethod === 'ANY') {
-      let useRoute = route.split('/');
+      const useRoute = route.split('/');
 
       route = useRoute[0];
     }
@@ -315,7 +315,7 @@ export const applyMiddlewaresVsSanitizers = async (
     const sntzs = functions.sanitizers[i] ?? [];
 
     sanitizeRequest(request, sntzs);
-    for (let middleware of mws) {
+    for (const middleware of mws) {
       await middleware(request, response, NextFunction);
     }
   }

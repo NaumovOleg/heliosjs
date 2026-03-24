@@ -60,7 +60,7 @@ export function Controller(
   const controllers = typeof config === 'object' ? config.controllers : undefined;
   const controllerMiddlewares =
     typeof config === 'object' ? [...(config.middlewares || []), ...middlewares] : middlewares;
-  let interceptor =
+  const interceptor =
     typeof config === 'object' && typeof config.interceptor === 'function' && config.interceptor;
 
   return function <T extends ControllerClass>(constructor: T) {

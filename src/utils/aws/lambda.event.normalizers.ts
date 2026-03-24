@@ -21,9 +21,9 @@ const getUrls = (
   const protocol = event.headers?.['x-forwarded-proto'] || 'https';
   const host = event.headers?.host || 'localhost';
   const path = (event as APIGatewayProxyEvent).path ?? (event as APIGatewayProxyEventV2).rawPath;
-  let url = `${protocol}://${host}${path}`;
+  const url = `${protocol}://${host}${path}`;
   const requestUrl = new URL(url);
-  return { requestUrl, url };
+  return { requestUrl, url: path };
 };
 
 /**
@@ -311,11 +311,12 @@ export type LambdaEventType =
   | 'unknown';
 
 export const getLambdaEventType = (event: any): LambdaEventType => {
+  if (event.requestContext?.apiId && event.httpMethod) return 'apigateway';
+  if (event.requestContext?.apiId || event.requestContext?.http) return 'apigatewayv2';
   if (event.version === '2.0' && event.rawPath && event.requestContext?.http) {
     return 'lambda-url';
   }
-  if (event.requestContext?.apiId && event.httpMethod) return 'apigateway';
-  if (event.version === '2.0' || event.requestContext?.http) return 'apigatewayv2';
+
   if (event.requestContext?.elb) return 'alb';
   if (event.Records?.[0]?.cf) return 'cloudfront';
 
@@ -324,6 +325,8 @@ export const getLambdaEventType = (event: any): LambdaEventType => {
 
 export const normalizeEvent = (event: LambdaEvent, context: Context): RequestOptions => {
   const type = getLambdaEventType(event);
+
+  console.log(type);
 
   switch (type) {
     case 'apigateway':

@@ -46,7 +46,7 @@ export class Res implements Response {
 
   set data(data: any) {
     if (data instanceof Error) {
-      let serialized = new ApplicationError(data, {
+      const serialized = new ApplicationError(data, {
         meta: this.meta,
         config: {
           includeStack: process.env.NODE_ENV !== 'production',
@@ -304,7 +304,7 @@ export class Res implements Response {
       logErrors: !!process.env.LOG_ERRORS,
     };
 
-    let serialized = new ApplicationError(error, { meta: this.meta, config });
+    const serialized = new ApplicationError(error, { meta: this.meta, config });
     if (this.ok) {
       this.status = serialized.status ?? 500;
     }

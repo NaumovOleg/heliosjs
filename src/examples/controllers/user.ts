@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-import { ANY, Body, Controller, Headers, Params, PUT, Query, Req, Res } from '@heliosjs/core';
+import { ANY, Body, Controller, Headers, Params, POST, Query, Req, Res } from '@heliosjs/core';
 
 import {
   InjectWS,
@@ -22,13 +22,10 @@ class DTO {
 @Controller({
   prefix: 'user',
   controllers: [UserMetadata],
-  interceptor: (data, req, res) => {
-    return { data, intercepted: true };
-  },
 })
 export class User {
   @Status(201)
-  @PUT(':id')
+  @POST('/:id')
   async createUser(
     @Body() body: DTO,
     @Query() query: any,
@@ -38,7 +35,7 @@ export class User {
     @Params(DTO, 'id') params: any,
     @Res() resp: any,
   ) {
-    return { body, query, headers, params };
+    return '{ body, query, headers, params }';
   }
 
   @Status(300)

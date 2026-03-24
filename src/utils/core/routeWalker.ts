@@ -130,7 +130,7 @@ export const routeWalker = async (
     return true;
   } catch (error: any) {
     let catched = error;
-    let statusCode = error.status ?? error.statusCode ?? 500;
+    const statusCode = error.status ?? error.statusCode ?? 500;
     catched.status = statusCode;
 
     response.error(error);
