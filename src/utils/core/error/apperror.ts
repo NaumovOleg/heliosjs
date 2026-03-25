@@ -1,5 +1,11 @@
 import { Meta } from '../../../types/core/common';
-import { AppError, ErrorCode, ErrorDetails, ErrorHandlerConfig } from '../../../types/core/error';
+import {
+  ErrorCode,
+  ErrorDetails,
+  ErrorHandlerConfig,
+  ErrorObject,
+  HeliosError,
+} from '../../../types/core/error';
 import { UnauthorizedError } from './authorizations';
 import { BaseError } from './base';
 import { NotFoundError } from './notfound';
@@ -16,7 +22,10 @@ export class ApplicationError {
   path?: string;
   stack?: unknown;
 
-  constructor(error: unknown, data: { meta: Meta; config: ErrorHandlerConfig; status?: number }) {
+  constructor(
+    error: ErrorObject | Error,
+    data: { meta: Meta; config: ErrorHandlerConfig; status?: number },
+  ) {
     this.config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: true,
@@ -29,6 +38,7 @@ export class ApplicationError {
     if (this.config.logErrors) {
       this.logError(appError, data.meta);
     }
+
     this.code = appError.code;
     this.status = appError.status;
     this.message = appError.code;
@@ -37,20 +47,20 @@ export class ApplicationError {
     this.requestId = data.meta.requestId;
     this.path = appError.path;
     this.details = appError.details;
-    this.stack = (appError.cause as any)?.stack?.split('\n').map((line: string) => line.trim());
+    this.stack = appError.cause?.stack?.split('\n').map((line: string) => line.trim());
   }
 
   private normalizeError(
-    error: any,
+    error: ErrorObject,
     request: { requestId: string; requestUrl: URL; method: string },
-  ): AppError {
+  ) {
     if (error instanceof BaseError) {
       return error;
     }
 
     if (error?.errors) {
       const details = this.formatValidationErrors(error?.errors);
-      return new ValidationError(details, request);
+      return new ValidationError(details!, request);
     }
 
     const base = {
@@ -81,12 +91,16 @@ export class ApplicationError {
     }
 
     if (typeof error === 'object' && error !== null) {
-      const err = error as any;
-      return new BaseError(err.code || ErrorCode.INTERNAL_ERROR, err.message || 'Unknown error', {
-        status: err.status || 500,
-        details: err.details,
-        ...base,
-      });
+      const err = error as ErrorObject;
+      return new BaseError(
+        (err.code as ErrorCode) || ErrorCode.INTERNAL_ERROR,
+        err.message || 'Unknown error',
+        {
+          status: err.status || 500,
+          details: err.details,
+          ...base,
+        },
+      );
     }
 
     return new BaseError(ErrorCode.INTERNAL_ERROR, 'Unknown error', {
@@ -95,8 +109,8 @@ export class ApplicationError {
     });
   }
 
-  private formatValidationErrors(errors: any[]): any[] {
-    return errors.map((error) => ({
+  private formatValidationErrors(errors: ErrorObject['errors']): ErrorDetails[] | undefined {
+    return errors?.map((error) => ({
       field: error.property,
       value: error.value,
       constraints: error.constraints ? Object.values(error.constraints) : [],
@@ -104,7 +118,7 @@ export class ApplicationError {
     }));
   }
 
-  private logError(error: AppError, meta: Meta): void {
+  private logError(error: HeliosError, meta: Meta): void {
     const logEntry = {
       timestamp: error.timestamp.toISOString(),
       requestId: error.requestId,

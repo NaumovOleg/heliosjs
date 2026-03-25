@@ -26,9 +26,10 @@ export class Helios extends Plugin implements IHttpServer {
   app: http.Server;
   plugins: HttpPlugin[] = [];
   allContriollers: ControllerType[] = [];
-  staticMiddlewares: any = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  staticMiddlewares: ((...args: any[]) => any)[] = [];
 
-  constructor(configOrClass: new (...args: any[]) => any) {
+  constructor(configOrClass: new (...args: unknown[]) => unknown) {
     super();
     this.config = resolveConfig(configOrClass);
 
@@ -176,7 +177,7 @@ export class Helios extends Plugin implements IHttpServer {
 
     try {
       await this.callPluginHook('beforeRequest', req);
-    } catch (error: any) {
+    } catch (error: unknown) {
       response.status = 500;
       response.data = error;
       return this.sendResponse(request, response, startTime);
@@ -207,13 +208,13 @@ export class Helios extends Plugin implements IHttpServer {
       await this.runController(request, response);
 
       return this.sendResponse(request, response, startTime);
-    } catch (error: any) {
+    } catch (error: unknown) {
       response.error(error);
       return this.sendResponse(request, response, startTime);
     }
   }
 
-  private async beforeRequest(request: Request, response: Response): Promise<any> {
+  private async beforeRequest(request: Request, response: Response) {
     sanitizeRequest(request, this.config.sanitizers ?? []);
 
     for (const middleware of this.staticMiddlewares) {
@@ -227,7 +228,7 @@ export class Helios extends Plugin implements IHttpServer {
     }
   }
 
-  private async runController(request: Request, response: Response): Promise<any> {
+  private async runController(request: Request, response: Response) {
     for (const ControllerClass of this.controllers ?? []) {
       const instance = new ControllerClass();
       if (typeof instance.handleRequest === 'function') {
@@ -270,6 +271,7 @@ export class Helios extends Plugin implements IHttpServer {
     });
 
     const schemaConfig = {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
       resolvers: this.config.graphql?.resolvers as NonEmptyArray<Function>,
       validate: true,
     };
@@ -282,12 +284,10 @@ export class Helios extends Plugin implements IHttpServer {
 
     const yoga = createYoga({
       schema,
-      context: (ctx: any) => {
-        const req = ctx.request ?? (ctx as any).req;
-
+      context: (ctx) => {
         return {
-          request: req.raw,
-          headers: req?.headers,
+          request: ctx.request,
+          headers: ctx.request?.headers,
           pubSub: this.config.graphql?.pubSub ?? createPubSub(),
         };
       },
@@ -301,7 +301,7 @@ export class Helios extends Plugin implements IHttpServer {
       );
       this.use(async (req, res) => {
         if (req.requestUrl.pathname?.startsWith('/graphql')) {
-          await yoga(req.raw as any, res.raw);
+          await yoga(req.raw, res.raw);
         }
       });
     }

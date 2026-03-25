@@ -1,7 +1,8 @@
 import { plainToInstance } from 'class-transformer';
 import { validate as Validate, ValidationError } from 'class-validator';
 
-export async function validate(dtoClass: any, data: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function validate(dtoClass: any, data: unknown) {
   if (!dtoClass) {
     return data;
   }
@@ -29,7 +30,7 @@ export async function validate(dtoClass: any, data: any) {
   return data;
 }
 
-function formatValidationErrors(errors: ValidationError[]): any[] {
+function formatValidationErrors(errors: ValidationError[]): unknown[] {
   return errors.map((error) => {
     const constraints = error.constraints || {};
 

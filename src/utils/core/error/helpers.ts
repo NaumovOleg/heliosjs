@@ -120,7 +120,7 @@ export function isError(value: any): boolean {
 export function getErrorType(error: any): {
   isError: boolean;
   type:
-    | 'AppError'
+    | 'HeliosError'
     | 'Error'
     | 'HttpError'
     | 'AxiosError'
@@ -139,7 +139,7 @@ export function getErrorType(error: any): {
   }
 
   if (value?.code && typeof value.toResponse === 'function') {
-    return { isError: true, type: 'AppError', confidence: 'high' };
+    return { isError: true, type: 'HeliosError', confidence: 'high' };
   }
 
   if (value instanceof ValidationError) {

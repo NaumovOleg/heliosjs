@@ -8,7 +8,7 @@ import {
   SANITIZE,
   USE_MIDDLEWARE,
 } from '../../constants';
-import { Request, Response, RouteContext } from '../../types/core';
+import { ErrorObject, Request, Response, RouteContext } from '../../types/core';
 import { applyMiddlewaresVsSanitizers, findRouteInController, getResponse } from './controller';
 import { handleCORS } from './cors';
 import { pathStartsWithPrefix } from './endpoint';
@@ -17,7 +17,7 @@ export const routeWalker = async (
   context: RouteContext,
   request: Request,
   response: Response,
-): Promise<any> => {
+): Promise<unknown> => {
   const { controllerInstance, controllerMeta, path, method, subPath } = context;
 
   for (const SubController of controllerMeta.subControllers) {
@@ -128,22 +128,22 @@ export const routeWalker = async (
     }
     response.data = data;
     return true;
-  } catch (error: any) {
-    let catched = error;
-    const statusCode = error.status ?? error.statusCode ?? 500;
-    catched.status = statusCode;
+  } catch (error: unknown) {
+    const caught = error as ErrorObject;
+    const statusCode = caught.status ?? caught.statusCode ?? 500;
+    caught.status = statusCode;
 
     response.error(error);
 
     for (const handler of context.errorHandlerChain?.reverse() || []) {
       try {
-        catched = await handler(catched, request, response);
-        response.status = 200;
+        response.data = await handler(response.data, request, response);
 
-        response.data = catched;
-      } catch (errs: any) {
-        response.status = errs.status ?? errs.statusCode ?? statusCode;
-        response.error(new Error(errs));
+        response.status = 200;
+      } catch (err: unknown) {
+        const error = err as ErrorObject;
+        response.status = error.status ?? error.statusCode ?? statusCode;
+        response.error(error);
       }
     }
   }

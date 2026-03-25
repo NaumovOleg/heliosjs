@@ -9,7 +9,7 @@ import {
   OnSSEConnection,
   OnSSEError,
 } from '@heliosjs/http';
-import { Status } from '@heliosjs/middlewares';
+import { Catch, Status } from '@heliosjs/middlewares';
 
 import { UserMetadata } from './userMetadata';
 
@@ -23,19 +23,22 @@ class DTO {
   prefix: 'user',
   controllers: [UserMetadata],
 })
+@Catch((err) => {
+  console.log('===========', err);
+})
 export class User {
   @Status(201)
-  @POST('/:id')
+  @POST(':id')
   async createUser(
     @Body() body: DTO,
     @Query() query: any,
     @Headers() headers: any,
     @InjectWS() ws: IWebSocketService,
     @Req() req: any,
-    @Params(DTO, 'id') params: any,
+    @Params('id') params: any,
     @Res() resp: any,
   ) {
-    return '{ body, query, headers, params }';
+    throw '{ body, query, headers, params }';
   }
 
   @Status(300)

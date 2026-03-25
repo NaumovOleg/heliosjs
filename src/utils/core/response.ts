@@ -1,5 +1,5 @@
 import { OK_STATUSES } from '../../constants';
-import { CookieOptions, Response } from '../../types/core';
+import { CookieOptions, Response, _Raw } from '../../types/core';
 import { Meta } from '../../types/core/common';
 import { ResponseSource } from '../../types/core/response';
 import { ApplicationError } from './error';
@@ -7,15 +7,15 @@ import { ApplicationError } from './error';
 export class Res implements Response {
   private _status: number = 200;
   private _headers: Record<string, string | string[]> = {};
-  private _data: any;
+  private _data: unknown;
   private _cookies: string[] = [];
   private _isBase64Encoded: boolean = false;
   private _headersSent: boolean = false;
   private _source: ResponseSource;
-  private _raw: any;
+  private _raw: _Raw;
   meta: Meta;
 
-  constructor(source: ResponseSource = 'unknown', meta: Meta, raw?: any) {
+  constructor(source: ResponseSource = 'unknown', meta: Meta, raw: _Raw) {
     this._source = source;
     this._raw = raw;
     this.meta = {
@@ -40,11 +40,11 @@ export class Res implements Response {
     return OK_STATUSES.includes(this._status);
   }
 
-  get data(): any {
+  get data() {
     return this._data;
   }
 
-  set data(data: any) {
+  set data(data: unknown) {
     if (data instanceof Error) {
       const serialized = new ApplicationError(data, {
         meta: this.meta,
@@ -62,7 +62,7 @@ export class Res implements Response {
     }
   }
 
-  get raw(): any {
+  get raw() {
     return this._raw;
   }
 
@@ -79,14 +79,14 @@ export class Res implements Response {
   }
 
   get headersSent(): boolean {
-    return this.raw.headersSent ?? this._headersSent;
+    return this.raw?.headersSent ?? this._headersSent;
   }
 
   // ==================== Status Methods ====================
 
   set status(code: number) {
     this._status = code;
-    if (this.raw.statusCode) {
+    if (this.raw?.statusCode) {
       this.raw.statusCode = code;
     }
   }
@@ -103,7 +103,7 @@ export class Res implements Response {
 
   setHeader(name: string, value: string | string[]): this {
     this._headers[name.toLowerCase()] = value;
-    if (this.raw.headers) {
+    if (this.raw?.headers) {
       this.raw.headers[name.toLowerCase()] = value;
     }
     return this;
@@ -119,7 +119,7 @@ export class Res implements Response {
 
   removeHeader(name: string): this {
     delete this._headers[name.toLowerCase()];
-    if (this.raw.headers) {
+    if (this.raw?.headers) {
       delete this.raw.headers[name.toLowerCase()];
     }
     return this;
@@ -177,7 +177,7 @@ export class Res implements Response {
     }
 
     this._cookies.push(parts.join('; '));
-    if (this.raw.cookies) {
+    if (this.raw?.cookies) {
       this.raw.cookies = this._cookies;
     }
     return this;
@@ -197,14 +197,14 @@ export class Res implements Response {
 
   // ==================== Body Methods ====================
 
-  send(body: any): this {
+  send(body: unknown): this {
     this._data = body;
     this._headersSent = true;
     this.end(this._data);
     return this;
   }
 
-  json(data: any): this {
+  json(data: unknown): this {
     this.setHeader('content-type', 'application/json');
     this._data = data;
     this._headersSent = true;
@@ -255,12 +255,12 @@ export class Res implements Response {
   end(data: unknown) {
     const serialized = typeof data === 'object' ? JSON.stringify(data) : data;
     this._headersSent = true;
-    if (typeof this.raw.end !== 'function') {
+    if (typeof this.raw?.end !== 'function') {
       console.log('Method not implemented');
     }
     this.setHeader('X-Response-Time', `${Date.now() - this.meta.startTime}ms`);
 
-    return this.raw.end(serialized);
+    return this.raw?.end?.(serialized);
   }
 
   // ==================== Response Methods ====================
@@ -287,7 +287,7 @@ export class Res implements Response {
     return this;
   }
 
-  toJSON(): Record<string, any> {
+  toJSON() {
     return {
       statusCode: this._status,
       headers: this._headers,
@@ -298,13 +298,13 @@ export class Res implements Response {
       meta: this.meta,
     };
   }
-  error(error: any): this {
+  error(error: unknown): this {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: !!process.env.LOG_ERRORS,
     };
 
-    const serialized = new ApplicationError(error, { meta: this.meta, config });
+    const serialized = new ApplicationError(error as Error, { meta: this.meta, config });
     if (this.ok) {
       this.status = serialized.status ?? 500;
     }

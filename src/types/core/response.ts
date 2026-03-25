@@ -15,19 +15,35 @@ export interface CookieOptions {
 export interface ResponseOptions {
   statusCode?: number;
   headers?: Record<string, string | string[]>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any;
   cookies?: string[];
   isBase64Encoded?: boolean;
   encoding?: BufferEncoding;
 }
 
+export type _Raw = Partial<{
+  headersSent: boolean;
+  statusCode: number;
+  headers: { [key: string]: string | string[] };
+  cookies: string[];
+  end(args: unknown): unknown;
+  requestUrl: URL;
+  method: string;
+  requestId: string;
+  sourceIp: string;
+  userAgent: string;
+  startTime: number;
+}>;
+
 export interface Response {
   headers: Record<string, string | string[]>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
   cookies: string[];
   isBase64Encoded: boolean;
   source: ResponseSource;
-  raw: any;
+  raw: _Raw;
   headersSent: boolean;
   ok: boolean;
   meta: { requestUrl: URL; method: string };
@@ -50,10 +66,10 @@ export interface Response {
 
   // Response methods
   redirect(url: string, statusCode?: number): this;
-  end(data: unknown): this;
+  end(data: unknown): unknown;
 
   error(data: unknown): this;
 
   reset(): this;
-  toJSON(): Record<string, any>;
+  toJSON(): Record<string, unknown>;
 }

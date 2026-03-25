@@ -18,12 +18,12 @@ export enum ErrorCode {
 
 export interface ErrorDetails {
   field?: string;
-  value?: any;
+  value?: unknown;
   constraint?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export interface AppError extends Error {
+export interface HeliosError extends Error {
   code: ErrorCode;
   status: number;
   details?: ErrorDetails[];
@@ -34,7 +34,7 @@ export interface AppError extends Error {
   toResponse(): ErrorResponse;
 }
 
-export interface IValidationError extends AppError {
+export interface IValidationError extends HeliosError {
   code: ErrorCode.VALIDATION_FAILED;
   details?: ErrorDetails[];
 }
@@ -56,7 +56,7 @@ export interface ErrorHandlerConfig {
   includeStack?: boolean;
   logErrors?: boolean;
   logStack?: boolean;
-  customHandlers?: Record<ErrorCode, (error: AppError) => any>;
+  customHandlers?: Record<ErrorCode, (error: HeliosError) => unknown>;
 }
 export interface SerializedError {
   type: 'Error' | 'HttpError' | 'AxiosError' | 'Unknown' | 'ValidationError';
@@ -64,9 +64,9 @@ export interface SerializedError {
   status?: number;
   code?: string;
   stack?: string;
-  data?: any;
-  original?: any;
-  errors?: any[];
+  data?: unknown;
+  original?: unknown;
+  errors?: unknown[];
   details?: ErrorDetails[];
 }
 
@@ -74,7 +74,24 @@ export interface ErrorHandlerConfig {
   includeStack?: boolean;
   logErrors?: boolean;
   logStack?: boolean;
-  customHandlers?: Record<ErrorCode, (error: AppError) => any>;
+  customHandlers?: Record<ErrorCode, (error: HeliosError) => unknown>;
 }
 
-export type ErorrHandler = (error: Error, req: Request, response: Response) => any;
+export type ErorrHandler = (error: Error, req: Request, response: Response) => unknown;
+
+type ErrorChildren = {
+  property?: string;
+  value: unknown;
+  constraints?: unknown[];
+  children?: ErrorChildren[];
+};
+export type ErrorObject = Partial<{
+  name: string;
+  status: number;
+  statusCode: number;
+  code: string;
+  message: string;
+  stack: string;
+  errors: ErrorChildren[];
+  details: ErrorDetails[];
+}>;

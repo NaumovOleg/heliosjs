@@ -3,6 +3,7 @@ import {
   Arg,
   Ctx,
   Field,
+  ID,
   InputType,
   Mutation,
   ObjectType,
@@ -45,7 +46,10 @@ export class CreateUserInput {
 @Resolver()
 export class UserResolver {
   @Query(() => [User])
-  async users(): Promise<User[]> {
+  async users(
+    @Ctx() ctx: any,
+    @Arg('id', () => ID, { nullable: true }) id?: string,
+  ): Promise<User[]> {
     // pubSub.publish('USER_UPDATED', {...});
     return [];
   }

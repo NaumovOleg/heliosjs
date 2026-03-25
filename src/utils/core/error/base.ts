@@ -1,6 +1,12 @@
-import { AppError, ErrorCode, ErrorDetails, ErrorResponse } from '../../../types/core/error';
+import {
+  ErrorCode,
+  ErrorDetails,
+  ErrorObject,
+  ErrorResponse,
+  HeliosError,
+} from '../../../types/core/error';
 
-export class BaseError extends Error implements AppError {
+export class BaseError extends Error implements HeliosError {
   public readonly code: ErrorCode;
   public readonly status: number;
   public readonly details?: ErrorDetails[];
@@ -8,7 +14,13 @@ export class BaseError extends Error implements AppError {
   public readonly requestId?: string;
   public readonly path?: string;
   public readonly method?: string;
-
+  cause?: ErrorObject;
+  name: string;
+  message: string = '';
+  stack?: string | undefined;
+  toResponse(): ErrorResponse {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     code: ErrorCode,
     message: string,
@@ -22,7 +34,7 @@ export class BaseError extends Error implements AppError {
     },
   ) {
     super(message);
-    this.name = 'AppError';
+    this.name = 'HeliosError';
     this.code = code;
     this.status = options?.status || this.getDefaultStatus(code);
     this.details = options?.details;
@@ -35,9 +47,6 @@ export class BaseError extends Error implements AppError {
       this.cause = options.cause;
     }
     Error.captureStackTrace(this, this.constructor);
-  }
-  toResponse(): ErrorResponse {
-    throw new Error('Method not implemented.');
   }
 
   private getDefaultStatus(code: ErrorCode): number {

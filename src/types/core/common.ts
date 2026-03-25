@@ -1,12 +1,12 @@
 import { ServerResponse } from 'http';
-import { AppError } from './error';
+import { HeliosError } from './error';
 import { Request } from './request';
 import { Response } from './response';
 
 export type Router = (
   req: Request,
   res?: ServerResponse,
-) => Promise<{ status: number; data: any; message?: string }>;
+) => Promise<{ status: number; data: unknown; message?: string }>;
 
 export interface IController {
   handleRequest: Router;
@@ -15,16 +15,16 @@ export interface IController {
 export type MiddlewareCB = (
   request: Request,
   response: Response,
-  next: (args?: any) => any,
+  next: (err?: HeliosError) => unknown | void | undefined,
 ) => void | Promise<Request> | Request | Promise<void> | void;
 
 export type InterceptorCB = (
-  data: any,
+  data: unknown,
   req?: Request,
   res?: Response,
 ) => Promise<unknown> | unknown;
 
-export type ErrorCB = (error: AppError, req?: Request, res?: Response) => any;
+export type ErrorCB = (error: HeliosError, req?: Request, res?: Response) => unknown;
 
 export type ParamDecoratorType =
   | 'body'
@@ -43,13 +43,13 @@ export type ParamDecoratorType =
 export interface ParamMetadata {
   index: number;
   type: ParamDecoratorType;
-  dto?: any;
+  dto?: unknown;
   name?: string;
 }
 
 export type ResponseWithStatus = {
   status: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export enum HTTP_METHODS {

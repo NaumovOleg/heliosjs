@@ -6,3 +6,4 @@ coverage/
 ./server.ts
 testing/
 src/examples/mock/*
+*.tsbuildinfo

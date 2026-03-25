@@ -12,7 +12,15 @@ import {
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
 import { parseBody, parseHeaders, parseQuery, parseRequestCookie } from '../shared';
-import { getMultiValueQueryStringParameters, getQueryStringParameters } from './lambda';
+import {
+  getMultiValueQueryStringParameters,
+  getQueryStringParameters,
+  isALBEvent,
+  isAPIGatewayV1Event,
+  isAPIGatewayV2Event,
+  isCloudFrontEvent,
+  isLambdaUrlEvent,
+} from './lambda';
 import { parseCloudFrontHeaders } from './parsers';
 
 const getUrls = (
@@ -310,23 +318,21 @@ export type LambdaEventType =
   | 'lambda-url'
   | 'unknown';
 
-export const getLambdaEventType = (event: any): LambdaEventType => {
-  if (event.requestContext?.apiId && event.httpMethod) return 'apigateway';
-  if (event.requestContext?.apiId || event.requestContext?.http) return 'apigatewayv2';
-  if (event.version === '2.0' && event.rawPath && event.requestContext?.http) {
+export const getLambdaEventType = (event: LambdaEvent): LambdaEventType => {
+  if (isAPIGatewayV1Event(event)) return 'apigateway';
+  if (isAPIGatewayV2Event(event)) return 'apigatewayv2';
+  if (isLambdaUrlEvent(event)) {
     return 'lambda-url';
   }
 
-  if (event.requestContext?.elb) return 'alb';
-  if (event.Records?.[0]?.cf) return 'cloudfront';
+  if (isALBEvent(event)) return 'alb';
+  if (isCloudFrontEvent(event)) return 'cloudfront';
 
   return 'unknown';
 };
 
 export const normalizeEvent = (event: LambdaEvent, context: Context): RequestOptions => {
   const type = getLambdaEventType(event);
-
-  console.log(type);
 
   switch (type) {
     case 'apigateway':

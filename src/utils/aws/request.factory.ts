@@ -6,8 +6,6 @@ import { normalizeEvent } from './lambda.event.normalizers';
 
 export class RequestFactory {
   static create(event: LambdaEvent, context: Context): Req {
-    // Detect event type
-    const normalized = normalizeEvent(event, context);
-    return new Req(normalized);
+    return new Req(normalizeEvent(event, context));
   }
 }

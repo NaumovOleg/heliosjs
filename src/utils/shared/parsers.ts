@@ -54,7 +54,7 @@ export const parseBody = (request: {
     try {
       const str = getString(processedBody);
       return JSON.parse(str);
-    } catch (error) {
+    } catch (error: any) {
       return { text: getString(processedBody), parseError: true };
     }
   }

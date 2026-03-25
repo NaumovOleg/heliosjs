@@ -1,8 +1,14 @@
 import { CORS_METADATA } from './constants';
 import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 
-import { APIGatewayProxyResult, APIGatewayProxyResultV2, Context, Handler } from 'aws-lambda';
-import { ControllerClass, Request, Response } from './types/core';
+import {
+  ALBResult,
+  APIGatewayProxyResult,
+  APIGatewayProxyResultV2,
+  Context,
+  Handler,
+} from 'aws-lambda';
+import { ControllerClass, ErrorObject, Request, Response } from './types/core';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
 import { ApplicationError, getErrorType, handleCORS } from './utils/core';
 
@@ -41,8 +47,8 @@ export class Helios extends Plugin implements ILambdaAdapter {
     eventType: 'rest' | 'http' | 'url';
     event: LambdaEvent;
     context: Context;
-  }): Promise<any> {
-    const { request, response, eventType, event, context } = meta;
+  }) {
+    const { request, response, eventType } = meta;
     let processed;
 
     for (const ControllerClass of this.controllers ?? []) {
@@ -57,16 +63,14 @@ export class Helios extends Plugin implements ILambdaAdapter {
         }
 
         if (!handledCors.permitted) {
-          return this.toLambdaResponse(
-            { status: 403, message: 'Cors: Origin not allowed' },
-            request,
-            response,
-            eventType,
-          );
+          meta.response.status = 403;
+          meta.response.data = { message: 'Cors: Origin not allowed' };
+          return this.toLambdaResponse(request, response, eventType);
         }
 
         if (!handledCors.continue && handledCors.permitted) {
-          return this.toLambdaResponse({ status: 204 }, request, response, eventType);
+          response.status = 204;
+          return this.toLambdaResponse(request, response, eventType);
         }
         if (typeof instance.handleRequest !== 'function') {
           throw new Error('Controller must have handleRequest method');
@@ -77,27 +81,24 @@ export class Helios extends Plugin implements ILambdaAdapter {
         processed = await instance.handleRequest(request, response);
 
         if (processed) break;
-      } catch (error: any) {
-        return this.handleError(error, request);
+      } catch (error: unknown) {
+        return this.handleError(error as ErrorObject, request);
       }
     }
-
-    console.log(response);
 
     if (getErrorType(response?.data).isError) {
       return this.handleError(processed?.data, request);
     }
 
-    return this.toLambdaResponse(processed?.data, request, response, eventType);
+    return this.toLambdaResponse(request, response, eventType);
   }
 
   private toLambdaResponse(
-    data: any | undefined | null,
     request: Request,
     response: Response,
     eventType: string,
-  ): APIGatewayProxyResult | APIGatewayProxyResultV2 | any {
-    const statusCode = data?.status ?? response?.status ?? 200;
+  ): APIGatewayProxyResult | APIGatewayProxyResultV2 | ALBResult {
+    const statusCode = response.data?.status ?? response?.status ?? 200;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
@@ -125,14 +126,14 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
     const body = JSON.stringify({
       success: statusCode < 400,
-      data: data?.data ?? data?.error ?? data,
+      data: response?.data,
       timestamp: new Date().toISOString(),
     });
 
     const commonResponse = {
       statusCode,
       headers,
-      body: data?.data ?? data?.error ?? data,
+      body: response?.data,
       timestamp: new Date().toISOString(),
     };
 
@@ -162,7 +163,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
     }
   }
 
-  private handleError(error: any, request: Request) {
+  private handleError(error: ErrorObject, request: Request) {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: true,
@@ -172,7 +173,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
       meta: request,
       config,
     });
-    const eventType = getEventType(request.getLambdaEvent());
+    const eventType = getEventType(request.getLambdaEvent() as LambdaEvent);
     const statusCode = serialized.status || 500;
     const body = JSON.stringify(serialized);
 

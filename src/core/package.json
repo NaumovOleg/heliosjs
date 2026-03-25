@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/core",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -35,5 +35,8 @@
   },
   "peerDependencies": {
     "typescript": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0"
   }
 }

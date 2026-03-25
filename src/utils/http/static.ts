@@ -16,7 +16,11 @@ export function staticMiddleware(root: string, options: StaticOptions = {}) {
 
   const rootPath = path.resolve(root);
 
-  return async (req: IncomingMessage, res: ServerResponse, next: Function) => {
+  return async (
+    req: IncomingMessage,
+    res: ServerResponse,
+    next: (...args: unknown[]) => unknown,
+  ) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return next();
     }

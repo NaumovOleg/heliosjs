@@ -2,7 +2,15 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['dist/**', 'build/**', 'node_modules/**', 'coverage/**', '**/*.js', '**/*.md'],
+    ignores: [
+      'dist/**',
+      '*.tsbuildinfo',
+      'build/**',
+      'node_modules/**',
+      'coverage/**',
+      '**/*.js',
+      '**/*.md',
+    ],
   },
 
   ...tseslint.configs.recommended,
@@ -11,6 +19,7 @@ export default [
 
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-expressions': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

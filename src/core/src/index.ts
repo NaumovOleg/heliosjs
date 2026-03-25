@@ -8,9 +8,9 @@ export * from './Controller';
 export * from './decorators';
 export * from './Endpoint';
 export {
-  AppError,
   CORSConfig,
   ErrorCB,
+  HeliosError,
   InterceptorCB,
   MiddlewareCB,
   MultipartFile,

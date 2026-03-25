@@ -1,5 +1,12 @@
 {
-  "watch": ["src/aws/src", "src/lambda/src", "src/middlewares/src", "src/core/src", "src/examples"],
+  "watch": [
+    "src/aws/src",
+    "src/lambda/src",
+    "src/middlewares/src",
+    "src/core/src",
+    "src/http/src",
+    "src/examples"
+  ],
   "ext": "ts,tsx",
   "exec": "NODE_ENV=development && yarn build && ts-node --files -r tsconfig-paths/register ./src/examples/lambda.ts"
 }

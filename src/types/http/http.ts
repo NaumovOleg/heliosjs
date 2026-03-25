@@ -2,7 +2,7 @@ import { PubSub } from 'type-graphql';
 import { InterceptorCB, MiddlewareCB } from '../core/common';
 import { ControllerClass, ControllerType } from '../core/controller';
 import { CORSConfig } from '../core/cors';
-import { AppError } from '../core/error';
+import { HeliosError } from '../core/error';
 import { Request } from '../core/request';
 import { Response } from '../core/response';
 import { SanitizerConfig } from '../core/sanitize';
@@ -38,7 +38,7 @@ export interface ServerConfig {
    * Error handling callback
    * @type {ErrorCB}
    */
-  errorHandler?: (error: AppError, req: Request, response: Response) => any;
+  errorHandler?: (error: HeliosError, req: Request, response: Response) => any;
 
   /**
    * Array of controller types

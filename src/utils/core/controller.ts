@@ -13,6 +13,7 @@ import {
   ControllerInstance,
   ControllerMethods,
   CORSConfig,
+  HeliosError,
   HTTP_METHODS,
   InterceptorCB,
   MiddlewareCB,
@@ -73,7 +74,7 @@ export const executeControllerMethod = async (
 
     const { body, multipart } = getBodyAndMultipart(request);
 
-    const args: any[] = [];
+    const args: unknown[] = [];
 
     const totalParams = Math.max(
       paramMetadata.length ? Math.max(...paramMetadata.map((p) => p.index)) + 1 : 0,
@@ -117,14 +118,17 @@ export const executeControllerMethod = async (
     }
 
     return await fn.apply(controller, args);
-  } catch (error: any) {
+  } catch (error) {
     if (typeof error === 'string') {
-      const catched = new Error(error) as any;
-      catched.stack = `${catched.name}: ${catched.message}\n    at ${controller.constructor?.name}.${propertyName}\n${catched.stack}`;
-      catched.original = error;
-      catched.controller = controller.constructor?.name;
-      catched.method = propertyName;
-      catched.status = 500;
+      const catched = new Error(error);
+      const errorData = {
+        stack: `${catched.name}: ${catched.message}\n    at ${controller.constructor?.name}.${propertyName}\n${catched.stack}`,
+        original: error,
+        controller: controller.constructor?.name,
+        method: propertyName,
+        status: 500,
+      };
+      Object.assign(catched, errorData);
 
       response.error(catched);
 
@@ -162,10 +166,10 @@ export const getControllerMethods = (controller: ControllerInstance) => {
     proto = Object.getPrototypeOf(proto);
   }
 
-  return methods.sort((a, b) => (a.httpMethod === HTTP_METHODS.ANY ? 1 : -1));
+  return methods.sort((a) => (a.httpMethod === HTTP_METHODS.ANY ? 1 : -1));
 };
 
-export const getAllMethods = (obj: any): string[] => {
+export const getAllMethods = (obj: unknown): string[] => {
   const methods = new Set<string>();
   let current = Object.getPrototypeOf(obj);
 
@@ -182,7 +186,7 @@ export const getAllMethods = (obj: any): string[] => {
 };
 
 export const findRouteInController = (
-  instance: any,
+  instance: ControllerInstance,
   path: string,
   route: string,
   method: string,
@@ -250,7 +254,7 @@ export const findRouteInController = (
   return matches[0];
 };
 
-export const NextFunction = (error: any) => {
+export const NextFunction = (error?: HeliosError) => {
   if (error) throw { status: error.status ?? 500, message: error.message ?? error };
 };
 
@@ -290,11 +294,8 @@ export const getResponse = async (data: {
     propertyName,
   );
 
-  if (methodOkStatus) {
-    !isError && (data.response.status = methodOkStatus);
-  } else {
-    const classOkStatus = Reflect.getMetadata(OK_METADATA_KEY, prototype);
-    !isError && classOkStatus && (data.response.status = classOkStatus);
+  if (!isError) {
+    data.response.status = methodOkStatus ?? Reflect.getMetadata(OK_METADATA_KEY, prototype);
   }
 
   return appResponse;

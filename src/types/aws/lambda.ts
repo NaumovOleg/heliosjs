@@ -1,11 +1,16 @@
 import {
   ALBEvent,
+  ALBEventRequestContext,
+  APIGatewayEventRequestContext,
+  APIGatewayEventRequestContextV2,
   APIGatewayProxyEvent,
   APIGatewayProxyEventV2,
+  CloudFrontEvent,
   CloudFrontRequestEvent,
   Handler,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
+import { Request } from '../core';
 import { ControllerClass } from '../core/controller';
 import { Plugin } from './plugin';
 
@@ -37,6 +42,12 @@ export interface LambdaFunctionUrlEvent {
   };
 }
 
+export type RequestContext =
+  | ALBEventRequestContext
+  | APIGatewayEventRequestContext
+  | CloudFrontEvent['config']
+  | APIGatewayEventRequestContextV2;
+
 export type LambdaEvent =
   | ALBEvent
   | LambdaFunctionURLEvent
@@ -55,7 +66,7 @@ export interface NormalizedEvent {
   body: string | null;
   isBase64Encoded: boolean;
   cookies?: string[];
-  requestContext: any;
+  requestContext: RequestContext;
 }
 
 export interface LambdaApp {
@@ -64,7 +75,7 @@ export interface LambdaApp {
 
 export interface Lambda {
   beforeStart?: () => Promise<void>;
-  handleRequest(request: any): Promise<any>;
+  handleRequest(request: Request): Promise<any>;
 }
 
 export interface ILambdaAdapter {
