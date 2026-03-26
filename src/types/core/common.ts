@@ -15,7 +15,7 @@ export interface IController {
 export type MiddlewareCB = (
   request: Request,
   response: Response,
-  next: (err?: HeliosError) => unknown | void | undefined,
+  next: (err?: HeliosError) => Promise<any> | any,
 ) => void | Promise<Request> | Request | Promise<void> | void;
 
 export type InterceptorCB = (

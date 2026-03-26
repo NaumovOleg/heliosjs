@@ -1,10 +1,9 @@
-import { CORS_METADATA } from '../../constants';
-import { CORSConfig, Request } from '../../types/core';
+import { CORSConfig, Request, Response } from '../../types/core';
 import { getOrigin } from './headers';
 
 export function handleCORS(
   req: Request,
-  res: any,
+  res: Response,
   config: CORSConfig,
 ): { permitted: boolean; continue: boolean } {
   const origin = getOrigin(req);
@@ -20,7 +19,7 @@ export function handleCORS(
   }
 
   if (origin && !isOriginAllowed()) {
-    res.statusCode = 403;
+    res.status = 403;
     res.setHeader('Content-Type', 'application/json');
 
     return { permitted: false, continue: false };
@@ -49,7 +48,7 @@ export function handleCORS(
       res.setHeader('Access-Control-Max-Age', config.maxAge.toString());
     }
 
-    res.statusCode = config.optionsSuccessStatus || 204;
+    res.status = config.optionsSuccessStatus || 204;
     return { permitted: true, continue: false };
   }
 
@@ -68,77 +67,10 @@ export function handleCORS(
   return { permitted: true, continue: true };
 }
 
-export function isPreflightRequest(req: any): boolean {
-  return (
-    req.method === 'OPTIONS' && req.headers['access-control-request-method'] && req.headers.origin
+export function isPreflightRequest(req: Request): boolean {
+  return !!(
+    req.method === 'OPTIONS' &&
+    req.headers['access-control-request-method'] &&
+    req.headers.origin
   );
 }
-
-export const getCORSConfig = (controller: any, methodName?: string): CORSConfig | null => {
-  if (methodName) {
-    const methodConfig = Reflect.getMetadata(CORS_METADATA, controller, methodName);
-    if (methodConfig) {
-      return methodConfig;
-    }
-  }
-
-  if (controller && controller.constructor) {
-    const classConfig = Reflect.getMetadata(CORS_METADATA, controller.constructor.prototype);
-    if (classConfig) {
-      return classConfig;
-    }
-  }
-
-  return null;
-};
-
-export const getCORSHeaders = (req: any, config: CORSConfig): Record<string, string> => {
-  const headers: Record<string, string> = {};
-  const origin = req?.headers?.origin || req?.headers?.Origin;
-
-  if (!origin) return headers;
-
-  let allowedOrigin: string | null = null;
-
-  if (config.origin === '*') {
-    allowedOrigin = '*';
-  } else if (typeof config.origin === 'string') {
-    allowedOrigin = config.origin;
-  } else if (Array.isArray(config.origin)) {
-    if (config.origin.includes(origin)) {
-      allowedOrigin = origin;
-    }
-  } else if (typeof config.origin === 'function') {
-    if (config.origin(origin)) {
-      allowedOrigin = origin;
-    }
-  } else if (config.origin === true) {
-    allowedOrigin = origin;
-  }
-
-  if (allowedOrigin) {
-    headers['Access-Control-Allow-Origin'] = allowedOrigin;
-
-    if (config.credentials) {
-      headers['Access-Control-Allow-Credentials'] = 'true';
-    }
-
-    if (config.exposedHeaders?.length) {
-      headers['Access-Control-Expose-Headers'] = config.exposedHeaders.join(', ');
-    }
-
-    if (req.method === 'OPTIONS') {
-      if (config.methods?.length) {
-        headers['Access-Control-Allow-Methods'] = config.methods.join(', ');
-      }
-      if (config.allowedHeaders?.length) {
-        headers['Access-Control-Allow-Headers'] = config.allowedHeaders.join(', ');
-      }
-      if (config.maxAge) {
-        headers['Access-Control-Max-Age'] = config.maxAge.toString();
-      }
-    }
-  }
-
-  return headers;
-};

@@ -39,7 +39,7 @@ export const SANITIZER = {
   },
 
   xss: () =>
-    Joi.string().custom((value, helpers) => {
+    Joi.string().custom((value) => {
       if (typeof value !== 'string') return value;
       const sanitized = value
         .replace(/javascript:/gi, '')
@@ -51,7 +51,7 @@ export const SANITIZER = {
 };
 
 export function applyJoiSanitization(
-  value: any,
+  value: unknown,
   config: SanitizerConfig,
 ): { value: any; error?: Joi.ValidationError } {
   if (!['headers', 'body', 'params', 'query'].includes(config.type)) {

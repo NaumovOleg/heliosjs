@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { MiddlewareCB } from '../../types/core';
-import { Plugin as HttpPlgin, PluginHookKeys, PluginKeys } from '../../types/http';
+import { Plugin as HttpPlgin, HttpPluginHooks, PluginHookKeys, PluginKeys } from '../../types/http';
 
 export class Plugin {
   plugins: HttpPlgin[] = [];
   middlewares: MiddlewareCB[] = [];
   protected async callPluginHook<K extends PluginHookKeys>(
     hookName: K,
-    ...args: any
+    ...args: Parameters<NonNullable<HttpPluginHooks[K]>>
   ): Promise<void> {
     for (const plugin of this.plugins) {
       const hook = plugin.hooks?.[hookName];
@@ -19,10 +20,7 @@ export class Plugin {
       }
     }
   }
-  protected async callPluginMethod<K extends PluginKeys>(
-    hookName: PluginKeys,
-    ...args: any
-  ): Promise<void> {
+  protected async callPluginMethod(hookName: PluginKeys, ...args: any): Promise<void> {
     for (const plugin of this.plugins) {
       const hook = plugin?.[hookName];
       if (hook) {

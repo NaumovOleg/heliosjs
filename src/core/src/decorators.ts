@@ -11,7 +11,7 @@ import { createParamDecorator } from './utils/core';
  * @Body(UserDto) user: UserDto
  * ```
  */
-export const Body = (dto?: any) => createParamDecorator('body', dto);
+export const Body = (dto?: unknown) => createParamDecorator('body', dto);
 
 /**
  * Parameter decorator to extract route parameters.
@@ -26,7 +26,7 @@ export const Body = (dto?: any) => createParamDecorator('body', dto);
  * @Params(UserParamsDto) params: UserParamsDto
  * ```
  */
-export const Params = (dto?: any, name?: string) =>
+export const Params = (dto?: unknown, name?: string) =>
   createParamDecorator(
     'params',
     typeof dto == 'string' ? undefined : dto,
@@ -46,7 +46,7 @@ export const Params = (dto?: any, name?: string) =>
  * @Query(SearchDto) query: SearchDto
  * ```
  */
-export const Query = (dto?: any, name?: string) =>
+export const Query = (dto?: unknown, name?: string) =>
   createParamDecorator(
     'query',
     typeof dto == 'string' ? undefined : dto,

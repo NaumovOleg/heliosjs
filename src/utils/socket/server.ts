@@ -24,7 +24,7 @@ export class WebSocketServer implements IWebSocketServer {
       path: this.options.path,
     });
 
-    this.wss.on('connection', (socket, request) => {
+    this.wss.on('connection', (socket) => {
       this.handleConnection(socket);
     });
 
@@ -68,7 +68,7 @@ export class WebSocketServer implements IWebSocketServer {
       this.handleClose(client);
     });
 
-    socket.on('error', (error: any) => {
+    socket.on('error', (error: Error) => {
       this.handleError(client, error);
     });
 
@@ -110,7 +110,7 @@ export class WebSocketServer implements IWebSocketServer {
         client,
         message,
       });
-    } catch (error) {
+    } catch (_: unknown) {
       client.socket.send(
         JSON.stringify({ type: 'error', data: { message: 'Invalid message format' } }),
       );
@@ -151,7 +151,7 @@ export class WebSocketServer implements IWebSocketServer {
   ) {
     for (const controller of this.controllers) {
       const controllerHandlers = controller.ws?.handlers?.[eventType] ?? [];
-      const matchingHandlers = controllerHandlers.filter((h: any) => {
+      const matchingHandlers = controllerHandlers.filter((h) => {
         if (h.type !== eventType) return false;
         if (!topic) return !h.topic;
         return !h.topic || h.topic === topic;
@@ -166,7 +166,7 @@ export class WebSocketServer implements IWebSocketServer {
       }
 
       if (eventType === 'message' && topic) {
-        const matchingSubs = controller.ws?.topics.filter((s: any) => s.topic === topic) ?? [];
+        const matchingSubs = controller.ws?.topics.filter((s) => s.topic === topic) ?? [];
 
         for (const sub of matchingSubs) {
           try {
@@ -213,7 +213,7 @@ export class WebSocketServer implements IWebSocketServer {
     );
   }
 
-  public publishToTopic(topic: string, data: any, exclude?: string[]) {
+  public publishToTopic(topic: string, data: unknown, exclude?: string[]) {
     const topicClients = this.topics.get(topic);
     if (!topicClients) return;
 
@@ -236,7 +236,7 @@ export class WebSocketServer implements IWebSocketServer {
     });
   }
 
-  public sendToClient(clientId: string, message: any): boolean {
+  public sendToClient(clientId: string, message: unknown): boolean {
     const client = this.clients.get(clientId);
     if (client) {
       client.socket.send(JSON.stringify(message));
@@ -245,7 +245,7 @@ export class WebSocketServer implements IWebSocketServer {
     return false;
   }
 
-  public broadcast(message: any, excludeClientId?: string) {
+  public broadcast(message: unknown, excludeClientId?: string) {
     const messageStr = JSON.stringify(message);
     this.clients.forEach((client, clientId) => {
       if (clientId !== excludeClientId) {

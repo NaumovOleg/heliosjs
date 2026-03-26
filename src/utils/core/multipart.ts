@@ -1,9 +1,9 @@
 // utils/MultipartProcessor.ts
 import * as multipart from 'parse-multipart-data';
-import { MultipartFile } from '../../types/core';
+import { MultipartFile, Request } from '../../types/core';
 
 export class MultipartProcessor {
-  static parse(request: any): {
+  static parse(request: Pick<Request, 'headers' | 'isBase64Encoded' | 'body'>): {
     fields: Record<string, any>;
     files: Record<string, MultipartFile | MultipartFile[]>;
   } {
@@ -78,13 +78,13 @@ export class MultipartProcessor {
     return { fields, files };
   }
 
-  static isMultipart(request: any): boolean {
-    const contentType =
-      request.headers?.['content-type'] || request.headers?.['Content-Type'] || '';
+  static isMultipart(request: Request): boolean {
+    let contentType = request.headers?.['content-type'] || request.headers?.['Content-Type'] || '';
+    contentType = Array.isArray(contentType) ? contentType[0] : contentType;
     return contentType.startsWith('multipart/form-data');
   }
 
-  private static getContentType(part: MultipartFile): any {
+  private static getContentType(part: MultipartFile) {
     const filename = part.filename || '';
     const extension = filename.split('.').pop()?.toLowerCase() ?? '';
 

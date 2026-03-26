@@ -1,3 +1,4 @@
+import { Server } from 'http';
 import { PubSub } from 'type-graphql';
 import { InterceptorCB, MiddlewareCB } from '../core/common';
 import { ControllerClass, ControllerType } from '../core/controller';
@@ -38,7 +39,7 @@ export interface ServerConfig {
    * Error handling callback
    * @type {ErrorCB}
    */
-  errorHandler?: (error: HeliosError, req: Request, response: Response) => any;
+  errorHandler?: (error: HeliosError, req: Request, response: Response) => unknown;
 
   /**
    * Array of controller types
@@ -87,8 +88,6 @@ export interface ServerConfig {
     resolvers?: Function[];
   };
 }
-
-import { Server } from 'http';
 
 export interface IHttpServer {
   readonly app: Server;

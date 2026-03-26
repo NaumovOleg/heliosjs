@@ -2,7 +2,7 @@ import { WebSocketServer } from './server';
 import { WebSocketService } from './service';
 
 export class Socket {
-  protected wss: WebSocketServer;
+  protected wss!: WebSocketServer;
 
   public registerWebSocketControllers(controllers: any[]) {
     if (!this.wss) {

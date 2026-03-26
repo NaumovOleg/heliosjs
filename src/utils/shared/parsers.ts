@@ -15,7 +15,7 @@ export const parseBody = (request: {
   body: unknown;
   headers: Record<string, string | string[]>;
   isBase64Encoded?: boolean;
-}): any => {
+}) => {
   if (request.body && typeof request.body === 'object' && !Buffer.isBuffer(request.body)) {
     return request.body;
   }
@@ -40,7 +40,7 @@ export const parseBody = (request: {
   }
 
   const cleanContentType = contentType.split(';')[0].trim().toLowerCase();
-  const getString = (data: any): string => {
+  const getString = (data: unknown): string => {
     if (Buffer.isBuffer(data)) {
       return data.toString('utf8');
     }
@@ -54,7 +54,7 @@ export const parseBody = (request: {
     try {
       const str = getString(processedBody);
       return JSON.parse(str);
-    } catch (error: any) {
+    } catch (_: unknown) {
       return { text: getString(processedBody), parseError: true };
     }
   }
@@ -79,7 +79,7 @@ export const parseBody = (request: {
         }
       }
       return result;
-    } catch (error) {
+    } catch (_: unknown) {
       return { raw: getString(processedBody) };
     }
   }

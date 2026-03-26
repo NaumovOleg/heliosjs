@@ -6,12 +6,11 @@ import { Request, RequestOptions, RequestSource } from '../../types/core/request
 export class Req implements Request {
   method: string;
   path: string;
-  requestUrl: URL;
   url: string;
+  requestUrl: URL;
   headers: Record<string, string | string[]>;
   query: Record<string, string | string[]>;
-  body: any;
-  rawBody: any;
+  body: unknown;
   params: Record<string, string>;
   cookies: Record<string, string>;
   sourceIp: string;
@@ -21,7 +20,8 @@ export class Req implements Request {
   timestamp: Date;
   source: RequestSource;
   raw: any;
-  context: any;
+  context: unknown;
+  rawBody: unknown;
   isBase64Encoded: boolean;
   startTime: number;
 

@@ -1,4 +1,4 @@
-import { PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/aws';
+import { Hooks, PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/aws';
 import { MiddlewareCB } from '../../types/core';
 
 export class Plugin {
@@ -6,7 +6,7 @@ export class Plugin {
   middlewares: MiddlewareCB[] = [];
   protected async callPluginHook<K extends PluginHookKeys>(
     hookName: K,
-    ...args: any
+    ...args: Parameters<NonNullable<Hooks[K]>>
   ): Promise<void> {
     for (const plugin of this.plugins) {
       const hook = plugin.hooks?.[hookName];
@@ -19,10 +19,7 @@ export class Plugin {
       }
     }
   }
-  protected async callPluginMethod<K extends PluginKeys>(
-    hookName: PluginKeys,
-    ...args: any
-  ): Promise<void> {
+  protected async callPluginMethod(hookName: PluginKeys, ...args: any): Promise<void> {
     for (const plugin of this.plugins) {
       const hook = plugin?.[hookName];
       if (hook) {

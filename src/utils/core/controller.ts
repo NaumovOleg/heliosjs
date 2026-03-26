@@ -32,7 +32,7 @@ import { sanitizeRequest } from './sanitize';
 const getBodyAndMultipart = (request: Request) => {
   let body = request.body;
   let multipart;
-  if (MultipartProcessor.isMultipart({ headers: request.headers })) {
+  if (MultipartProcessor.isMultipart(request)) {
     const { fields, files } = MultipartProcessor.parse({
       body: request.rawBody || request.body,
       headers: request.headers,

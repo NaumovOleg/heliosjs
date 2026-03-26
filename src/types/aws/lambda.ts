@@ -75,7 +75,7 @@ export interface LambdaApp {
 
 export interface Lambda {
   beforeStart?: () => Promise<void>;
-  handleRequest(request: Request): Promise<any>;
+  handleRequest(request: Request): Promise<unknown>;
 }
 
 export interface ILambdaAdapter {

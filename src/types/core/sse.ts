@@ -4,7 +4,7 @@ export interface SSEClient {
   id: string;
   response: ServerResponse;
   topics: Set<string>;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   connectedAt: Date;
 }
 
@@ -12,13 +12,13 @@ export interface SSEMessage {
   event?: string;
   id?: string;
   retry?: number;
-  data: any;
+  data: unknown;
 }
 
 export interface SSEEvent {
   type: 'connection' | 'close';
   client: SSEClient;
-  data?: any;
+  data?: unknown;
 }
 
 export interface ISSEServer {

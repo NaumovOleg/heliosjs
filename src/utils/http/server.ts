@@ -31,10 +31,11 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     host: 'localhost',
     ...decoratorConfig,
     errorHandler: decoratorConfig.errorHandler ?? errorHandler,
-    interceptors: (interceptors ?? []).filter((el: any) => !!el),
-    middlewares: decoratorConfig.middlewares.concat(middlewares).filter((el: any) => !!el) ?? [],
+    interceptors: (interceptors ?? []).filter((el: unknown) => !!el),
+    middlewares:
+      decoratorConfig.middlewares.concat(middlewares).filter((el: unknown) => !!el) ?? [],
     cors: decoratorConfig.cors,
-    controllers: (decoratorConfig.controllers ?? []).filter((el: any) => !!el),
+    controllers: (decoratorConfig.controllers ?? []).filter((el: unknown) => !!el),
     sanitizers,
     websocketPath: decoratorConfig.websocketPath ?? '/ws',
   };

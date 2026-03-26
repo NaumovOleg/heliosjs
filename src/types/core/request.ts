@@ -27,9 +27,9 @@ export interface RequestOptions {
   requestId: string;
   stage?: string;
   timestamp: Date;
-  raw?: any;
-  context?: any;
-  rawBody?: any;
+  raw?: unknown;
+  context?: unknown;
+  rawBody?: unknown;
   event?: unknown;
   isBase64Encoded?: boolean;
   source: RequestSource;
@@ -43,7 +43,7 @@ export interface Request {
   requestUrl: URL;
   headers: Record<string, string | string[]>;
   query: Record<string, string | string[]>;
-  body: any;
+  body: unknown;
   params: Record<string, string>;
   cookies: Record<string, string>;
   sourceIp: string;
@@ -53,9 +53,9 @@ export interface Request {
   timestamp: Date;
   source: RequestSource;
   raw: any;
-  context: any;
-  rawBody: any;
-  isBase64Encoded: any;
+  context: unknown;
+  rawBody: unknown;
+  isBase64Encoded: boolean;
   startTime: number;
   // Header methods
   getHeader(name: string): string | string[] | undefined;
@@ -81,9 +81,9 @@ export interface Request {
   getHttpRequest(): IncomingHttpHeaders | undefined;
 
   // State management
-  setState(key: string, value: any): void;
-  getState<T = any>(key: string): T | undefined;
-  getAllState(): Map<string, any>;
+  setState(key: string, value: unknown): void;
+  getState<T>(key: string): T | undefined;
+  getAllState(): Map<string, unknown>;
 
   // Utility methods
   isSecure(): boolean;
@@ -95,5 +95,5 @@ export interface Request {
   clone(overrides?: Partial<RequestOptions>): Request;
 
   // Serialization
-  toJSON(): Record<string, any>;
+  toJSON(): Record<string, this>;
 }

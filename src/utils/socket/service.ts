@@ -18,17 +18,17 @@ export class WebSocketService implements IWebSocketService {
     this.wss = wss;
   }
 
-  sendToClient(clientId: string, message: any): boolean {
+  sendToClient(clientId: string, message: unknown): boolean {
     if (!this.wss) return false;
     return this.wss.sendToClient(clientId, message);
   }
 
-  publishToTopic(topic: string, data: any, exclude?: string[]) {
+  publishToTopic(topic: string, data: unknown, exclude?: string[]) {
     if (!this.wss) return;
     this.wss.publishToTopic(topic, data, exclude);
   }
 
-  broadcast(message: any, excludeClientId?: string) {
+  broadcast(message: unknown, excludeClientId?: string) {
     if (!this.wss) return;
     this.wss.broadcast(message, excludeClientId);
   }
