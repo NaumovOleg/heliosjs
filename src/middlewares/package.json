@@ -1,14 +1,17 @@
 {
   "name": "@heliosjs/middlewares",
-  "version": "1.0.12",
+  "version": "1.5.0",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
-    "provenance": true,
     "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NaumovOleg/heliosjs.git"
   },
   "files": [
     "dist/*",
@@ -27,7 +30,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^1.0.15",
+    "@heliosjs/core": "^1.1.0",
     "typescript": ">=4.0.0"
   }
 }
