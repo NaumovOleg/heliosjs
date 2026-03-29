@@ -56,6 +56,13 @@ jobs:
       - name: Update peerDependencies
         run: node scripts/update-peer-deps.js
 
+      - name: Commit peer deps updates
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/*/package.json
+          git diff --staged --quiet || git commit -m "chore: update peer dependencies"
+
       - name: Version package
         if: inputs.package != 'all'
         run: |

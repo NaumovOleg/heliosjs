@@ -6,97 +6,52 @@ on:
       - main
       - master
     paths:
-      - 'packages/**'
+      - 'src/**'
       - '.github/workflows/release.yml'
   workflow_dispatch:
-    inputs:
-      force:
-        description: 'Force release'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   release:
-    name: Release Packages
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
       packages: write
-      issues: write
-      pull-requests: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: yarn install
 
-      - name: Build all packages
-        run: pnpm run build
+      - name: Build
+        run: yarn build
 
-      - name: Run tests
-        run: pnpm run test
+      - name: Update peer dependencies
+        run: node scripts/update-peer-deps.js
 
-      - name: Check for changes
-        id: changes
-        run: |
-          echo "has_changes=$(git status --porcelain | wc -l)" >> $GITHUB_OUTPUT
-
-      - name: Configure Git
+      - name: Commit peer deps updates
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/*/package.json
+          git diff --staged --quiet || git commit -m "chore: update peer dependencies"
 
       - name: Version and publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Update peerDependencies before versioning
-          node scripts/update-peer-deps.js
-
-          # Version packages
-          npx lerna version --conventional-commits --yes
-
-          # Build again after version update
+          npx lerna version --conventional-commits --yes --no-private
           pnpm run build
+          npx lerna publish from-git --yes --npm-client-args="--provenance"
 
-          # Publish to npm
-          npx lerna publish from-git --yes
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        if: success()
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          generate_release_notes: true
+      - name: Push changes
+        run: git push --follow-tags
