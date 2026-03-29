@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.3.3
+
+### Patch Changes
+
+- 0630b23: fixes
+
 ## 1.3.2
 
 ### Patch Changes
