@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.3.4
+
+### Patch Changes
+
+- d0a4da9: fixes
+- c103eb9: fixes
+
 ## 1.3.2
 
 ### Patch Changes
