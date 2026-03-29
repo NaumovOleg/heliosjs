@@ -20,7 +20,7 @@
     "link-packages": "chmod +x ./setup-symlinks.sh && ./setup-symlinks.sh",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "changeset publish publish --provenance --access public"
+    "release": "changeset publish --provenance --access public"
   },
   "workspaces": [
     "src/core",

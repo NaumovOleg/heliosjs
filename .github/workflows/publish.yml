@@ -14,6 +14,12 @@ jobs:
       id-token: write
       pull-requests: write
 
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NPM_CONFIG_PROVENANCE: true
+      NPM_CONFIG_ACCESS: public
+      NODE_AUTH_TOKEN: ''
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,7 +47,3 @@ jobs:
         with:
           version: yarn version-packages
           publish: yarn changeset publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
-          NPM_CONFIG_AUTH_TYPE: 'oidc'
