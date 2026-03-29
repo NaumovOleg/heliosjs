@@ -19,7 +19,10 @@
     "publish:minor": "yarn version --minor && yarn workspaces run publish --access public",
     "publish:major": "yarn version --major && yarn workspaces run publish --access public",
     "version-up": "node scripts/update-peer-deps.js && lerna version",
-    "publish:all": "pnpm run build && lerna publish"
+    "publish:all": "pnpm run build && lerna publish",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "workspaces": [
     "src/core",
@@ -49,6 +52,7 @@
   "author": "Naumov Oleh",
   "peerDependencies": {},
   "devDependencies": {
+    "@changesets/cli": "^2.30.0",
     "@eslint/js": "^10.0.1",
     "@types/aws-lambda": "^8.10.161",
     "@types/node": "^25.5.0",

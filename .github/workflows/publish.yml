@@ -5,83 +5,39 @@ on:
     branches:
       - main
       - master
-    paths:
-      - 'src/**'
-      - '.github/workflows/release.yml'
-  workflow_dispatch:
 
 jobs:
   release:
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
       id-token: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-          scope: '@heliosjs'
+          node-version: 22
+          registry-url: https://registry.npmjs.org
 
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Install dependencies
+      - name: Install deps
         run: yarn install --frozen-lockfile
 
       - name: Build
         run: yarn build
 
-      - name: Update peer dependencies
-        run: node scripts/update-peer-deps.js
-
-      - name: Commit peer deps updates
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add src/*/package.json
-          git diff --staged --quiet || git commit -m "chore: update peer dependencies" || echo "No changes to commit"
-
-      - name: Version
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v1
+        with:
+          version: yarn version-packages
+          publish: yarn changeset publish
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx lerna version --conventional-commits --yes --no-private --no-push
-
-      - name: Build again
-        run: yarn build
-
-      - name: Configure npm for Trusted Publisher
-        run: |
-          npm config set registry https://registry.npmjs.org/
-
-      - name: Debug OIDC
-        run: |
-          echo "GitHub repo: $GITHUB_REPOSITORY"
-          echo "Workflow: $GITHUB_WORKFLOW"
-          echo "Ref: $GITHUB_REF"
-
-      - name: LS
-        run: cd src/core && ls -a && cd .. && ls  -a && cd ../../ && ls
-      - name: Publish core
-        run: npm publish -w @heliosjs/core --access public --provenance
-
-      - name: Publish http
-        run: npm publish -w @heliosjs/http --access public --provenance
-      - name: Publish aws
-        run: npm publish -w @heliosjs/aws --access public --provenance
-      - name: Publish middlewares
-        run: npm publish -w @heliosjs/middlewares --access public --provenance
-
-      - name: Go back
-        run: cd ../../
-
-      - name: Push changes and tags
-        run: git push --follow-tags
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
