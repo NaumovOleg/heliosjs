@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.3.5
+
+### Patch Changes
+
+- b396669: test
+
 ## 1.3.4
 
 ### Patch Changes

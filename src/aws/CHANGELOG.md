@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.3.4
+
+### Patch Changes
+
+- b396669: test
+- Updated dependencies [b396669]
+  - @heliosjs/core@1.3.5
+
 ## 1.3.3
 
 ### Patch Changes
