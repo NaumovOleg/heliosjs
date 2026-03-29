@@ -17,11 +17,12 @@
     "publish:public": "yarn workspaces run publish --access public",
     "publish:patch": "yarn version --patch && yarn workspaces run publish --access public",
     "publish:minor": "yarn version --minor && yarn workspaces run publish --access public",
-    "publish:major": "yarn version --major && yarn workspaces run publish --access public"
+    "publish:major": "yarn version --major && yarn workspaces run publish --access public",
+    "version-up": "node scripts/update-peer-deps.js && lerna version",
+    "publish:all": "pnpm run build && lerna publish"
   },
   "workspaces": [
     "src/core",
-    "src/socket",
     "src/middlewares",
     "src/http",
     "src/aws"
@@ -55,6 +56,7 @@
     "aws-lambda": "^1.0.7",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "conventional-changelog-conventionalcommits": "^9.3.0",
     "eslint": "9.22.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -66,6 +68,7 @@
     "graphql-ws": "^6.0.7",
     "graphql-yoga": "^5.18.1",
     "joi": "^18.0.2",
+    "lerna": "^9.0.7",
     "nodemon": "^3.1.14",
     "parse-multipart-data": "^1.5.0",
     "reflect-metadata": "^0.2.2",

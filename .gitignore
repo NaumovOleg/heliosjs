@@ -7,3 +7,4 @@ coverage/
 testing/
 src/examples/mock/*
 *.tsbuildinfo
+*.log

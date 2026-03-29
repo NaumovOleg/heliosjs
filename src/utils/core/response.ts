@@ -85,6 +85,7 @@ export class Res implements Response {
   // ==================== Status Methods ====================
 
   set status(code: number) {
+    if (!code) return;
     this._status = code;
     if (this.raw?.statusCode) {
       this.raw.statusCode = code;

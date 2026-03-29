@@ -218,7 +218,7 @@ export class Helios extends Plugin implements IHttpServer {
     sanitizeRequest(request, this.config.sanitizers ?? []);
 
     for (const middleware of this.staticMiddlewares) {
-      await middleware(request.raw, response.raw, NextFunction);
+      await middleware(request, response, NextFunction);
     }
     if (response.raw.headersSent) {
       return;

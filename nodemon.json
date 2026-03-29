@@ -8,5 +8,5 @@
     "src/examples"
   ],
   "ext": "ts,tsx",
-  "exec": "NODE_ENV=development && yarn build && ts-node --files -r tsconfig-paths/register ./src/examples/lambda.ts"
+  "exec": "NODE_ENV=development && yarn build && ts-node --files -r tsconfig-paths/register ./src/examples/server.ts"
 }

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { ServerResponse } from 'http';
+import { Response } from '../core';
 
 export interface StaticOptions {
   index?: string | boolean;
@@ -8,7 +8,7 @@ export interface StaticOptions {
   immutable?: boolean;
   dotfiles?: 'allow' | 'deny' | 'ignore';
   fallthrough?: boolean;
-  setHeaders?: (res: ServerResponse, path: string, stat: fs.Stats) => void;
+  setHeaders?: (res: Response, path: string, stat: fs.Stats) => void;
 }
 
 export interface StaticConfig {
@@ -23,5 +23,5 @@ export interface StaticOptions {
   immutable?: boolean;
   dotfiles?: 'allow' | 'deny' | 'ignore';
   fallthrough?: boolean;
-  setHeaders?: (res: ServerResponse, path: string, stat: fs.Stats) => void;
+  setHeaders?: (res: Response, path: string, stat: fs.Stats) => void;
 }
