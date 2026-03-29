@@ -16,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/NaumovOleg/heliosjs.git"
+    "url": "git+https://github.com/NaumovOleg/heliosjs.git"
   },
   "scripts": {
     "build": "yarn clean && tsc -p tsconfig.build.json",
