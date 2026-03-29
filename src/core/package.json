@@ -1,12 +1,14 @@
 {
   "name": "@heliosjs/core",
-  "version": "1.0.10",
+  "version": "1.0.13",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
   },
   "files": [
     "dist/*",
