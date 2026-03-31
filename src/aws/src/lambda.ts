@@ -73,7 +73,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
           return this.toLambdaResponse(request, response, eventType);
         }
         if (typeof instance.handleRequest !== 'function') {
-          throw new Error('Controller must have handleRequest method');
+          throw new TypeError('Controller must have handleRequest method');
         }
 
         await this.callPluginHook('beforeRoute', request, response);
@@ -173,7 +173,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
       meta: request,
       config,
     });
-    const eventType = getEventType(request.getLambdaEvent() as LambdaEvent);
+
     const statusCode = serialized.status || 500;
     const body = JSON.stringify(serialized);
 
@@ -184,11 +184,6 @@ export class Helios extends Plugin implements ILambdaAdapter {
       'Access-Control-Allow-Credentials': 'true',
     };
 
-    switch (eventType) {
-      case 'rest':
-        return { statusCode, headers, body, isBase64Encoded: false };
-      default:
-        return { statusCode, headers, body };
-    }
+    return { statusCode, headers, body, isBase64Encoded: false };
   }
 }

@@ -18,4 +18,15 @@ export {
   Response,
   SanitizerConfig,
 } from './types/core';
-export { SANITIZER } from './utils/core';
+export {
+  DependencyFailedError,
+  DuplicateEntryError,
+  ForbiddenError,
+  InvalidStateError,
+  NotFoundError,
+  RateLimitExceededError,
+  SANITIZER,
+  ServiceUnavailableError,
+  UnauthorizedError,
+  ValidationError,
+} from './utils/core';
