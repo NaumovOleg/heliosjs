@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.3.6
+
+### Patch Changes
+
+- daf13f1: exported custom errors
+
 ## 1.3.5
 
 ### Patch Changes
