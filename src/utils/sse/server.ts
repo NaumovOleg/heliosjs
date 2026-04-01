@@ -1,14 +1,13 @@
 // server/SSEServer.ts
-import { ServerResponse } from 'http';
-import { v4 as uuidv4 } from 'uuid';
+import { ServerResponse } from 'node:http';
 import { ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
-
+import { generateUniqueId } from '../shared';
 export class SSEServer implements ISSEServer {
-  private clients: Map<string, SSEClient> = new Map();
+  private readonly clients: Map<string, SSEClient> = new Map();
   controllers: any[] = [];
 
   public createConnection(res: ServerResponse): SSEClient {
-    const clientId = uuidv4();
+    const clientId = generateUniqueId();
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -89,7 +88,7 @@ export class SSEServer implements ISSEServer {
     for (const controller of this.controllers) {
       if (controller.sse.handlers && controller.sse.handlers[eventType]) {
         for (const handler of controller.sse.handlers[eventType]) {
-          await handler.fn(event).catch(console.log);
+          await handler.fn(event).catch(console.error);
         }
       }
     }

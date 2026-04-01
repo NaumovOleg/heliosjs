@@ -11,7 +11,7 @@ import {
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
 import { Request } from '../core';
-import { ControllerClass } from '../core/controller';
+import { ControllerType } from '../core/controller';
 import { Plugin } from './plugin';
 
 export interface LambdaFunctionUrlEvent {
@@ -80,6 +80,6 @@ export interface Lambda {
 
 export interface ILambdaAdapter {
   handler: Handler;
-  controllers: ControllerClass[];
+  controller: ControllerType;
   plugins: Plugin[];
 }

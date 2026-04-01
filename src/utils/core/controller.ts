@@ -4,28 +4,31 @@ import {
   ENDPOINT,
   MIDDLEWARES,
   OK_METADATA_KEY,
-  OK_STATUSES,
   PARAM_METADATA_KEY,
   SANITIZE,
   TO_VALIDATE,
 } from '../../constants';
 import {
   ControllerInstance,
+  ControllerMeta,
   ControllerMethods,
   CORSConfig,
+  ErorrHandler,
   HeliosError,
   HTTP_METHODS,
-  InterceptorCB,
   MiddlewareCB,
   ParamMetadata,
   Request,
   Response,
+  Route,
   SanitizerConfig,
 } from '../../types/core';
 import { validate } from '../shared';
 import { WebSocketService } from '../socket';
 import { SSEService } from '../sse';
-import { matchRoute } from './helper';
+import { handleCORS } from './cors';
+import { ForbiddenError } from './error';
+import { getParams } from './helper';
 import { MultipartProcessor } from './multipart';
 import { sanitizeRequest } from './sanitize';
 
@@ -45,7 +48,7 @@ const getBodyAndMultipart = (request: Request) => {
   return { multipart, body };
 };
 
-export const executeControllerMethod = async (
+export const executeControllerMethods = async (
   controller: ControllerInstance,
   propertyName: string,
   request: Request,
@@ -136,6 +139,140 @@ export const executeControllerMethod = async (
     }
 
     throw error;
+  }
+};
+
+export const execute = async (route: Route, request: Request, response: Response) => {
+  request.params = getParams(route.route, request.url);
+
+  const handledCors = (route.cors ?? []).reduce(
+    (acc, conf) => {
+      const cors = handleCORS(request, response, conf);
+      return {
+        permitted: acc.permitted && cors.permitted,
+        continue: acc.continue && cors.continue,
+      };
+    },
+    { permitted: true, continue: true },
+  );
+
+  if (!handledCors.permitted) {
+    response.status = 403;
+    response.error(new ForbiddenError('Cors not pemitted'));
+    return response;
+  }
+
+  if (!handledCors.continue && handledCors.permitted) {
+    response.status = 204;
+    return response;
+  }
+
+  try {
+    await applyMiddlewaresVsSanitizers(request, response, route);
+
+    const { body, multipart } = getBodyAndMultipart(request);
+
+    const args: unknown[] = [];
+
+    const totalParams = Math.max(
+      route.paramMetadata.length ? Math.max(...route.paramMetadata.map((p) => p.index)) + 1 : 0,
+    );
+
+    for (let i = 0; i < totalParams; i++) {
+      const param = route.paramMetadata.find((p) => p.index === i);
+
+      if (!param) {
+        args[i] = undefined;
+        continue;
+      }
+
+      let value = request[param.type as keyof Request];
+
+      if (param.type === 'multipart') {
+        value = multipart;
+      }
+      if (param.type === 'ws') {
+        value = WebSocketService.getInstance();
+      }
+      if (param.type === 'sse') {
+        value = SSEService.getInstance();
+      }
+      if (param.type === 'request') {
+        value = request;
+      }
+      if (param.type === 'body') {
+        value = body;
+      }
+      if (param.type === 'response') {
+        value = response;
+      }
+
+      if (TO_VALIDATE.includes(param.type)) {
+        const validated = await validate(param.dto, value);
+
+        value = param.name ? validated?.[param.name] : validated;
+      }
+
+      args[i] = value;
+    }
+    if (args.length === 0) {
+      args.push(request, response);
+    }
+
+    let data = await Promise.resolve(route.fn(...args));
+
+    const isError = data instanceof Error;
+
+    if (isError) {
+      response.error(data);
+    } else {
+      response.status = route.ok;
+      for (const interceptor of route.interceptors) {
+        data = await Promise.resolve(interceptor(data, data.request, data.response));
+      }
+    }
+
+    response.data = data;
+
+    return response;
+  } catch (error) {
+    let catched = error;
+    for (const functions of route.functions) {
+      if (!functions.errors.length) continue;
+      for (const handler of functions.errors) {
+        const resp = await Promise.resolve(handler(catched as Error, request, response)).catch(
+          (err) => err,
+        );
+        catched = resp;
+        if (resp instanceof Error) {
+          continue;
+        }
+        break;
+      }
+      if (catched instanceof Error) {
+        continue;
+      }
+      response.data = catched;
+      break;
+    }
+    if (catched instanceof Error) {
+      if (typeof error === 'string') {
+        const err = new Error(error);
+        const errorData = {
+          stack: `${err.name}: ${err.message}\n    at ${route.name}\n${err.stack}`,
+          original: error,
+          controller: route,
+          method: route.name,
+          status: 500,
+        };
+        Object.assign(err, errorData);
+        response.error(err);
+      } else {
+        response.error(catched);
+      }
+    }
+
+    return response;
   }
 };
 
@@ -233,7 +370,7 @@ export const findRouteInController = (
 
     const current = [path, routePattern].join('/').replace(/\/+/g, '/');
 
-    const pathParams = matchRoute(current, route);
+    const pathParams = getParams(current, route);
 
     if (pathParams) {
       const priority = httpMethod === 'ANY' ? 0 : Object.keys(pathParams).length > 0 ? 1 : 2;
@@ -258,66 +395,80 @@ export const NextFunction = (error?: HeliosError) => {
   if (error) throw { status: error.status ?? 500, message: error.message ?? error };
 };
 
-export const getResponse = async (data: {
-  controllerInstance: ControllerInstance;
-  name: string;
-  interceptors: InterceptorCB[];
-  request: Request;
-  response: Response;
-}) => {
-  let appResponse = await executeControllerMethod(
-    data.controllerInstance,
-    data.name,
-    data.request,
-    data.response,
-  );
-
-  if (!appResponse) {
-    return;
-  }
-
-  data.response.status = appResponse.status ?? 200;
-  const isError = !OK_STATUSES.includes(data.response.status);
-  const interceptors = data.interceptors.reverse();
-
-  for (let index = 0; index < interceptors?.length && !isError; index++) {
-    const interceptor = interceptors[index];
-    appResponse = await Promise.resolve(interceptor(appResponse, data.request, data.response));
-  }
-
-  const propertyName = data.name;
-  const prototype = Object.getPrototypeOf(data.controllerInstance);
-
-  const methodOkStatus = Reflect.getMetadata(
-    OK_METADATA_KEY,
-    data.controllerInstance,
-    propertyName,
-  );
-
-  if (!isError) {
-    data.response.status = methodOkStatus ?? Reflect.getMetadata(OK_METADATA_KEY, prototype);
-  }
-
-  return appResponse;
-};
-
 export const applyMiddlewaresVsSanitizers = async (
   request: Request,
   response: Response,
-  functions: {
-    sanitizers: SanitizerConfig[][];
-    middlewares: MiddlewareCB[][];
-  },
+  route: Route,
 ) => {
-  const length = Math.max(functions.sanitizers.length, functions.middlewares.length);
+  const handlers: ErorrHandler[] = [];
+  try {
+    for (const batch of route.functions) {
+      sanitizeRequest(request, batch.sanitizers);
+      handlers.unshift(...batch.errors);
 
-  for (let i = 0; i < length; i++) {
-    const mws = functions.middlewares[i] ?? [];
-    const sntzs = functions.sanitizers[i] ?? [];
-
-    sanitizeRequest(request, sntzs);
-    for (const middleware of mws) {
-      await middleware(request, response, NextFunction);
+      for (const middleware of batch.middlewares) {
+        await middleware(request, response, NextFunction);
+      }
     }
+  } catch (err: any) {
+    const promises = handlers.map((handler) => handler(err, request, response));
+
+    return Promise.all(promises).catch((err) => err);
   }
+};
+
+export const collectRoutes = (
+  instance: ControllerInstance,
+  meta: ControllerMeta,
+  prefix: string = '/',
+) => {
+  const prototype = Object.getPrototypeOf(instance);
+  const propertyNames = getAllMethods(instance);
+
+  const routes: Route[] = [];
+
+  for (const name of propertyNames) {
+    if (
+      [
+        'constructor',
+        'meta',
+        'getResponse',
+        'routeWalker',
+        'getAllMethods',
+        'findRouteInController',
+      ].includes(name)
+    )
+      continue;
+
+    const endpointMeta = Reflect.getMetadata(ENDPOINT, prototype, name) || [];
+    const sanitizer = Reflect.getMetadata(SANITIZE, prototype, name);
+    const paramMetadata = Reflect.getMetadata(PARAM_METADATA_KEY, prototype, name) || [];
+    const ok = Reflect.getMetadata(OK_METADATA_KEY, prototype, name);
+    if (endpointMeta.length === 0) continue;
+
+    const [method, route, middlewares = []] = endpointMeta;
+    const current = [prefix, route].join('/').replace(/\/+/g, '/');
+
+    const functions = {
+      errors: [],
+      sanitizers: sanitizer ? [sanitizer] : [],
+      middlewares,
+    };
+
+    routes.push({
+      name,
+      route: current,
+      method,
+      paramMetadata,
+      cors: [...meta.cors, Reflect.getMetadata(CORS_METADATA, prototype, name)].filter(
+        (el) => !!el,
+      ),
+      ok: ok ?? 200,
+      interceptors: meta.interceptors,
+      functions: [...meta.functions, functions],
+      fn: instance[name].bind(instance),
+    });
+  }
+
+  return routes;
 };

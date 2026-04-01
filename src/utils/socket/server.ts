@@ -1,5 +1,4 @@
 import http from 'http';
-import { v4 as uuidv4 } from 'uuid';
 import WebSocket, { WebSocketServer as Server } from 'ws';
 import { ControllerType } from '../../types/core';
 import {
@@ -8,13 +7,14 @@ import {
   WebSocketEvent,
   WebSocketMessage,
 } from '../../types/ws';
+import { generateUniqueId } from '../shared';
 
 export class WebSocketServer implements IWebSocketServer {
   wss: Server;
-  private clients: Map<string, WebSocketClient> = new Map();
-  private topics: Map<string, Set<string>> = new Map();
+  private readonly clients: Map<string, WebSocketClient> = new Map();
+  private readonly topics: Map<string, Set<string>> = new Map();
   private controllers: ControllerType[] = [];
-  private options: any;
+  private readonly options: any;
 
   constructor(server: http.Server, options?: { path: string }) {
     this.options = options;
@@ -49,7 +49,7 @@ export class WebSocketServer implements IWebSocketServer {
   }
 
   private async handleConnection(socket: WebSocket) {
-    const clientId = uuidv4();
+    const clientId = generateUniqueId();
     const client: WebSocketClient = {
       id: clientId,
       socket,

@@ -1,4 +1,3 @@
-import { CORS_METADATA } from './constants';
 import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 
 import {
@@ -8,20 +7,28 @@ import {
   Context,
   Handler,
 } from 'aws-lambda';
-import { ControllerClass, ErrorObject, Request, Response } from './types/core';
+import {
+  ControllerClass,
+  ControllerMeta,
+  ControllerType,
+  ErrorObject,
+  Request,
+  Response,
+} from './types/core';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
-import { ApplicationError, getErrorType, handleCORS } from './utils/core';
+import { ApplicationError, getErrorType } from './utils/core';
 
 export class Helios extends Plugin implements ILambdaAdapter {
   handler: Handler;
-  controllers: ControllerClass[] = [];
+  controller: ControllerType;
   plugins: LambdaPlugin[] = [];
-  constructor(Controller: ControllerClass) {
+  constructor(controller: ControllerClass) {
     super();
 
-    this.controllers.push(Controller);
+    this.controller = this.compileController(controller);
     this.handler = this.createHandler();
   }
+  controllers: ControllerClass[];
 
   private createHandler(): Handler {
     return async (event: LambdaEvent, context: Context) => {
@@ -41,6 +48,20 @@ export class Helios extends Plugin implements ILambdaAdapter {
     };
   }
 
+  private compileController(ControllerClass: ControllerClass) {
+    const prefix = '/';
+    const functions = [{ middlewares: [], errors: [], sanitizers: [] }];
+    const meta: ControllerMeta = {
+      prefix,
+      routes: [],
+      functions,
+      interceptors: [],
+      cors: [],
+    };
+
+    return new ControllerClass(meta) as ControllerType;
+  }
+
   private async runControllers(meta: {
     request: Request;
     response: Response;
@@ -51,39 +72,16 @@ export class Helios extends Plugin implements ILambdaAdapter {
     const { request, response, eventType } = meta;
     let processed;
 
-    for (const ControllerClass of this.controllers ?? []) {
-      const instance = new ControllerClass();
-
-      try {
-        const cors = Reflect.getMetadata(CORS_METADATA, instance);
-
-        let handledCors = { permitted: true, continue: true };
-        if (cors) {
-          handledCors = handleCORS(request, response, cors);
-        }
-
-        if (!handledCors.permitted) {
-          meta.response.status = 403;
-          meta.response.data = { message: 'Cors: Origin not allowed' };
-          return this.toLambdaResponse(request, response, eventType);
-        }
-
-        if (!handledCors.continue && handledCors.permitted) {
-          response.status = 204;
-          return this.toLambdaResponse(request, response, eventType);
-        }
-        if (typeof instance.handleRequest !== 'function') {
-          throw new TypeError('Controller must have handleRequest method');
-        }
-
-        await this.callPluginHook('beforeRoute', request, response);
-
-        processed = await instance.handleRequest(request, response);
-
-        if (processed) break;
-      } catch (error: unknown) {
-        return this.handleError(error as ErrorObject, request);
+    try {
+      if (typeof this.controller.handleRequest !== 'function') {
+        throw new TypeError('Controller must have handleRequest method');
       }
+
+      await this.callPluginHook('beforeRoute', request, response);
+
+      processed = await this.controller.handleRequest(request, response);
+    } catch (error: unknown) {
+      return this.handleError(error as ErrorObject, request);
     }
 
     if (getErrorType(response?.data).isError) {
@@ -143,14 +141,6 @@ export class Helios extends Plugin implements ILambdaAdapter {
         return { ...commonResponse, isBase64Encoded: false };
 
       case 'http':
-        return {
-          ...commonResponse,
-          cookies: request.cookies
-            ? Object.entries(request.cookies).map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-            : undefined,
-        };
-
-      case 'url':
         return {
           ...commonResponse,
           cookies: request.cookies

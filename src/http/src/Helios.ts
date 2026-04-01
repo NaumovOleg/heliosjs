@@ -1,9 +1,16 @@
 import { useServer } from 'graphql-ws/use/ws';
 import { createPubSub, createYoga } from 'graphql-yoga';
-import http, { IncomingMessage, ServerResponse } from 'http';
+import http, { IncomingMessage, ServerResponse } from 'node:http';
 import { buildSchema, NonEmptyArray } from 'type-graphql';
 import { CONTROLLERS } from './constants';
-import { ControllerType, MiddlewareCB, Request, Response } from './types/core';
+import {
+  ControllerClass,
+  ControllerMeta,
+  ControllerType,
+  MiddlewareCB,
+  Request,
+  Response,
+} from './types/core';
 import { Plugin as HttpPlugin, IHttpServer, ServerConfig } from './types/http';
 import { handleCORS, NextFunction, sanitizeRequest } from './utils/core';
 import {
@@ -17,23 +24,25 @@ import { WebSocketServer, WebSocketService } from './utils/socket';
 import { SSEServer, SSEService } from './utils/sse';
 
 export class Helios extends Plugin implements IHttpServer {
-  private config: ServerConfig;
+  private readonly config: ServerConfig;
   private isRunning: boolean = false;
-  private sse?: SSEServer;
+  private readonly sse?: SSEServer;
   private websocket?: WebSocketServer;
   controllers: ControllerType[] = [];
   middlewares: MiddlewareCB[] = [];
+  globalMiddlewares: MiddlewareCB[] = [];
   app: http.Server;
   plugins: HttpPlugin[] = [];
-  allContriollers: ControllerType[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   staticMiddlewares: ((...args: any[]) => any)[] = [];
+  rootControllers: ControllerType[] = [];
 
   constructor(configOrClass: new (...args: unknown[]) => unknown) {
     super();
     this.config = resolveConfig(configOrClass);
 
     this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);
+    this.rootControllers = this.compileControllers(this.config.controllers ?? []);
     this.controllers = this.collectControllers(this.config.controllers ?? []);
 
     this.app = http.createServer(this.requestHandler.bind(this));
@@ -65,32 +74,8 @@ export class Helios extends Plugin implements IHttpServer {
 
   setUpWebsocket() {
     this.websocket = new WebSocketServer(this.app, { path: this.config.websocket?.path ?? '/ws' });
-    this.websocket.registerControllers(this.controllers);
-    WebSocketService.getInstance().initialize(this.websocket!);
-  }
-
-  private collectControllers(controllers: ControllerType[] = []): ControllerType[] {
-    const result: ControllerType[] = [];
-    for (const ControllerClass of controllers) {
-      if (typeof ControllerClass !== 'function') {
-        continue;
-      }
-      if (!result.includes(ControllerClass)) {
-        result.push(ControllerClass);
-      }
-      const subControllers = Reflect.getMetadata(CONTROLLERS, ControllerClass.prototype) || [];
-
-      if (subControllers.length > 0) {
-        const nestedControllers = this.collectControllers(subControllers);
-        for (const nested of nestedControllers) {
-          if (!result.includes(nested)) {
-            result.push(nested);
-          }
-        }
-      }
-    }
-
-    return result;
+    this.websocket.registerControllers(this.config.websocket?.controllers ?? []);
+    WebSocketService.getInstance().initialize(this.websocket);
   }
 
   private logConfig() {
@@ -100,13 +85,15 @@ export class Helios extends Plugin implements IHttpServer {
 ╠════════════════════════════════════════╣
 ║  📍 Host: ${this.config.host}                       
 ║  🔌 Port: ${this.config.port}                         
-║  🔌 Websocket: ${!!this.config.websocket && this.config.graphql?.pubSub}                         
+║  🔌 Websocket: ${!!this.config.websocket}                         
 ║  🔌 Websocket path prefix: ${this.config.websocket?.path ?? '/ws'}                       
 ║  🔧 Global Middlewares: ${this.middlewares?.length || 0}                   
 ║  🔧 Error handler: ${!this.config.errorHandler}                   
-║  🎯 Global Interceptors: ${!!this.config.interceptor?.length}                   
-║  📦 Root controllers: ${this.config.controllers?.length ?? 0}                   
-║  📦 Sub controllers: ${this.controllers.length - (this.config.controllers?.length ?? 0)}                                    
+║  🎯 Global Interceptors: ${!!this.config.interceptors?.length}                   
+║  📦 Controllers: ${this.controllers?.length ?? 0}                   
+║  📦 Sub controllers: ${
+      this.controllers.length - (this.config.controllers?.length ?? 0)
+    }                                    
 ║  📦 GraphQL resolvers: ${this.config.graphql?.resolvers?.length ?? 0}                   
 ╚════════════════════════════════════════╝
     `);
@@ -223,14 +210,35 @@ export class Helios extends Plugin implements IHttpServer {
     if (response.raw.headersSent) {
       return;
     }
-    for (const middleware of this.middlewares?.reverse() || []) {
+    for (const middleware of this.globalMiddlewares) {
       await middleware(request, response, NextFunction);
     }
   }
+  private collectControllers(controllers: ControllerType[] = []): ControllerType[] {
+    const result: ControllerType[] = [];
+    for (const ControllerClass of controllers) {
+      if (typeof ControllerClass !== 'function') {
+        continue;
+      }
+      if (!result.includes(ControllerClass)) {
+        result.push(ControllerClass);
+      }
+      const subControllers = Reflect.getMetadata(CONTROLLERS, ControllerClass.prototype) || [];
 
+      if (subControllers.length > 0) {
+        const nestedControllers = this.collectControllers(subControllers);
+        for (const nested of nestedControllers) {
+          if (!result.includes(nested)) {
+            result.push(nested);
+          }
+        }
+      }
+    }
+
+    return result;
+  }
   private async runController(request: Request, response: Response) {
-    for (const ControllerClass of this.controllers ?? []) {
-      const instance = new ControllerClass();
+    for (const instance of this.controllers ?? []) {
       if (typeof instance.handleRequest === 'function') {
         const done = await instance.handleRequest(request, response);
         if (done) {
@@ -238,6 +246,31 @@ export class Helios extends Plugin implements IHttpServer {
         }
       }
     }
+  }
+  private compileControllers(appControllers: ControllerClass[]) {
+    const prefix = '/';
+    const functions = [
+      {
+        middlewares: this.middlewares ?? [],
+        errors: this.config.errorHandler ? [this.config.errorHandler] : [],
+        sanitizers: this.config.sanitizers ?? [],
+      },
+    ];
+    const meta: ControllerMeta = {
+      prefix,
+      routes: [],
+      functions,
+      interceptors: this.config.interceptors ?? [],
+      cors: this.config.cors ? [this.config.cors] : [],
+    };
+
+    const controllers: ControllerType[] = [];
+
+    for (const ControllerClass of appControllers ?? []) {
+      controllers.push(new ControllerClass(meta));
+    }
+
+    return controllers;
   }
 
   private async sendResponse(
@@ -264,7 +297,7 @@ export class Helios extends Plugin implements IHttpServer {
   }
 
   private async setupGraphQL() {
-    if (!this.config.graphql || !this.config.graphql?.resolvers?.length) return;
+    if (!this.config.graphql?.resolvers?.length) return;
 
     const graphqlWsServer = new WebSocketServer(this.app, {
       path: this.config.graphql.path ?? '/graphql',
@@ -300,15 +333,15 @@ export class Helios extends Plugin implements IHttpServer {
         graphqlWsServer.wss,
       );
       this.use(async (req, res) => {
-        if (req.requestUrl.pathname?.startsWith('/graphql')) {
-          await yoga(req.raw, res.raw);
+        if (req.requestUrl.pathname?.startsWith(this.config.graphql?.path ?? '/graphql')) {
+          yoga(req.raw, res.raw);
         }
       });
     }
   }
 
   public use(middleware: MiddlewareCB): this {
-    this.middlewares.unshift(middleware);
+    this.globalMiddlewares.unshift(middleware);
     return this;
   }
 }

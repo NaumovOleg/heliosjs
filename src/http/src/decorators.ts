@@ -14,7 +14,7 @@ import { ServerConfig } from './types/http';
  *
  * This decorator merges the provided configuration with any existing metadata on the target class.
  */
-export function Server(config: ServerConfig = {}) {
+export function Server(config: Omit<ServerConfig, 'interceptors'> = {}) {
   return function (target: any) {
     const existingConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, target) || {};
 

@@ -1,4 +1,4 @@
-import { ServerResponse } from 'http';
+import { ServerResponse } from 'node:http';
 import { HeliosError } from './error';
 import { Request } from './request';
 import { Response } from './response';

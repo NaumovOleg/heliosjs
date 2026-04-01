@@ -1,4 +1,4 @@
-import http from 'http';
+import http from 'node:http';
 import 'reflect-metadata';
 import { CATCH, INTECEPT, SANITIZE, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '../../constants';
 import { ServerConfig } from '../../types/http';
@@ -22,7 +22,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
   }
   const decoratorConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, configOrClass) || {};
   const errorHandler = Reflect.getMetadata(CATCH, configOrClass);
-  const interceptors = Reflect.getMetadata(INTECEPT, configOrClass);
+  const interceptor = Reflect.getMetadata(INTECEPT, configOrClass);
   const middlewares = Reflect.getMetadata(USE_MIDDLEWARE, configOrClass);
   const sanitizers = Reflect.getMetadata(SANITIZE, configOrClass.prototype) || [];
 
@@ -31,7 +31,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     host: 'localhost',
     ...decoratorConfig,
     errorHandler: decoratorConfig.errorHandler ?? errorHandler,
-    interceptors: (interceptors ?? []).filter((el: unknown) => !!el),
+    interceptors: [interceptor].filter((el: unknown) => !!el),
     middlewares:
       decoratorConfig.middlewares.concat(middlewares).filter((el: unknown) => !!el) ?? [],
     cors: decoratorConfig.cors,

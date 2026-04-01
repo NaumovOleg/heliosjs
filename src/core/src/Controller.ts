@@ -16,19 +16,20 @@ import {
 import {
   ControllerClass,
   ControllerConfig,
-  ControllerMetadata,
-  CORSConfig,
-  ErorrHandler,
+  ControllerMeta,
   InterceptorCB,
-  MiddlewareCB,
   Request,
   Response,
-  RouteContext,
-  SanitizerConfig,
   SeeControllerHandlers,
   WsControllerHandlers,
 } from './types/core';
-import { executeControllerMethod, getControllerMethods, routeWalker } from './utils/core';
+import {
+  collectRoutes,
+  execute,
+  getControllerMethods,
+  matchRoutes,
+  NotFoundError,
+} from './utils/core';
 
 /**
  * Class decorator to define a controller with optional configuration.
@@ -80,74 +81,66 @@ export function Controller(
       Object.defineProperty(proto, key, descriptor);
     }
 
-    return class extends constructor {
+    return class C extends constructor {
       ws?: WsControllerHandlers;
       sse?: SeeControllerHandlers;
-      executeControllerMethod = executeControllerMethod;
+      execute = execute;
       getControllerMethods = getControllerMethods;
-      routePrefix?: string;
-      middlewares: MiddlewareCB[] = [];
-      interceptor?: InterceptorCB;
-      subControllers: ControllerMetadata[] = [];
-      errorHandler?: ErorrHandler;
-      cors?: CORSConfig;
-      sanitizers?: SanitizerConfig[];
+
+      precompiled: ControllerMeta;
 
       constructor(...args: any[]) {
         super(...args);
         this.lookupWS();
         this.lookupSSE();
+
+        this.precompiled = this.meta(args[0]);
       }
 
-      handleRequest = async (request: Request, response: Response) => {
-        const middlewares = this.middlewares
-          .concat(Reflect.getMetadata(MIDDLEWARES, proto))
+      meta = (parent: ControllerMeta): ControllerMeta => {
+        let prefix = parent.prefix + '/' + (Reflect.getMetadata(ROUTE_PREFIX, proto) ?? '/');
+        prefix = prefix.replaceAll(/\/+/g, '/');
+        const middlewares = [Reflect.getMetadata(MIDDLEWARES, proto)]
+          .flat()
           .concat(Reflect.getMetadata(USE_MIDDLEWARE, constructor))
           .filter((el) => !!el);
 
-        const routePrefix = this.routePrefix ?? Reflect.getMetadata(ROUTE_PREFIX, proto) ?? '/';
-        const interceptor = this.interceptor ?? Reflect.getMetadata(INTERCEPTOR, proto);
-        const subControllers =
-          this.subControllers.concat(Reflect.getMetadata(CONTROLLERS, proto)) ?? [];
-        const errorHandler = this.errorHandler ?? Reflect.getMetadata(CATCH, constructor);
-        const cors = this.cors ?? Reflect.getMetadata(CORS_METADATA, proto);
-        const sanitizers = this.sanitizers ?? Reflect.getMetadata(SANITIZE, proto) ?? [];
+        const interceptor = Reflect.getMetadata(INTERCEPTOR, proto);
+        const subControllers = Reflect.getMetadata(CONTROLLERS, proto);
+        const errorHandler = Reflect.getMetadata(CATCH, constructor);
+        const cors = Reflect.getMetadata(CORS_METADATA, proto);
+        const sanitizer = Reflect.getMetadata(SANITIZE, proto);
 
-        const context: RouteContext = {
-          controllerInstance: this,
-          controllerMeta: {
-            routePrefix,
-            middlewares,
-            interceptor,
-            subControllers,
-            errorHandler,
-            cors,
-            sanitizers,
-          },
-          path: (request.requestUrl.pathname ?? '').replace(/^\/+/g, ''),
-          method: request.method.toUpperCase(),
-          middlewareChain: [],
-          interceptorChain: [],
-          sanitizersChain: [],
-          corsChain: [cors],
-          errorHandlerChain: [errorHandler],
-          subPath: routePrefix,
+        const functions = {
+          errors: errorHandler ? [errorHandler] : [],
+          middlewares,
+          sanitizers: sanitizer ? [sanitizer] : [],
         };
 
-        try {
-          const done = await routeWalker(context, request, response);
+        const meta: ControllerMeta = {
+          routes: [],
+          functions: [...parent.functions, functions],
+          prefix,
+          interceptors: [interceptor, ...parent.interceptors].filter((e) => !!e),
+          cors: [...parent.cors, cors].filter((e) => !!e),
+        };
 
-          if (!done) {
-            response.status = 404;
-            response.data = 'Route not found';
-            return false;
-          }
+        meta.routes = collectRoutes(this, meta, prefix);
+        const children = subControllers.map((Controller: any) => new Controller(meta).precompiled);
+        meta.children = children;
 
-          return true;
-        } catch (err) {
-          response.error(err);
-          return true;
+        return meta;
+      };
+
+      handleRequest = async (request: Request, response: Response) => {
+        const matched = matchRoutes(this.precompiled, request.url, request.method);
+        if (!matched) {
+          return response.error(
+            new NotFoundError(`Route ${request.url} not found`, request.requestId),
+          );
         }
+
+        return this.execute(matched, request, response);
       };
 
       lookupWS() {

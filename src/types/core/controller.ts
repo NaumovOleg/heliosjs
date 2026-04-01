@@ -1,11 +1,11 @@
-import { ServerResponse } from 'http';
-import { ErrorCB, HTTP_METHODS, InterceptorCB, MiddlewareCB } from './common';
+import { HTTP_METHODS, InterceptorCB, MiddlewareCB, ParamMetadata } from './common';
 import { CORSConfig } from './cors';
+import { ErorrHandler } from './error';
 import { Request } from './request';
+import { Response } from './response';
 import { SanitizerConfig } from './sanitize';
 
 export type ControllerClass = { new (...args: any[]): any };
-// export type ControllerInstance = InstanceType<ControllerClass>;
 
 export type ControllerMethods = Array<{
   name: string;
@@ -15,7 +15,7 @@ export type ControllerMethods = Array<{
 }>;
 
 export type ControllerType = {
-  handleRequest?(request: Request, response: ServerResponse): Promise<any>;
+  handleRequest?(request: Request, response: Response): Promise<any>;
   ws?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
   new (...args: any[]): any;
@@ -28,7 +28,7 @@ export type ControllerMetadata = {
   middlewares: MiddlewareCB[];
   interceptor?: InterceptorCB;
   subControllers: ControllerInstance[];
-  errorHandler?: ErrorCB;
+  errorHandler?: ErorrHandler;
   cors?: CORSConfig;
   sanitizers: SanitizerConfig[];
 };
@@ -48,7 +48,7 @@ export type RouteContext = {
   middlewareChain: MiddlewareCB[];
   interceptorChain: InterceptorCB[];
   corsChain: CORSConfig[];
-  errorHandlerChain: ErrorCB[];
+  errorHandlerChain: ErorrHandler[];
   subPath: string;
   sanitizersChain: SanitizerConfig[];
 };
@@ -84,4 +84,31 @@ export type SeeControllerHandlers = {
     error: HandlerMeta[];
   };
 };
+export type Route = {
+  name: string;
+  route: string;
+  method: HTTP_METHODS;
+  cors?: CORSConfig[];
+  ok: number;
+  paramMetadata: ParamMetadata[];
+  interceptors: InterceptorCB[];
+  functions: {
+    sanitizers: SanitizerConfig[];
+    errors: ErorrHandler[];
+    middlewares: MiddlewareCB[];
+  }[];
+  fn: (...args: any[]) => any;
+};
 export type NextFunction = (error?: unknown) => void;
+export type ControllerMeta = {
+  prefix: string;
+  routes: Route[];
+  interceptors: InterceptorCB[];
+  cors: CORSConfig[];
+  functions: {
+    sanitizers: SanitizerConfig[];
+    errors: ErorrHandler[];
+    middlewares: MiddlewareCB[];
+  }[];
+  children?: ControllerMeta[];
+};

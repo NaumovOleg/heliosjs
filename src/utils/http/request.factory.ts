@@ -1,7 +1,6 @@
-import { IncomingMessage } from 'http';
-import { v4 } from 'uuid';
+import { IncomingMessage } from 'node:http';
 import { Req } from '../core/request';
-import { parseBody, parseQuery, parseRequestCookie } from '../shared';
+import { generateUniqueId, parseBody, parseQuery, parseRequestCookie } from '../shared';
 import { collectRawBody } from './server';
 
 export class RequestFactory {
@@ -46,7 +45,7 @@ export class RequestFactory {
       cookies,
       sourceIp,
       userAgent: (req.headers['user-agent'] as string) || 'unknown',
-      requestId: v4(),
+      requestId: generateUniqueId(),
       stage: 'http',
       timestamp: new Date(),
       raw: req,

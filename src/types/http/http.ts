@@ -1,11 +1,9 @@
-import { Server } from 'http';
+import { Server } from 'node:http';
 import { PubSub } from 'type-graphql';
 import { InterceptorCB, MiddlewareCB } from '../core/common';
 import { ControllerClass, ControllerType } from '../core/controller';
 import { CORSConfig } from '../core/cors';
-import { HeliosError } from '../core/error';
-import { Request } from '../core/request';
-import { Response } from '../core/response';
+import { ErorrHandler } from '../core/error';
 import { SanitizerConfig } from '../core/sanitize';
 import { Plugin } from './plugin';
 import { StaticConfig } from './static';
@@ -34,12 +32,13 @@ export interface ServerConfig {
    * @type {InterceptorCB}
    */
   interceptor?: InterceptorCB;
+  interceptors: InterceptorCB[];
 
   /**
    * Error handling callback
-   * @type {ErrorCB}
+   * @type {ErorrHandler}
    */
-  errorHandler?: (error: HeliosError, req: Request, response: Response) => unknown;
+  errorHandler?: ErorrHandler;
 
   /**
    * Array of controller types
@@ -69,7 +68,7 @@ export interface ServerConfig {
    * WebSocket enablement and lazy loading
    * @type {{ path: string; lazy?: boolean }}
    */
-  websocket?: { path: string; lazy?: boolean };
+  websocket?: { path: string; lazy?: boolean; controllers: ControllerType[] };
 
   /**
    * Server-Sent Events enablement
