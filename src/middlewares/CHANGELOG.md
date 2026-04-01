@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.0.0
+
+### Minor Changes
+
+- 73d74d9: routing
+
+### Patch Changes
+
+- Updated dependencies [73d74d9]
+- Updated dependencies [daf13f1]
+  - @heliosjs/core@1.4.0
+
 ## 1.5.4
 
 ### Patch Changes

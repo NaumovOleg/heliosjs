@@ -1,5 +1,15 @@
 # Change Log
 
+## 1.4.0
+
+### Minor Changes
+
+- 73d74d9: routing
+
+### Patch Changes
+
+- daf13f1: exported custom errors
+
 ## 1.3.5
 
 ### Patch Changes
