@@ -238,9 +238,10 @@ export class Helios extends Plugin implements IHttpServer {
     return result;
   }
   private async runController(request: Request, response: Response) {
-    for (const instance of this.controllers ?? []) {
+    for (const instance of this.rootControllers ?? []) {
       if (typeof instance.handleRequest === 'function') {
         const done = await instance.handleRequest(request, response);
+
         if (done) {
           break;
         }

@@ -5,6 +5,7 @@ export * from './dependencyFailed';
 export * from './duplicateEntry';
 export * from './forbidden';
 export * from './helpers';
+export * from './internal';
 export * from './invalidState';
 export * from './notfound';
 export * from './rateLimit';
