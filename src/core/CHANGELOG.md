@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.1
+
+### Patch Changes
+
+- a0ee0fc: http fixes
+
 ## 1.4.0
 
 ### Minor Changes
