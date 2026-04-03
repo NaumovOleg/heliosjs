@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.2
+
+### Patch Changes
+
+- 266a867: fixes
+
 ## 1.4.1
 
 ### Patch Changes

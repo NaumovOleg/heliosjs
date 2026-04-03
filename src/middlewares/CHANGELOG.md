@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.0.2
+
+### Patch Changes
+
+- 266a867: fixes
+- Updated dependencies [266a867]
+  - @heliosjs/core@1.4.2
+
 ## 2.0.1
 
 ### Patch Changes
