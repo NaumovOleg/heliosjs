@@ -14,7 +14,7 @@ export const USE_MIDDLEWARE = 'controller:usemiddleware';
 export const WS_HANDLER = 'websocket:handler';
 export const WS_TOPIC_KEY = 'websocket:topic';
 export const WS_SERVICE_KEY = 'websocket:service';
-export const INTECEPT = 'server:intercept';
+export const INTERCEPT = 'server:intercept';
 export const CATCH = 'server:catch';
 export const SANITIZE = 'action:sanitize';
 

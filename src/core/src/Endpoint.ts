@@ -92,7 +92,7 @@ export const DELETE = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  *
  * @param pathPattern - Optional route pattern string.
  * @param middlewares - Optional array of middlewares.
- * @returns Method decorator for DELETE endpoint.
+ * @returns Method decorator for OPTIONS endpoint.
  */
 export const OPTIONS = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.OPTIONS, pathPattern, middlewares);
@@ -102,7 +102,7 @@ export const OPTIONS = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  *
  * @param pathPattern - Optional route pattern string.
  * @param middlewares - Optional array of middlewares.
- * @returns Method decorator for DELETE endpoint.
+ * @returns Method decorator for HEAD endpoint.
  */
 export const HEAD = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.HEAD, pathPattern, middlewares);

@@ -1,6 +1,6 @@
 import http from 'node:http';
 import 'reflect-metadata';
-import { CATCH, INTECEPT, SANITIZE, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '../../constants';
+import { CATCH, INTERCEPT, SANITIZE, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '../../constants';
 import { ServerConfig } from '../../types/http';
 
 /**
@@ -22,7 +22,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
   }
   const decoratorConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, configOrClass) || {};
   const errorHandler = Reflect.getMetadata(CATCH, configOrClass);
-  const interceptor = Reflect.getMetadata(INTECEPT, configOrClass);
+  const interceptor = Reflect.getMetadata(INTERCEPT, configOrClass);
   const middlewares = Reflect.getMetadata(USE_MIDDLEWARE, configOrClass);
   const sanitizers = Reflect.getMetadata(SANITIZE, configOrClass.prototype) || [];
 

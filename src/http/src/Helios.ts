@@ -53,7 +53,7 @@ export class Helios extends Plugin implements IHttpServer {
     }
 
     if (this.config.websocket && this.config.graphql) {
-      throw new Error(`You  cant't use custom websocket with graphql`);
+      throw new Error(`You  can't use custom websocket with graphql`);
     }
     if (this.config.websocket) {
       this.setUpWebsocket();
