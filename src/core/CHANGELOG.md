@@ -1,5 +1,15 @@
 # Change Log
 
+## 2.0.0
+
+### Major Changes
+
+- meta
+
+### Patch Changes
+
+- 266a867: fixes
+
 ## 1.4.1
 
 ### Patch Changes

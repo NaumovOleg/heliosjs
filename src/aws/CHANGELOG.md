@@ -1,5 +1,18 @@
 # Change Log
 
+## 3.0.0
+
+### Major Changes
+
+- meta
+
+### Patch Changes
+
+- 266a867: fixes
+- Updated dependencies
+- Updated dependencies [266a867]
+  - @heliosjs/core@2.0.0
+
 ## 2.0.1
 
 ### Patch Changes

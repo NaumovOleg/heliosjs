@@ -19,6 +19,7 @@
     "build:middlewares": "yarn workspace @heliosjs/middlewares run build",
     "dev": "nodemon --config ./nodemon.json",
     "link-packages": "chmod +x ./setup-symlinks.sh && ./setup-symlinks.sh",
+    "make-tag": "changeset tag",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "changeset publish --provenance --access public"
