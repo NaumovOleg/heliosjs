@@ -1,11 +1,14 @@
-import { USE_MIDDLEWARE } from './constants';
+import { CONTROLLER_CONFIG } from './constants';
 import { MiddlewareCB } from './types/core';
+import { reflectMeta } from './utils/shared';
 
 export function Use(middleware: MiddlewareCB | MiddlewareCB[]) {
   return function (target: any) {
-    const existed = Reflect.getMetadata(USE_MIDDLEWARE, target) || [];
+    const middlewares = Array.isArray(middleware) ? middleware : [middleware];
 
-    Reflect.defineMetadata(USE_MIDDLEWARE, existed.concat(middleware).reverse(), target);
+    const meta = reflectMeta(target, 'sub');
+    meta.use.push(...middlewares);
+    Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
 
     return target;
   };

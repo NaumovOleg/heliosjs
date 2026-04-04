@@ -1,6 +1,7 @@
-import { CATCH } from './constants';
-import { ErrorCB } from './types/core';
+import { CONTROLLER_CONFIG } from './constants';
+import { ErorrHandler } from './types/core';
 
+import { reflectMeta } from './utils/shared';
 /**
  * Decorator to register a global or controller-level error handler.
  *
@@ -9,7 +10,7 @@ import { ErrorCB } from './types/core';
  * It attaches the handler as metadata on the target class, allowing the framework to
  * retrieve and execute the error handler appropriately during runtime.
  *
- * @param {ErrorCB} handler - The error callback function to handle errors.
+ * @param {ErorrHandler} handler - The error callback function to handle errors.
  *
  * @returns {Function} A class decorator function that defines the error handler metadata.
  *
@@ -28,9 +29,11 @@ import { ErrorCB } from './types/core';
  * This metadata is accessible via Reflect API and used internally by the framework
  * to invoke the registered error handler when errors occur.
  */
-export function Catch(handler: ErrorCB) {
+export function Catch(handler: ErorrHandler) {
   return function (target: any) {
-    Reflect.defineMetadata(CATCH, handler, target);
+    const meta = reflectMeta(target, 'sub');
+    meta.catch.push(handler);
+    Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
 
     return target;
   };

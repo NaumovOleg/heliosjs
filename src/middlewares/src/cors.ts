@@ -1,5 +1,6 @@
-import { CORS_METADATA } from './constants';
+import { CONTROLLER_CONFIG, CORS_METADATA } from './constants';
 import { CORSConfig, HTTP_METHODS } from './types/core';
+import { reflectMeta } from './utils/shared';
 
 /**
  * Decorator to configure Cross-Origin Resource Sharing (CORS) settings for HTTP controllers or methods.
@@ -49,7 +50,9 @@ export function Cors(config: CORSConfig = {}) {
     if (propertyKey && descriptor) {
       Reflect.defineMetadata(CORS_METADATA, finalConfig, target, propertyKey);
     } else {
-      Reflect.defineMetadata(CORS_METADATA, finalConfig, target.prototype || target);
+      const meta = reflectMeta(target, 'sub');
+      meta.cors.push(finalConfig);
+      Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
     }
   };
 }

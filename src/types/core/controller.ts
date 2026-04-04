@@ -23,35 +23,13 @@ export type ControllerType = {
 
 export type ControllerInstance = InstanceType<ControllerType>;
 
-export type ControllerMetadata = {
-  routePrefix: string;
-  middlewares: MiddlewareCB[];
-  interceptor?: InterceptorCB;
-  subControllers: ControllerInstance[];
-  errorHandler?: ErorrHandler;
-  cors?: CORSConfig;
-  sanitizers: SanitizerConfig[];
-};
-
 export interface ControllerConfig {
   prefix: string;
   middlewares?: Array<MiddlewareCB>;
   controllers?: ControllerInstance[];
   interceptor?: InterceptorCB;
+  cors?: CORSConfig;
 }
-
-export type RouteContext = {
-  controllerInstance: any;
-  controllerMeta: ControllerMetadata;
-  path: string;
-  method: string;
-  middlewareChain: MiddlewareCB[];
-  interceptorChain: InterceptorCB[];
-  corsChain: CORSConfig[];
-  errorHandlerChain: ErorrHandler[];
-  subPath: string;
-  sanitizersChain: SanitizerConfig[];
-};
 
 export type SSE_HANDLER_META = {
   type: string;
@@ -111,4 +89,20 @@ export type ControllerMeta = {
     middlewares: MiddlewareCB[];
   }[];
   children?: ControllerMeta[];
+};
+
+export type ControllerMetadata = {
+  prefix: string;
+  name: string;
+  middlewares: MiddlewareCB[];
+  interceptor?: InterceptorCB;
+  controllers: ControllerInstance[];
+  cors?: CORSConfig;
+};
+
+export type ControllerSubMetadata = {
+  use: MiddlewareCB[];
+  catch: ErorrHandler[];
+  cors: CORSConfig[];
+  sanitizers: SanitizerConfig[];
 };

@@ -1,6 +1,6 @@
-import { SANITIZE } from './constants';
+import { CONTROLLER_CONFIG, SANITIZE } from './constants';
 import { SanitizerConfig } from './types/core';
-
+import { reflectMeta } from './utils/shared';
 /**
  * Decorator to apply sanitization configurations to a controller or method.
  *
@@ -46,7 +46,9 @@ export function Sanitize(sanitizeConfig: SanitizerConfig | SanitizerConfig[]) {
     if (propertyKey && descriptor) {
       Reflect.defineMetadata(SANITIZE, configs, target, propertyKey);
     } else {
-      Reflect.defineMetadata(SANITIZE, configs, target.prototype || target);
+      const meta = reflectMeta(target, 'sub');
+      meta.sanitizers.push(...configs);
+      Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
     }
   };
 }

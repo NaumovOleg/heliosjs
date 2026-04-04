@@ -17,7 +17,6 @@ export function handleCORS(
 
     return false;
   }
-
   if (origin && !isOriginAllowed()) {
     res.status = 403;
     res.setHeader('Content-Type', 'application/json');
@@ -25,35 +24,51 @@ export function handleCORS(
     return { permitted: false, continue: false };
   }
 
-  if (req.method === 'OPTIONS') {
+  const isPreflight =
+    req.method === 'OPTIONS' && req.headers['access-control-request-method'] && origin;
+  if (isPreflight) {
     if (origin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else if (config.origin === '*') {
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      if (config.origin === '*') {
+        if (config.credentials) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        } else {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
     }
-
     if (config.methods) {
       res.setHeader('Access-Control-Allow-Methods', config.methods.join(', '));
     }
+    const requestedHeaders = req.headers['access-control-request-headers'];
 
     if (config.allowedHeaders) {
       res.setHeader('Access-Control-Allow-Headers', config.allowedHeaders.join(', '));
+    } else if (requestedHeaders) {
+      res.setHeader('Access-Control-Allow-Headers', requestedHeaders);
     }
-
     if (config.credentials) {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
-
     if (config.maxAge) {
       res.setHeader('Access-Control-Max-Age', config.maxAge.toString());
     }
 
     res.status = config.optionsSuccessStatus || 204;
+
     return { permitted: true, continue: false };
   }
-
   if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    if (config.origin === '*') {
+      if (config.credentials) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
 
     if (config.credentials) {
       res.setHeader('Access-Control-Allow-Credentials', 'true');

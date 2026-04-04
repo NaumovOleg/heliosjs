@@ -1,23 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import 'reflect-metadata';
-import {
-  CATCH,
-  CONTROLLERS,
-  CORS_METADATA,
-  INTERCEPTOR,
-  MIDDLEWARES,
-  ROUTE_PREFIX,
-  SANITIZE,
-  SSE_METADATA_KEY,
-  USE_MIDDLEWARE,
-  WS_HANDLER,
-  WS_TOPIC_KEY,
-} from './constants';
+import { CONTROLLER_CONFIG, SSE_METADATA_KEY, WS_HANDLER, WS_TOPIC_KEY } from './constants';
 import {
   ControllerClass,
   ControllerConfig,
   ControllerMeta,
-  InterceptorCB,
+  ControllerMetadata,
+  MiddlewareCB,
   Request,
   Response,
   SeeControllerHandlers,
@@ -30,6 +19,7 @@ import {
   matchRoutes,
   NotFoundError,
 } from './utils/core';
+import { reflectMeta } from './utils/shared';
 
 /**
  * Class decorator to define a controller with optional configuration.
@@ -53,24 +43,47 @@ import {
  * @returns A class decorator function that enhances the controller class.
  */
 export function Controller(
+  path: string,
+  middlewares?: Array<MiddlewareCB>,
+): <T extends ControllerClass>(constructor: T) => any;
+export function Controller(
+  config: ControllerConfig,
+): <T extends ControllerClass>(constructor: T) => any;
+
+export function Controller(
   config: string | ControllerConfig,
-  middlewares: Array<InterceptorCB> = [],
+  middlewares: Array<MiddlewareCB> = [],
 ) {
   // Handle both string and config object
-  const routePrefix = typeof config === 'string' ? config : config.prefix;
-  const controllers = typeof config === 'object' ? config.controllers : undefined;
+  const routePrefix = (typeof config === 'string' ? config : config.prefix) ?? '/';
+  const controllers = typeof config === 'object' ? config.controllers ?? [] : [];
+  const cors = typeof config === 'object' ? config.cors : undefined;
   const controllerMiddlewares =
-    typeof config === 'object' ? [...(config.middlewares || []), ...middlewares] : middlewares;
-  const interceptor =
-    typeof config === 'object' && typeof config.interceptor === 'function' && config.interceptor;
+    typeof config === 'string' ? middlewares ?? [] : config.middlewares ?? [];
+  const interceptor = typeof config === 'object' ? config.interceptor : undefined;
 
   return function <T extends ControllerClass>(constructor: T) {
+    if (typeof routePrefix !== 'string') {
+      throw new TypeError(`Error in ${constructor.name}. Invalid route prefix.`);
+    }
+    if (!!interceptor && typeof interceptor !== 'function') {
+      throw new TypeError(`Error in ${constructor.name}. Invalid interceptor`);
+    }
+    if (controllers.some((c) => typeof c !== 'function')) {
+      throw new TypeError(`Error in ${constructor.name}. Invalid subcontrollers`);
+    }
+    if (middlewares.some((c) => typeof c !== 'function')) {
+      throw new TypeError(`Error in ${constructor.name}. Invalid middlewares`);
+    }
     const proto = constructor.prototype;
-    Reflect.defineMetadata('controller:name', constructor.name, proto);
-    Reflect.defineMetadata(ROUTE_PREFIX, routePrefix, proto);
-    Reflect.defineMetadata(MIDDLEWARES, controllerMiddlewares, proto);
-    Reflect.defineMetadata(CONTROLLERS, controllers || [], proto);
-    Reflect.defineMetadata(INTERCEPTOR, interceptor, proto);
+    const meta: ControllerMetadata = {
+      name: constructor.name,
+      prefix: routePrefix,
+      middlewares: controllerMiddlewares,
+      controllers,
+      cors,
+    };
+    Reflect.defineMetadata(CONTROLLER_CONFIG, meta, proto);
 
     for (const key of Object.getOwnPropertyNames(proto)) {
       if (key === 'constructor') continue;
@@ -81,7 +94,7 @@ export function Controller(
       Object.defineProperty(proto, key, descriptor);
     }
 
-    return class C extends constructor {
+    return class extends constructor {
       ws?: WsControllerHandlers;
       sse?: SeeControllerHandlers;
       execute = execute;
@@ -98,35 +111,29 @@ export function Controller(
       }
 
       meta = (parent: ControllerMeta): ControllerMeta => {
-        let prefix = parent.prefix + '/' + (Reflect.getMetadata(ROUTE_PREFIX, proto) ?? '/');
-        prefix = prefix.replaceAll(/\/+/g, '/');
-        const middlewares = [Reflect.getMetadata(MIDDLEWARES, proto)]
-          .flat()
-          .concat(Reflect.getMetadata(USE_MIDDLEWARE, constructor))
-          .filter((el) => !!el);
-
-        const interceptor = Reflect.getMetadata(INTERCEPTOR, proto);
-        const subControllers = Reflect.getMetadata(CONTROLLERS, proto);
-        const errorHandler = Reflect.getMetadata(CATCH, constructor);
-        const cors = Reflect.getMetadata(CORS_METADATA, proto);
-        const sanitizer = Reflect.getMetadata(SANITIZE, proto);
+        const controller = reflectMeta(proto);
+        const subController = reflectMeta(constructor, 'sub');
+        const prefix = (parent.prefix + '/' + controller.prefix).replaceAll(/\/+/g, '/');
+        const middlewares = controller.middlewares.concat(subController.use).filter((el) => !!el);
 
         const functions = {
-          errors: errorHandler ? [errorHandler] : [],
+          errors: subController.catch,
           middlewares,
-          sanitizers: sanitizer ? [sanitizer] : [],
+          sanitizers: subController.sanitizers,
         };
 
         const meta: ControllerMeta = {
           routes: [],
           functions: [...parent.functions, functions],
           prefix,
-          interceptors: [interceptor, ...parent.interceptors].filter((e) => !!e),
-          cors: [...parent.cors, cors].filter((e) => !!e),
+          interceptors: [controller.interceptor, ...parent.interceptors].filter((e) => !!e),
+          cors: [...parent.cors, controller.cors, ...subController.cors].filter((e) => !!e),
         };
 
         meta.routes = collectRoutes(this, meta, prefix);
-        const children = subControllers.map((Controller: any) => new Controller(meta).precompiled);
+        const children = controller.controllers.map(
+          (Controller: any) => new Controller(meta).precompiled,
+        );
         meta.children = children;
 
         return meta;
