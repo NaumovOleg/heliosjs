@@ -42,8 +42,5 @@ jobs:
       - name: Clean up .npmrc
         run: find . -name ".npmrc" -type f -delete
 
-      - name: Create Release Pull Request or Publish
-        uses: changesets/action@v1
-        with:
-          version: yarn version-packages
-          publish: yarn changeset publish
+      - name: Publish
+        run: yarn release
