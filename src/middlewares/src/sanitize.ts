@@ -1,6 +1,5 @@
-import { CONTROLLER_CONFIG, SANITIZE } from './constants';
 import { SanitizerConfig } from './types/core';
-import { reflectMeta } from './utils/shared';
+import { defineMiddlewaresMeta } from './utils/shared';
 /**
  * Decorator to apply sanitization configurations to a controller or method.
  *
@@ -41,14 +40,12 @@ import { reflectMeta } from './utils/shared';
  */
 export function Sanitize(sanitizeConfig: SanitizerConfig | SanitizerConfig[]) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    const configs = Array.isArray(sanitizeConfig) ? sanitizeConfig : [sanitizeConfig];
+    const data = { sanitizers: Array.isArray(sanitizeConfig) ? sanitizeConfig : [sanitizeConfig] };
 
-    if (propertyKey && descriptor) {
-      Reflect.defineMetadata(SANITIZE, configs, target, propertyKey);
+    if (descriptor) {
+      defineMiddlewaresMeta(data, target, propertyKey);
     } else {
-      const meta = reflectMeta(target, 'sub');
-      meta.sanitizers.push(...configs);
-      Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
+      defineMiddlewaresMeta(data, target);
     }
   };
 }

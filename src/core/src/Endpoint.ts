@@ -1,5 +1,5 @@
-import { ENDPOINT, MIDDLEWARES } from './constants';
 import { HTTP_METHODS, MiddlewareCB } from './types/core';
+import { defineRouteMeta } from './utils/shared';
 
 /**
  * Method decorator to define HTTP method and route pattern metadata on controller methods.
@@ -18,15 +18,18 @@ import { HTTP_METHODS, MiddlewareCB } from './types/core';
 export function Endpoint(method: HTTP_METHODS, pathPattern?: string, middlewares?: MiddlewareCB[]) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
-
     if (!originalMethod) {
       console.warn('❌ originalMethod is undefined!');
       return descriptor;
     }
 
-    if (method && pathPattern) {
-      Reflect.defineMetadata(ENDPOINT, [method, pathPattern, middlewares], target, propertyKey);
-    }
+    const data = {
+      route: pathPattern ?? '/',
+      middlewares: middlewares ?? [],
+      method: method.toUpperCase() as HTTP_METHODS,
+    };
+
+    defineRouteMeta(data, target, propertyKey);
 
     return descriptor;
   };
@@ -39,7 +42,7 @@ export function Endpoint(method: HTTP_METHODS, pathPattern?: string, middlewares
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for GET endpoint.
  */
-export const GET = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Get = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.GET, pathPattern, middlewares);
 };
 
@@ -50,7 +53,7 @@ export const GET = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for POST endpoint.
  */
-export const POST = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Post = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.POST, pathPattern, middlewares);
 };
 
@@ -61,7 +64,7 @@ export const POST = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for PUT endpoint.
  */
-export const PUT = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Put = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.PUT, pathPattern, middlewares);
 };
 
@@ -72,7 +75,7 @@ export const PUT = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for PATCH endpoint.
  */
-export const PATCH = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Patch = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.PATCH, pathPattern, middlewares);
 };
 
@@ -83,7 +86,7 @@ export const PATCH = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for DELETE endpoint.
  */
-export const DELETE = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Delete = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.DELETE, pathPattern, middlewares);
 };
 
@@ -94,7 +97,7 @@ export const DELETE = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for OPTIONS endpoint.
  */
-export const OPTIONS = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Options = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.OPTIONS, pathPattern, middlewares);
 };
 /**
@@ -104,7 +107,7 @@ export const OPTIONS = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @param middlewares - Optional array of middlewares.
  * @returns Method decorator for HEAD endpoint.
  */
-export const HEAD = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+export const Head = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.HEAD, pathPattern, middlewares);
 };
 
@@ -115,10 +118,6 @@ export const HEAD = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
 //  * @param middlewares - Optional array of middlewares.
 //  * @returns Method decorator for middleware usage.
 //  */
-export function ANY(middlewares?: MiddlewareCB[]) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    Reflect.defineMetadata(ENDPOINT, ['ANY', '/'], target, propertyKey);
-    Reflect.defineMetadata(MIDDLEWARES, middlewares || [], target, propertyKey);
-    return descriptor;
-  };
+export function Any(middlewares?: MiddlewareCB[]) {
+  return Endpoint(HTTP_METHODS.ANY, '/', middlewares);
 }

@@ -1,7 +1,6 @@
-import { CONTROLLER_CONFIG, CORS_METADATA } from './constants';
 import { CORSConfig, HTTP_METHODS } from './types/core';
-import { reflectMeta } from './utils/shared';
 
+import { defineMiddlewaresMeta } from './utils/shared';
 /**
  * Decorator to configure Cross-Origin Resource Sharing (CORS) settings for HTTP controllers or methods.
  *
@@ -47,12 +46,12 @@ export function Cors(config: CORSConfig = {}) {
 
     const finalConfig = { ...defaultConfig, ...config };
 
-    if (propertyKey && descriptor) {
-      Reflect.defineMetadata(CORS_METADATA, finalConfig, target, propertyKey);
+    const data = { cors: [finalConfig] };
+
+    if (descriptor) {
+      defineMiddlewaresMeta(data, target, propertyKey);
     } else {
-      const meta = reflectMeta(target, 'sub');
-      meta.cors.push(finalConfig);
-      Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
+      defineMiddlewaresMeta(data, target);
     }
   };
 }

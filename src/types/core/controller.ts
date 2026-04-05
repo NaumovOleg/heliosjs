@@ -27,8 +27,6 @@ export interface ControllerConfig {
   prefix: string;
   middlewares?: Array<MiddlewareCB>;
   controllers?: ControllerInstance[];
-  interceptor?: InterceptorCB;
-  cors?: CORSConfig;
 }
 
 export type SSE_HANDLER_META = {
@@ -62,47 +60,80 @@ export type SeeControllerHandlers = {
     error: HandlerMeta[];
   };
 };
+
+export type FunctionsMeta = {
+  middlewares: MiddlewareCB[];
+  errors: ErorrHandler[];
+  cors: CORSConfig[];
+  sanitizers: SanitizerConfig[];
+  pipes: Pipe[];
+  guards: (Guard | GuardFn)[];
+  interceptors: InterceptorCB[];
+  status?: number;
+};
 export type Route = {
   name: string;
   route: string;
   method: HTTP_METHODS;
   cors?: CORSConfig[];
   ok: number;
-  paramMetadata: ParamMetadata[];
-  interceptors: InterceptorCB[];
-  functions: {
-    sanitizers: SanitizerConfig[];
-    errors: ErorrHandler[];
-    middlewares: MiddlewareCB[];
-  }[];
+  parameters: ParamMetadata[];
+  interceptor?: InterceptorCB;
+  functions: FunctionsMeta[];
   fn: (...args: any[]) => any;
 };
 export type NextFunction = (error?: unknown) => void;
 export type ControllerMeta = {
   prefix: string;
+  name: string;
   routes: Route[];
-  interceptors: InterceptorCB[];
-  cors: CORSConfig[];
-  functions: {
-    sanitizers: SanitizerConfig[];
-    errors: ErorrHandler[];
-    middlewares: MiddlewareCB[];
-  }[];
   children?: ControllerMeta[];
+  functions: MiddlewaresMetadata[];
+  controllers: ControllerClass[];
 };
 
 export type ControllerMetadata = {
   prefix: string;
   name: string;
   middlewares: MiddlewareCB[];
-  interceptor?: InterceptorCB;
   controllers: ControllerInstance[];
-  cors?: CORSConfig;
+};
+export type RouteMetadata = {
+  route: string;
+  method: HTTP_METHODS;
+  middlewares: MiddlewareCB[];
+  parameters: ParamMetadata[];
 };
 
-export type ControllerSubMetadata = {
-  use: MiddlewareCB[];
-  catch: ErorrHandler[];
+export type PipeKey = 'body' | 'query' | 'params' | 'headers';
+
+export type Pipe = {
+  body?: (body: unknown, request: Request) => unknown;
+  query?: (
+    query: Record<string, string | string[]>,
+    request: Request,
+  ) => Record<string, string | string[]>;
+  params?: (params: Record<string, string>, request: Request) => Record<string, string>;
+  headers?: (
+    headers: Record<string, string | string[]>,
+    request: Request,
+  ) => Record<string, string | string[]>;
+};
+
+export interface Guard {
+  new (...any: any[]): any;
+  canActivate(request: Request, response: Response): boolean;
+}
+
+export type GuardFn = (request: Request, response: Response) => boolean;
+
+export type MiddlewaresMetadata = {
+  middlewares: MiddlewareCB[];
+  errors: ErorrHandler[];
   cors: CORSConfig[];
   sanitizers: SanitizerConfig[];
+  pipes: Pipe[];
+  guards: (Guard | GuardFn)[];
+  interceptors: InterceptorCB[];
+  status?: number;
 };

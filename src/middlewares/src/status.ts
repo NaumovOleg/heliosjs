@@ -1,5 +1,4 @@
-import { OK_METADATA_KEY } from './constants';
-
+import { defineMiddlewaresMeta, reflectMiddlewaresMetadata } from './utils/shared';
 /**
  * Decorator to set the HTTP status code for the response.
  *
@@ -34,18 +33,11 @@ import { OK_METADATA_KEY } from './constants';
  * to set the HTTP response status.
  */
 export function Status(status: number) {
-  return function (
-    target: any,
-    propertyKey?: string | symbol,
-    descriptor?: TypedPropertyDescriptor<any>,
-  ): void {
-    if (!propertyKey) {
-      Reflect.defineMetadata(OK_METADATA_KEY, status, target.prototype || target);
-      return;
-    }
-
-    if (descriptor) {
-      Reflect.defineMetadata(OK_METADATA_KEY, status, target, propertyKey);
+  return function (target: any, propertyKey?: string): void {
+    if (propertyKey) {
+      const meta = reflectMiddlewaresMetadata(target);
+      meta.status = status;
+      defineMiddlewaresMeta(meta, target, propertyKey);
     }
   };
 }

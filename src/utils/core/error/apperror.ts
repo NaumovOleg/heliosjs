@@ -76,7 +76,7 @@ export class ApplicationError {
       return new NotFoundError(request.requestUrl.pathname, request.requestId);
     }
     if (error instanceof Error) {
-      return new BaseError(ErrorCode.INTERNAL_ERROR, error.message, {
+      return new BaseError(ErrorCode.INTERNAL_SERVER_ERROR, error.message, {
         status: 500,
         cause: error,
         ...base,
@@ -84,7 +84,7 @@ export class ApplicationError {
     }
 
     if (typeof error === 'string') {
-      return new BaseError(ErrorCode.INTERNAL_ERROR, error, {
+      return new BaseError(ErrorCode.INTERNAL_SERVER_ERROR, error, {
         status: 500,
         ...base,
       });
@@ -93,7 +93,7 @@ export class ApplicationError {
     if (typeof error === 'object' && error !== null) {
       const err = error as ErrorObject;
       return new BaseError(
-        (err.code as ErrorCode) || ErrorCode.INTERNAL_ERROR,
+        (err.code as ErrorCode) || ErrorCode.INTERNAL_SERVER_ERROR,
         err.message || 'Unknown error',
         {
           status: err.status || 500,
@@ -103,7 +103,7 @@ export class ApplicationError {
       );
     }
 
-    return new BaseError(ErrorCode.INTERNAL_ERROR, 'Unknown error', {
+    return new BaseError(ErrorCode.INTERNAL_SERVER_ERROR, 'Unknown error', {
       status: 500,
       ...base,
     });

@@ -50,13 +50,23 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
   private compileController(ControllerClass: ControllerClass) {
     const prefix = '/';
-    const functions = [{ middlewares: [], errors: [], sanitizers: [] }];
+    const functions = [
+      {
+        cors: [],
+        interceptors: [],
+        middlewares: [],
+        errors: [],
+        sanitizers: [],
+        guards: [],
+        pipes: [],
+      },
+    ];
     const meta: ControllerMeta = {
       prefix,
       routes: [],
       functions,
-      interceptors: [],
-      cors: [],
+      name: 'root-handler',
+      controllers: [],
     };
 
     return new ControllerClass(meta) as ControllerType;

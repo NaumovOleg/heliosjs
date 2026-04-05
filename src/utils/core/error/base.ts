@@ -63,7 +63,7 @@ export class BaseError extends Error implements HeliosError {
       case ErrorCode.RATE_LIMIT_EXCEEDED:
         return 429;
       case ErrorCode.DATABASE_ERROR:
-      case ErrorCode.INTERNAL_ERROR:
+      case ErrorCode.INTERNAL_SERVER_ERROR:
       default:
         return 500;
     }

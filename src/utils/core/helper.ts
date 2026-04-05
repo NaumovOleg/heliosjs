@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Request } from '../../types/core';
 import { InterceptorCB, MiddlewareCB } from '../../types/core/common';
+import { MultipartProcessor } from './multipart';
+
 export const normalizePath = (path: string): string => {
   if (!path) return '/';
   return (
@@ -53,3 +56,19 @@ export function mergeInterceptors(...interceptorLists: InterceptorCB[][]): Inter
 export function isClass(obj: any): boolean {
   return typeof obj === 'function' && /^class\s/.test(Function.prototype.toString.call(obj));
 }
+
+export const getBodyAndMultipart = (request: Request) => {
+  let body = request.body;
+  let multipart;
+  if (MultipartProcessor.isMultipart(request)) {
+    const { fields, files } = MultipartProcessor.parse({
+      body: request.rawBody || request.body,
+      headers: request.headers,
+      isBase64Encoded: request.isBase64Encoded,
+    });
+    multipart = files;
+    body = fields;
+  }
+
+  return { multipart, body };
+};

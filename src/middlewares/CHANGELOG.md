@@ -1,5 +1,16 @@
 # Change Log
 
+## 4.0.0
+
+### Minor Changes
+
+- refactored controllers
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@2.1.0
+
 ## 3.0.0
 
 ### Major Changes

@@ -9,11 +9,12 @@ export * from './decorators';
 export * from './Endpoint';
 export {
   CORSConfig,
-  ErrorCB,
+  ErorrHandler,
   HeliosError,
   InterceptorCB,
   MiddlewareCB,
   MultipartFile,
+  Pipe,
   Request,
   Response,
   SanitizerConfig,
@@ -22,6 +23,7 @@ export {
   DependencyFailedError,
   DuplicateEntryError,
   ForbiddenError,
+  InternalServerError,
   InvalidStateError,
   NotFoundError,
   RateLimitExceededError,

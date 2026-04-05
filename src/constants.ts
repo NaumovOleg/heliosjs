@@ -34,4 +34,8 @@ export const SSE_TOPIC_KEY = 'sse:topics';
 export const SSE_SERVICE_KEY = 'sse:service';
 export const STATIC_METADATA_KEY = 'static:config';
 
-export const CONTROLLER_CONFIG = 'CONTROLLER_CONFIG';
+export enum DECORATOR {
+  controller = 'controller:config',
+  middlewares = 'controller:middlewares',
+  route = 'controller:route',
+}

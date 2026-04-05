@@ -1,7 +1,5 @@
-import { CONTROLLER_CONFIG } from './constants';
 import { ErorrHandler } from './types/core';
-
-import { reflectMeta } from './utils/shared';
+import { defineMiddlewaresMeta } from './utils/shared';
 /**
  * Decorator to register a global or controller-level error handler.
  *
@@ -30,11 +28,13 @@ import { reflectMeta } from './utils/shared';
  * to invoke the registered error handler when errors occur.
  */
 export function Catch(handler: ErorrHandler) {
-  return function (target: any) {
-    const meta = reflectMeta(target, 'sub');
-    meta.catch.push(handler);
-    Reflect.defineMetadata(CONTROLLER_CONFIG, meta, target);
+  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+    const data = { errors: [handler] };
 
-    return target;
+    if (descriptor) {
+      defineMiddlewaresMeta(data, target, propertyKey);
+    } else {
+      defineMiddlewaresMeta(data, target);
+    }
   };
 }

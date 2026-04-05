@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import 'reflect-metadata';
-import { CONTROLLER_CONFIG, SSE_METADATA_KEY, WS_HANDLER, WS_TOPIC_KEY } from './constants';
+import { SSE_METADATA_KEY, WS_HANDLER, WS_TOPIC_KEY } from './constants';
 import {
   ControllerClass,
   ControllerConfig,
   ControllerMeta,
-  ControllerMetadata,
   MiddlewareCB,
   Request,
   Response,
@@ -19,7 +18,12 @@ import {
   matchRoutes,
   NotFoundError,
 } from './utils/core';
-import { reflectMeta } from './utils/shared';
+import {
+  defineControllerMeta,
+  defineMiddlewaresMeta,
+  reflectControllerMeta,
+  reflectMiddlewaresMetadata,
+} from './utils/shared';
 
 /**
  * Class decorator to define a controller with optional configuration.
@@ -57,17 +61,12 @@ export function Controller(
   // Handle both string and config object
   const routePrefix = (typeof config === 'string' ? config : config.prefix) ?? '/';
   const controllers = typeof config === 'object' ? config.controllers ?? [] : [];
-  const cors = typeof config === 'object' ? config.cors : undefined;
   const controllerMiddlewares =
     typeof config === 'string' ? middlewares ?? [] : config.middlewares ?? [];
-  const interceptor = typeof config === 'object' ? config.interceptor : undefined;
 
   return function <T extends ControllerClass>(constructor: T) {
     if (typeof routePrefix !== 'string') {
       throw new TypeError(`Error in ${constructor.name}. Invalid route prefix.`);
-    }
-    if (!!interceptor && typeof interceptor !== 'function') {
-      throw new TypeError(`Error in ${constructor.name}. Invalid interceptor`);
     }
     if (controllers.some((c) => typeof c !== 'function')) {
       throw new TypeError(`Error in ${constructor.name}. Invalid subcontrollers`);
@@ -76,14 +75,9 @@ export function Controller(
       throw new TypeError(`Error in ${constructor.name}. Invalid middlewares`);
     }
     const proto = constructor.prototype;
-    const meta: ControllerMetadata = {
-      name: constructor.name,
-      prefix: routePrefix,
-      middlewares: controllerMiddlewares,
-      controllers,
-      cors,
-    };
-    Reflect.defineMetadata(CONTROLLER_CONFIG, meta, proto);
+
+    defineControllerMeta({ name: constructor.name, prefix: routePrefix, controllers }, proto);
+    defineMiddlewaresMeta({ middlewares: controllerMiddlewares }, constructor);
 
     for (const key of Object.getOwnPropertyNames(proto)) {
       if (key === 'constructor') continue;
@@ -110,33 +104,26 @@ export function Controller(
         this.precompiled = this.meta(args[0]);
       }
 
-      meta = (parent: ControllerMeta): ControllerMeta => {
-        const controller = reflectMeta(proto);
-        const subController = reflectMeta(constructor, 'sub');
+      meta = (parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta => {
+        const controller = reflectControllerMeta(proto);
+        const functions = reflectMiddlewaresMetadata(constructor);
         const prefix = (parent.prefix + '/' + controller.prefix).replaceAll(/\/+/g, '/');
-        const middlewares = controller.middlewares.concat(subController.use).filter((el) => !!el);
 
-        const functions = {
-          errors: subController.catch,
-          middlewares,
-          sanitizers: subController.sanitizers,
-        };
-
-        const meta: ControllerMeta = {
+        const meta: Omit<ControllerMeta, 'controllers'> = {
           routes: [],
           functions: [...parent.functions, functions],
           prefix,
-          interceptors: [controller.interceptor, ...parent.interceptors].filter((e) => !!e),
-          cors: [...parent.cors, controller.cors, ...subController.cors].filter((e) => !!e),
+          name: controller.name,
         };
 
         meta.routes = collectRoutes(this, meta, prefix);
+
         const children = controller.controllers.map(
           (Controller: any) => new Controller(meta).precompiled,
         );
         meta.children = children;
 
-        return meta;
+        return { ...controller, ...meta, controllers: controller.controllers };
       };
 
       handleRequest = async (request: Request, response: Response) => {

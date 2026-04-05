@@ -250,19 +250,23 @@ export class Helios extends Plugin implements IHttpServer {
   }
   private compileControllers(appControllers: ControllerClass[]) {
     const prefix = '/';
-    const functions = [
-      {
-        middlewares: this.middlewares ?? [],
-        errors: this.config.errorHandler ? [this.config.errorHandler] : [],
-        sanitizers: this.config.sanitizers ?? [],
-      },
-    ];
+
     const meta: ControllerMeta = {
       prefix,
       routes: [],
-      functions,
-      interceptors: this.config.interceptors ?? [],
-      cors: this.config.cors ? [this.config.cors] : [],
+      name: 'server-entry',
+      controllers: [],
+      functions: [
+        {
+          middlewares: this.middlewares ?? [],
+          errors: this.config.errorHandler ? [this.config.errorHandler] : [],
+          sanitizers: this.config.sanitizers ?? [],
+          pipes: [],
+          guards: [],
+          cors: this.config.cors ? [this.config.cors] : [],
+          interceptors: [],
+        },
+      ],
     };
 
     const controllers: ControllerType[] = [];
