@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.0.2
+
+### Patch Changes
+
+- chore
+- Updated dependencies
+  - @heliosjs/core@2.1.2
+
 ## 4.0.1
 
 ### Patch Changes

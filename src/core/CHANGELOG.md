@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.1.2
+
+### Patch Changes
+
+- chore
+
 ## 2.1.1
 
 ### Patch Changes

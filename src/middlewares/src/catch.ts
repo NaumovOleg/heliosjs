@@ -31,10 +31,6 @@ export function Catch(handler: ErrorHandler) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
     const data = { errors: [handler] };
 
-    const secrity = 1;
-
-    console.log(secrity);
-
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
