@@ -1,4 +1,4 @@
-import { InterceptorCB } from '@heliosjs/core';
+import { InterceptorCB } from './types/core';
 import { defineMiddlewaresMeta } from './utils/shared';
 /**
  * Decorator to register an interceptor at the controller or method level.
