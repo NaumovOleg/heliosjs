@@ -3,7 +3,7 @@ import { PubSub } from 'type-graphql';
 import { InterceptorCB, MiddlewareCB } from '../core/common';
 import { ControllerClass, ControllerType } from '../core/controller';
 import { CORSConfig } from '../core/cors';
-import { ErorrHandler } from '../core/error';
+import { ErrorHandler } from '../core/error';
 import { SanitizerConfig } from '../core/sanitize';
 import { Plugin } from './plugin';
 import { StaticConfig } from './static';
@@ -36,9 +36,9 @@ export interface ServerConfig {
 
   /**
    * Error handling callback
-   * @type {ErorrHandler}
+   * @type {ErrorHandler}
    */
-  errorHandler?: ErorrHandler;
+  errorHandler?: ErrorHandler;
 
   /**
    * Array of controller types

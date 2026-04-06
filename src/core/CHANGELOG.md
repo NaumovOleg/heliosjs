@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.1.1
+
+### Patch Changes
+
+- 38a9d8a: fix
+
 ## 2.1.0
 
 ### Minor Changes

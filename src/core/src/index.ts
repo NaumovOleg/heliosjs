@@ -9,7 +9,7 @@ export * from './decorators';
 export * from './Endpoint';
 export {
   CORSConfig,
-  ErorrHandler,
+  ErrorHandler,
   HeliosError,
   InterceptorCB,
   MiddlewareCB,

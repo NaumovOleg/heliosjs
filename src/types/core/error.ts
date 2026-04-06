@@ -77,7 +77,7 @@ export interface ErrorHandlerConfig {
   customHandlers?: Record<ErrorCode, (error: HeliosError) => unknown>;
 }
 
-export type ErorrHandler = (error: Error, req: Request, response: Response) => unknown;
+export type ErrorHandler = (error: Error, req: Request, response: Response) => unknown;
 
 type ErrorChildren = {
   property?: string;

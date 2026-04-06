@@ -1,6 +1,6 @@
 import { HTTP_METHODS, InterceptorCB, MiddlewareCB, ParamMetadata } from './common';
 import { CORSConfig } from './cors';
-import { ErorrHandler } from './error';
+import { ErrorHandler } from './error';
 import { Request } from './request';
 import { Response } from './response';
 import { SanitizerConfig } from './sanitize';
@@ -63,7 +63,7 @@ export type SeeControllerHandlers = {
 
 export type FunctionsMeta = {
   middlewares: MiddlewareCB[];
-  errors: ErorrHandler[];
+  errors: ErrorHandler[];
   cors: CORSConfig[];
   sanitizers: SanitizerConfig[];
   pipes: Pipe[];
@@ -129,7 +129,7 @@ export type GuardFn = (request: Request, response: Response) => boolean;
 
 export type MiddlewaresMetadata = {
   middlewares: MiddlewareCB[];
-  errors: ErorrHandler[];
+  errors: ErrorHandler[];
   cors: CORSConfig[];
   sanitizers: SanitizerConfig[];
   pipes: Pipe[];

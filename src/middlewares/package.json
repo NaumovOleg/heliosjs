@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/middlewares",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,7 +30,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^2.1.0",
+    "@heliosjs/core": "^2.1.1",
     "typescript": ">=4.0.0"
   }
 }

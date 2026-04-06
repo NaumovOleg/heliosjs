@@ -4,8 +4,8 @@ import {
   ControllerInstance,
   ControllerMeta,
   ControllerMethods,
-  ErorrHandler,
   ErrorCode,
+  ErrorHandler,
   HTTP_METHODS,
   Request,
   Response,
@@ -234,7 +234,7 @@ export const NextFunction = (error?: Error) => {
 };
 
 export const beforeRequest = async (request: Request, response: Response, route: Route) => {
-  const handlers: ErorrHandler[] = [];
+  const handlers: ErrorHandler[] = [];
   try {
     for (const batch of route.functions) {
       sanitizeRequest(request, batch.sanitizers);

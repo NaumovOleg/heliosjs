@@ -1,4 +1,4 @@
-import { ErorrHandler } from './types/core';
+import { ErrorHandler } from './types/core';
 import { defineMiddlewaresMeta } from './utils/shared';
 /**
  * Decorator to register a global or controller-level error handler.
@@ -8,7 +8,7 @@ import { defineMiddlewaresMeta } from './utils/shared';
  * It attaches the handler as metadata on the target class, allowing the framework to
  * retrieve and execute the error handler appropriately during runtime.
  *
- * @param {ErorrHandler} handler - The error callback function to handle errors.
+ * @param {ErrorHandler} handler - The error callback function to handle errors.
  *
  * @returns {Function} A class decorator function that defines the error handler metadata.
  *
@@ -27,9 +27,13 @@ import { defineMiddlewaresMeta } from './utils/shared';
  * This metadata is accessible via Reflect API and used internally by the framework
  * to invoke the registered error handler when errors occur.
  */
-export function Catch(handler: ErorrHandler) {
+export function Catch(handler: ErrorHandler) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
     const data = { errors: [handler] };
+
+    const secrity = 1;
+
+    console.log(secrity);
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);
