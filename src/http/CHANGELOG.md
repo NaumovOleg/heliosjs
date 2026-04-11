@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.5
+
+### Patch Changes
+
+- chore
+
 ## 4.0.4
 
 ### Patch Changes

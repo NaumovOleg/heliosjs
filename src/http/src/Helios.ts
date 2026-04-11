@@ -97,7 +97,7 @@ export class Helios extends Plugin implements IHttpServer {
     `);
   }
 
-  public async listen(port?: number, host?: string): Promise<http.Server> {
+  public async listen(port?: number, host?: string) {
     if (this.isRunning) {
       return this.app;
     }
@@ -105,11 +105,9 @@ export class Helios extends Plugin implements IHttpServer {
     const listenPort = port || this.config.port || 3000;
     const listenHost = host || this.config.host || 'localhost';
 
-    return new Promise((resolve, reject) => {
-      try {
-        this.app.listen(listenPort, listenHost, () => {
-          this.isRunning = true;
-          console.log(`
+    return this.app.listen(listenPort, listenHost, () => {
+      this.isRunning = true;
+      console.log(`
 ╔════════════════════════════════════════╗
 ║  🎉 Server started successfully!       
 ║  📍 http://${listenHost}:${listenPort}  
@@ -117,15 +115,7 @@ export class Helios extends Plugin implements IHttpServer {
 ╚════════════════════════════════════════╝
           `);
 
-          resolve(this.app);
-        });
-
-        return this.callPluginMethod('onStart', this.app).then(() =>
-          this.app.on('error', (error) => reject(error)),
-        );
-      } catch (error) {
-        return reject(error);
-      }
+      this.callPluginMethod('onStart', this.app);
     });
   }
 
