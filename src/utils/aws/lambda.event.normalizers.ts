@@ -1,6 +1,4 @@
 // parsers/event-normalizers.ts
-import { LambdaEvent } from '../../types/aws';
-import { HTTP_METHODS, RequestOptions } from '../../types/core';
 
 import {
   ALBEvent,
@@ -11,6 +9,8 @@ import {
   Context,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
+import { LambdaEvent } from '../../types/aws';
+import { HTTP_METHODS, RequestOptions } from '../../types/core';
 import { parseBody, parseHeaders, parseQuery, parseRequestCookie } from '../shared';
 import {
   getMultiValueQueryStringParameters,
@@ -251,7 +251,7 @@ export const normalizeLambdaFunctionUrlEvent = (
   }
   const cookies: Record<string, string> = {};
   if (event.cookies) {
-    event.cookies.forEach((cookie) => {
+    event.cookies.forEach(cookie => {
       const [name, value] = cookie.split('=');
       if (name && value) {
         cookies[name] = decodeURIComponent(value);

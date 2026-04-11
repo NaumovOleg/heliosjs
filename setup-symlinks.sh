@@ -37,9 +37,7 @@ mkdir src/middlewares/src/types
 mkdir src/middlewares/src/utils
 ln -sf ../../constants.ts src/middlewares/src/constants.ts
 ln -sf ../../../types/core src/middlewares/src/types/core
-ln -sf ../../../types/ws src/middlewares/src/types/ws
 ln -sf ../../../utils/shared src/middlewares/src/utils/shared
-ln -sf ../../../utils/sse src/middlewares/src/utils/sse
 ln -sf ../../README.md src/middlewares
 
 echo -e "\n${YELLOW}Creating symlinks for aws module...${NC}"
@@ -49,13 +47,20 @@ ln -sf ../../constants.ts src/aws/src/constants.ts
 ln -sf ../../../types/core src/aws/src/types/core
 ln -sf ../../../types/ws src/aws/src/types/ws
 ln -sf ../../../types/aws src/aws/src/types/aws
-ln -sf ../../../utils/shared src/aws/src/core/shared
+ln -sf ../../../utils/shared src/aws/src/utils/shared
 ln -sf ../../../utils/core src/aws/src/utils/core
 ln -sf ../../../utils/aws src/aws/src/utils/aws
 ln -sf ../../../utils/sse src/aws/src/utils/sse
 ln -sf ../../../utils/socket src/aws/src/utils/socket
 ln -sf ../../README.md src/aws
 
+echo -e "\n${YELLOW}Creating symlinks for grpc module...${NC}"
+mkdir src/grpc/src/types
+mkdir src/grpc/src/utils
+ln -sf ../../constants.ts src/grpc/src/constants.ts
+ln -sf ../../../types/grpc src/grpc/src/types/grpc
+ln -sf ../../../utils/grpc src/grpc/src/utils/grpc
+ln -sf ../../README.md src/grpc
 
 # Показываем результат
 echo -e "\n${GREEN}Symlinks created:${NC}"
