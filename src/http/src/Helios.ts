@@ -1,13 +1,11 @@
-import { useServer } from 'graphql-ws/use/ws';
-import { createPubSub, createYoga } from 'graphql-yoga';
 import http, { IncomingMessage, ServerResponse } from 'node:http';
-import { buildSchema, NonEmptyArray } from 'type-graphql';
 import { CONTROLLERS } from './constants';
 import {
   ControllerClass,
   ControllerMeta,
   ControllerType,
   MiddlewareCB,
+  NonEmptyArray,
   Request,
   Response,
 } from './types/core';
@@ -107,7 +105,7 @@ export class Helios extends Plugin implements IHttpServer {
     const listenPort = port || this.config.port || 3000;
     const listenHost = host || this.config.host || 'localhost';
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         this.app.listen(listenPort, listenHost, () => {
           this.isRunning = true;
@@ -122,13 +120,11 @@ export class Helios extends Plugin implements IHttpServer {
           resolve(this.app);
         });
 
-        await this.callPluginMethod('onStart', this.app);
-
-        this.app.on('error', (error) => {
-          reject(error);
-        });
+        return this.callPluginMethod('onStart', this.app).then(() =>
+          this.app.on('error', (error) => reject(error)),
+        );
       } catch (error) {
-        reject(error);
+        return reject(error);
       }
     });
   }
@@ -303,6 +299,11 @@ export class Helios extends Plugin implements IHttpServer {
 
   private async setupGraphQL() {
     if (!this.config.graphql?.resolvers?.length) return;
+    const [{ createYoga, createPubSub }, { buildSchema }, { useServer }] = await Promise.all([
+      import('graphql-yoga'),
+      import('type-graphql'),
+      import('graphql-ws/use/ws'),
+    ]);
 
     const graphqlWsServer = new WebSocketServer(this.app, {
       path: this.config.graphql.path ?? '/graphql',

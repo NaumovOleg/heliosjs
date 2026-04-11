@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/aws",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Core functionality for Quantum Flow",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,7 +30,7 @@
     "aws-lambda": "^1.0.7"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^2.1.2",
+    "@heliosjs/core": "^2.1.3",
     "typescript": ">=4.0.0",
     "ws": "^8.19.0"
   }
