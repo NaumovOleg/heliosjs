@@ -1,7 +1,7 @@
 {
-  "name": "@heliosjs/aws",
-  "version": "5.0.0",
-  "description": "Aws lambda support for @heliosjs",
+  "name": "@heliosjs/grpc",
+  "version": "1.1.0",
+  "description": "Grpc support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
@@ -11,7 +11,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NaumovOleg/heliosjs.git",
-    "directory": "src/aws"
+    "directory": "src/grpc"
   },
   "files": [
     "dist/*",
@@ -27,13 +27,12 @@
     "publish:major": "yarn version --major --no-git-tag-version && yarn publish --access public"
   },
   "dependencies": {
-    "aws-lambda": "^1.0.7"
+    "@grpc/grpc-js": "^1.14.3",
+    "rxjs": "^7.8.2"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^2.2.0",
-    "typescript": ">=4.0.0",
-    "reflect-metadata": "^0.2.2",
     "@types/node": "^25.5.0",
-    "ws": "^8.19.0"
+    "reflect-metadata": "^0.2.2",
+    "typescript": ">=4.0.0"
   }
 }

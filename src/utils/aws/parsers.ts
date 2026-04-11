@@ -10,7 +10,7 @@ export const parseCloudFrontHeaders = (headers?: {
 
   Object.entries(headers).forEach(([key, values]) => {
     if (values.length > 1) {
-      result[key] = values.map((v) => v.value);
+      result[key] = values.map(v => v.value);
     } else {
       result[key] = values[0]?.value || '';
     }

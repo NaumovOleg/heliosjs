@@ -12,10 +12,11 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "yarn build:core && yarn build:http && yarn build:aws && yarn build:middlewares",
+    "build": "yarn build:core && yarn build:http && yarn build:aws && yarn build:middlewares && yarn build:grpc",
     "build:core": "yarn workspace @heliosjs/core run build",
     "build:http": "yarn workspace @heliosjs/http run build",
     "build:aws": "yarn workspace @heliosjs/aws run build",
+    "build:grpc": "yarn workspace @heliosjs/grpc run build",
     "build:middlewares": "yarn workspace @heliosjs/middlewares run build",
     "dev": "nodemon --config ./nodemon.json",
     "link-packages": "chmod +x ./setup-symlinks.sh && ./setup-symlinks.sh",
@@ -24,12 +25,7 @@
     "version-packages": "changeset version",
     "release": "changeset publish --provenance --access public"
   },
-  "workspaces": [
-    "src/core",
-    "src/middlewares",
-    "src/http",
-    "src/aws"
-  ],
+  "workspaces": ["src/core", "src/middlewares", "src/http", "src/aws", "src/grpc"],
   "repository": {
     "type": "git",
     "url": "https://github.com/NaumovOleg/heliosjs"
@@ -45,15 +41,11 @@
     "lambda",
     "graphql"
   ],
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "author": "Naumov Oleh",
   "peerDependencies": {},
   "devDependencies": {
+    "@biomejs/biome": "^2.4.11",
     "@changesets/cli": "^2.30.0",
-    "@eslint/js": "^10.0.1",
     "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
@@ -63,12 +55,6 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "conventional-changelog-conventionalcommits": "^9.3.0",
-    "eslint": "9.22.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-simple-import-sort": "^12.1.1",
-    "eslint-plugin-unused-imports": "^4.4.1",
     "graphql": "^16.13.1",
     "graphql-scalars": "^1.25.0",
     "graphql-ws": "^6.0.7",
@@ -86,7 +72,9 @@
     "ws": "^8.19.0"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
     "http": "^0.0.1-security",
+    "rxjs": "^7.8.2",
     "url": "^0.11.4"
   }
 }

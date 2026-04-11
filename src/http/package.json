@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/http",
-  "version": "4.0.5",
+  "version": "5.0.0",
   "description": "Http server support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,12 +27,13 @@
     "publish:major": "yarn version --major --no-git-tag-version && yarn publish --access public"
   },
   "dependencies": {
-    "reflect-metadata": "^0.2.2",
     "type-graphql": "^2.0.0-rc.3"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^2.1.4",
+    "@heliosjs/core": "^2.2.0",
     "typescript": ">=4.0.0",
+    "reflect-metadata": "^0.2.2",
+    "@types/node": "^25.5.0",
     "ws": "^8.19.0"
   }
 }

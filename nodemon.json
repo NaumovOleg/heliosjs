@@ -5,7 +5,7 @@
     "src/middlewares/src",
     "src/core/src",
     "src/http/src",
-    "src/examples"
+    "src/grpc/src"
   ],
   "ext": "ts,tsx",
   "exec": "NODE_ENV=development && yarn build "
