@@ -1,5 +1,3 @@
-import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
-
 import {
   ALBResult,
   APIGatewayProxyResult,
@@ -7,6 +5,7 @@ import {
   Context,
   Handler,
 } from 'aws-lambda';
+import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 import {
   ControllerClass,
   ControllerMeta,
@@ -138,12 +137,11 @@ export class Helios extends Plugin implements ILambdaAdapter {
       timestamp: new Date().toISOString(),
     });
 
-    const commonResponse = {
-      statusCode,
-      headers,
-      body: response?.data,
-      timestamp: new Date().toISOString(),
-    };
+    const commonResponse = { statusCode, headers };
+
+    if (response?.data) {
+      Object.assign(commonResponse, { body: response?.data && JSON.stringify(response?.data) });
+    }
 
     this.callPluginHook('afterResponse', request, response);
     switch (eventType) {

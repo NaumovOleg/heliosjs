@@ -1,5 +1,18 @@
 # Change Log
 
+## 6.0.0
+
+### Minor Changes
+
+- 3a3127e: added grpc
+
+### Patch Changes
+
+- 3a3127e: chore
+- Updated dependencies [3a3127e]
+- Updated dependencies [3a3127e]
+  - @heliosjs/core@2.3.0
+
 ## 5.0.0
 
 ### Minor Changes
