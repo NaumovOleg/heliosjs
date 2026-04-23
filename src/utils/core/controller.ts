@@ -229,8 +229,8 @@ export const beforeRequest = async (request: Request, response: Response, route:
       throw err;
     }
     const promises = handlers.map(handler => handler(err, request, response));
-
-    return Promise.all(promises).catch(err => err);
+    if (promises.length) return Promise.all(promises);
+    throw err;
   }
 };
 
