@@ -5,6 +5,7 @@ import {
   Context,
   Handler,
 } from 'aws-lambda';
+import { HANDLE_REQUEST_HASH } from './constants';
 import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 import {
   ControllerClass,
@@ -82,13 +83,13 @@ export class Helios extends Plugin implements ILambdaAdapter {
     let processed;
 
     try {
-      if (typeof this.controller.handleRequest !== 'function') {
-        throw new TypeError('Controller must have handleRequest method');
+      if (typeof this.controller[HANDLE_REQUEST_HASH] !== 'function') {
+        throw new TypeError('Controller must have [HANDLE_REQUEST_HASH] method');
       }
 
       await this.callPluginHook('beforeRoute', request, response);
 
-      processed = await this.controller.handleRequest(request, response);
+      processed = await this.controller[HANDLE_REQUEST_HASH]?.(request, response);
     } catch (error: unknown) {
       return this.handleError(error as ErrorObject, request);
     }

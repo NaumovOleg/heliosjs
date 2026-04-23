@@ -1,6 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import 'reflect-metadata';
-import { SSE_METADATA_KEY, WS_HANDLER, WS_TOPIC_KEY } from './constants';
+import {
+  GET_SSE_CONTROLLER_HASH,
+  GET_SSE_HANDLERS_HASH,
+  GET_WS_HANDLERS_HASH,
+  GET_WS_TOPICS_HASH,
+  HANDLE_REQUEST_HASH,
+  LOOKUP_SEE_HASH,
+  LOOKUP_WS_HASH,
+  META_HASH,
+  PRECOMILED_HASH,
+  SSE_HASH,
+  SSE_METADATA_KEY,
+  TYPED_HANDLER_HASH,
+  WS_HANDLER,
+  WS_HASH,
+  WS_TOPIC_KEY,
+} from './constants';
 import {
   ControllerClass,
   ControllerConfig,
@@ -11,13 +27,7 @@ import {
   SeeControllerHandlers,
   WsControllerHandlers,
 } from './types/core';
-import {
-  collectRoutes,
-  execute,
-  getControllerMethods,
-  matchRoutes,
-  NotFoundError,
-} from './utils/core';
+import { collectRoutes, execute, matchRoutes, NotFoundError } from './utils/core';
 import {
   defineControllerMeta,
   defineMiddlewaresMeta,
@@ -60,18 +70,18 @@ export function Controller(
 ) {
   // Handle both string and config object
   const routePrefix = (typeof config === 'string' ? config : config.prefix) ?? '/';
-  const controllers = typeof config === 'object' ? config.controllers ?? [] : [];
+  const controllers = typeof config === 'object' ? (config.controllers ?? []) : [];
   const controllerMiddlewares =
-    typeof config === 'string' ? middlewares ?? [] : config.middlewares ?? [];
+    typeof config === 'string' ? (middlewares ?? []) : (config.middlewares ?? []);
 
   return function <T extends ControllerClass>(constructor: T) {
     if (typeof routePrefix !== 'string') {
       throw new TypeError(`Error in ${constructor.name}. Invalid route prefix.`);
     }
-    if (controllers.some((c) => typeof c !== 'function')) {
+    if (controllers.some(c => typeof c !== 'function')) {
       throw new TypeError(`Error in ${constructor.name}. Invalid subcontrollers`);
     }
-    if (middlewares.some((c) => typeof c !== 'function')) {
+    if (middlewares.some(c => typeof c !== 'function')) {
       throw new TypeError(`Error in ${constructor.name}. Invalid middlewares`);
     }
     const proto = constructor.prototype;
@@ -89,22 +99,20 @@ export function Controller(
     }
 
     return class extends constructor {
-      ws?: WsControllerHandlers;
-      sse?: SeeControllerHandlers;
-      execute = execute;
-      getControllerMethods = getControllerMethods;
+      [WS_HASH]?: WsControllerHandlers;
+      [SSE_HASH]?: SeeControllerHandlers;
 
-      precompiled: ControllerMeta;
+      [PRECOMILED_HASH]: ControllerMeta;
 
       constructor(...args: any[]) {
         super(...args);
-        this.lookupWS();
-        this.lookupSSE();
+        this[LOOKUP_WS_HASH]();
+        this[LOOKUP_SEE_HASH]();
 
-        this.precompiled = this.meta(args[0]);
+        this[PRECOMILED_HASH] = this[META_HASH](args[0]);
       }
 
-      meta = (parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta => {
+      [META_HASH] = (parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta => {
         const controller = reflectControllerMeta(proto);
         const functions = reflectMiddlewaresMetadata(constructor);
         const prefix = (parent.prefix + '/' + controller.prefix).replaceAll(/\/+/g, '/');
@@ -119,86 +127,86 @@ export function Controller(
         meta.routes = collectRoutes(this, meta, prefix);
 
         const children = controller.controllers.map(
-          (Controller: any) => new Controller(meta).precompiled,
+          (Controller: any) => new Controller(meta)[PRECOMILED_HASH],
         );
         meta.children = children;
 
         return { ...controller, ...meta, controllers: controller.controllers };
       };
 
-      handleRequest = async (request: Request, response: Response) => {
-        const matched = matchRoutes(this.precompiled, request.url, request.method);
+      [HANDLE_REQUEST_HASH] = async (request: Request, response: Response) => {
+        const matched = matchRoutes(this[PRECOMILED_HASH], request.url, request.method);
         if (!matched) {
           return response.error(
             new NotFoundError(`Route ${request.url} not found`, request.requestId),
           );
         }
 
-        return this.execute(matched, request, response);
+        return execute(matched, request, response);
       };
 
-      lookupWS() {
-        const connection = this.getWSHandlers('connection');
-        const message = this.getWSHandlers('message');
-        const error = this.getWSHandlers('error');
-        const close = this.getWSHandlers('close');
-        const topics = this.getWSHandlers('topics');
+      [LOOKUP_WS_HASH]() {
+        const connection = this[GET_WS_HANDLERS_HASH]('connection');
+        const message = this[GET_WS_HANDLERS_HASH]('message');
+        const error = this[GET_WS_HANDLERS_HASH]('error');
+        const close = this[GET_WS_HANDLERS_HASH]('close');
+        const topics = this[GET_WS_HANDLERS_HASH]('topics');
 
         if ([...connection, ...message, ...error, ...close, ...topics].length === 0) {
           return;
         }
 
-        this.ws = { handlers: { connection, message, close, error }, topics };
+        this[WS_HASH] = { handlers: { connection, message, close, error }, topics };
       }
-      lookupSSE() {
-        const connection = this.getSSEHandlers('connection');
-        const error = this.getSSEHandlers('error');
-        const close = this.getSSEHandlers('close');
+      [LOOKUP_SEE_HASH]() {
+        const connection = this[GET_SSE_HANDLERS_HASH]('connection');
+        const error = this[GET_SSE_HANDLERS_HASH]('error');
+        const close = this[GET_SSE_HANDLERS_HASH]('close');
 
         if ([...connection, ...error, ...close].length === 0) {
           return;
         }
 
-        this.sse = { handlers: { connection, close, error } };
+        this[SSE_HASH] = { handlers: { connection, close, error } };
       }
 
-      getSSEController() {
+      [GET_SSE_CONTROLLER_HASH]() {
         return {
           instance: this,
           handlers: {
-            connection: this.getSSEHandlers('connection'),
-            close: this.getSSEHandlers('close'),
-            error: this.getSSEHandlers('error'),
+            connection: this[GET_SSE_HANDLERS_HASH]('connection'),
+            close: this[GET_SSE_HANDLERS_HASH]('close'),
+            error: this[GET_SSE_HANDLERS_HASH]('error'),
           },
         };
       }
 
-      getWSHandlers(type: string) {
+      [GET_WS_HANDLERS_HASH](type: string) {
         const handlers = Reflect.getMetadata(WS_HANDLER, this.constructor) || [];
-        return this.typedHandlers(handlers, type);
+        return this[TYPED_HANDLER_HASH](handlers, type);
       }
 
-      getSSEHandlers(type: string) {
+      [GET_SSE_HANDLERS_HASH](type: string) {
         const handlers = Reflect.getMetadata(SSE_METADATA_KEY, this.constructor) || [];
 
-        return this.typedHandlers(handlers, type);
+        return this[TYPED_HANDLER_HASH](handlers, type);
       }
 
-      getWSTopics() {
+      [GET_WS_TOPICS_HASH]() {
         const topics = Reflect.getMetadata(WS_TOPIC_KEY, this.constructor) || [];
 
         return topics.map((t: any) => ({
           ...t,
-          fn: this[t.method].bind(this),
+          fn: (this[t.method] as any).bind(this),
         }));
       }
 
-      typedHandlers = (handlers: any[], type: string) => {
+      [TYPED_HANDLER_HASH] = (handlers: any[], type: string) => {
         return handlers
           .filter((h: any) => h.type === type)
           .map((h: any) => ({
             ...h,
-            fn: this[h.method].bind(this),
+            fn: (this[h.method] as any).bind(this),
           }));
       };
     };

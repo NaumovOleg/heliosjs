@@ -10,6 +10,7 @@ import {
   Handler,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
+import { HANDLE_REQUEST_HASH } from '../../constants';
 import { Request } from '../core';
 import { ControllerType } from '../core/controller';
 import { Plugin } from './plugin';
@@ -75,7 +76,7 @@ export interface LambdaApp {
 
 export interface Lambda {
   beforeStart?: () => Promise<void>;
-  handleRequest(request: Request): Promise<unknown>;
+  [HANDLE_REQUEST_HASH](request: Request): Promise<unknown>;
 }
 
 export interface ILambdaAdapter {

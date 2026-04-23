@@ -1,12 +1,10 @@
 import 'reflect-metadata';
-import { ENDPOINT, MIDDLEWARES, TO_VALIDATE } from '../../constants';
+import { CONTROLLER_PROPERTIES_HASH, TO_VALIDATE } from '../../constants';
 import {
   ControllerInstance,
   ControllerMeta,
-  ControllerMethods,
   ErrorCode,
   ErrorHandler,
-  HTTP_METHODS,
   Request,
   Response,
   Route,
@@ -52,11 +50,11 @@ export const execute = async (route: Route, request: Request, response: Response
     const args: unknown[] = [];
 
     const totalParams = Math.max(
-      route.parameters.length ? Math.max(...route.parameters.map((p) => p.index)) + 1 : 0,
+      route.parameters.length ? Math.max(...route.parameters.map(p => p.index)) + 1 : 0,
     );
 
     for (let i = 0; i < totalParams; i++) {
-      const param = route.parameters.find((p) => p.index === i);
+      const param = route.parameters.find(p => p.index === i);
 
       if (!param) {
         args[i] = undefined;
@@ -131,7 +129,7 @@ export const execute = async (route: Route, request: Request, response: Response
       if (!functions.errors.length) continue;
       for (const handler of functions.errors) {
         const resp = await Promise.resolve(handler(catched as Error, request, response)).catch(
-          (err) => err,
+          err => err,
         );
         catched = resp;
         if (resp instanceof Error) {
@@ -166,42 +164,12 @@ export const execute = async (route: Route, request: Request, response: Response
   }
 };
 
-export const getControllerMethods = (controller: ControllerInstance) => {
-  const methods: ControllerMethods = [];
-
-  let proto = Object.getPrototypeOf(controller);
-
-  while (proto && proto !== Object.prototype) {
-    const propertyNames = Object.getOwnPropertyNames(proto);
-    for (const propertyName of propertyNames) {
-      if (propertyName === 'constructor') continue;
-
-      const endpointMeta = Reflect.getMetadata(ENDPOINT, proto, propertyName);
-
-      if (endpointMeta) {
-        const [httpMethod, pattern] = endpointMeta;
-        const methodMiddlewares = Reflect.getMetadata(MIDDLEWARES, proto, propertyName);
-
-        methods.push({
-          name: propertyName,
-          httpMethod,
-          pattern,
-          middlewares: methodMiddlewares,
-        });
-      }
-    }
-    proto = Object.getPrototypeOf(proto);
-  }
-
-  return methods.sort((a) => (a.httpMethod === HTTP_METHODS.ANY ? 1 : -1));
-};
-
 export const getAllMethods = (obj: unknown): string[] => {
   const methods = new Set<string>();
   let current = Object.getPrototypeOf(obj);
 
   while (current && current !== Object.prototype) {
-    Object.getOwnPropertyNames(current).forEach((name) => {
+    Object.getOwnPropertyNames(current).forEach(name => {
       if (name !== 'constructor' && typeof current[name] === 'function') {
         methods.add(name);
       }
@@ -210,22 +178,7 @@ export const getAllMethods = (obj: unknown): string[] => {
   }
 
   return Array.from(methods).filter(
-    (name) =>
-      ![
-        'constructor',
-        'meta',
-        'getResponse',
-        'routeWalker',
-        'getAllMethods',
-        'findRouteInController',
-        'lookupSSE',
-        'lookupWS',
-        'getSSEController',
-        'getWSHandlers',
-        'getSSEHandlers',
-        'getWSTopics',
-        'typedHandlers',
-      ].includes(name),
+    name => !['constructor', ...CONTROLLER_PROPERTIES_HASH].includes(name),
   );
 };
 
@@ -275,9 +228,9 @@ export const beforeRequest = async (request: Request, response: Response, route:
     if ([ErrorCode.FORBIDDEN, ErrorCode.RATE_LIMIT_EXCEEDED].includes(err.code)) {
       throw err;
     }
-    const promises = handlers.map((handler) => handler(err, request, response));
+    const promises = handlers.map(handler => handler(err, request, response));
 
-    return Promise.all(promises).catch((err) => err);
+    return Promise.all(promises).catch(err => err);
   }
 };
 

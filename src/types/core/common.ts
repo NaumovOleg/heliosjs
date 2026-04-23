@@ -1,4 +1,5 @@
 import { ServerResponse } from 'node:http';
+import { HANDLE_REQUEST_HASH } from '../../constants';
 import { HeliosError } from './error';
 import { Request } from './request';
 import { Response } from './response';
@@ -9,7 +10,7 @@ export type Router = (
 ) => Promise<{ status: number; data: unknown; message?: string }>;
 
 export interface IController {
-  handleRequest: Router;
+  [HANDLE_REQUEST_HASH]: Router;
 }
 
 export type MiddlewareCB = (

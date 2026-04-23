@@ -4,9 +4,9 @@ import { createParamDecorator } from '../utils/core';
 export type SSEHandlerType = 'connection' | 'close' | 'error';
 
 /**
- * Method decorator to handle specific SSE events.
+ * Method decorator to handle specific SSE_HASH events.
  *
- * @param {SSEHandlerType} type - The type of SSE event to handle ('connection', 'close', 'error').
+ * @param {SSEHandlerType} type - The type of SSE_HASH event to handle ('connection', 'close', 'error').
  *
  * Usage:
  * ```ts
@@ -24,7 +24,7 @@ export function OnSSE(type: SSEHandlerType) {
 }
 
 /**
- * Method decorator to handle SSE connection events.
+ * Method decorator to handle SSE_HASH connection events.
  *
  * Usage:
  * ```ts
@@ -37,7 +37,7 @@ export function OnSSEConnection() {
 }
 
 /**
- * Method decorator to handle SSE close events.
+ * Method decorator to handle SSE_HASH close events.
  *
  * Usage:
  * ```ts
@@ -50,7 +50,7 @@ export function OnSSEClose() {
 }
 
 /**
- * Method decorator to handle SSE error events.
+ * Method decorator to handle SSE_HASH error events.
  *
  * Usage:
  * ```ts
@@ -63,7 +63,7 @@ export function OnSSEError() {
 }
 
 /**
- * Parameter decorator to inject the SSE instance.
+ * Parameter decorator to inject the SSE_HASH instance.
  *
  * Usage:
  * ```ts

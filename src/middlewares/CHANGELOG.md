@@ -1,5 +1,16 @@
 # Change Log
 
+## 7.0.0
+
+### Minor Changes
+
+- hashes
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@2.4.0
+
 ## 6.0.0
 
 ### Minor Changes

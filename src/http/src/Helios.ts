@@ -1,5 +1,5 @@
 import http, { IncomingMessage, ServerResponse } from 'node:http';
-import { CONTROLLERS } from './constants';
+import { CONTROLLERS, HANDLE_REQUEST_HASH, SSE_HASH, WS_HASH } from './constants';
 import {
   ControllerClass,
   ControllerMeta,
@@ -14,8 +14,8 @@ import { handleCORS, NextFunction, sanitizeRequest } from './utils/core';
 import {
   Plugin,
   RequestFactory,
-  resolveConfig,
   ResponseFactory,
+  resolveConfig,
   staticMiddleware,
 } from './utils/http';
 import { WebSocketServer, WebSocketService } from './utils/socket';
@@ -126,7 +126,7 @@ export class Helios extends Plugin implements IHttpServer {
         return;
       }
 
-      this.app.close(async (err) => {
+      this.app.close(async err => {
         await this.callPluginMethod('onStop', this.app);
         if (err) {
           reject(err);
@@ -225,8 +225,8 @@ export class Helios extends Plugin implements IHttpServer {
   }
   private async runController(request: Request, response: Response) {
     for (const instance of this.rootControllers ?? []) {
-      if (typeof instance.handleRequest === 'function') {
-        const done = await instance.handleRequest(request, response);
+      if (typeof instance[HANDLE_REQUEST_HASH] === 'function') {
+        const done = await instance[HANDLE_REQUEST_HASH]?.(request, response);
 
         if (done) {
           break;
@@ -313,7 +313,7 @@ export class Helios extends Plugin implements IHttpServer {
 
     const yoga = createYoga({
       schema,
-      context: (ctx) => {
+      context: ctx => {
         return {
           request: ctx.request,
           headers: ctx.request?.headers,

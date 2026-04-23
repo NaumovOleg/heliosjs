@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.4.0
+
+### Minor Changes
+
+- hashes
+
 ## 2.3.0
 
 ### Minor Changes

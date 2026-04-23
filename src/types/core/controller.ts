@@ -1,3 +1,4 @@
+import { HANDLE_REQUEST_HASH, WS_HASH } from '../../constants';
 import { HTTP_METHODS, InterceptorCB, MiddlewareCB, ParamMetadata } from './common';
 import { CORSConfig } from './cors';
 import { ErrorHandler } from './error';
@@ -15,8 +16,8 @@ export type ControllerMethods = Array<{
 }>;
 
 export type ControllerType = {
-  handleRequest?(request: Request, response: Response): Promise<any>;
-  ws?: WsControllerHandlers;
+  [HANDLE_REQUEST_HASH]?(request: Request, response: Response): Promise<any>;
+  [WS_HASH]?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
   new (...args: any[]): any;
 };

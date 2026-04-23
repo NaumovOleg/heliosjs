@@ -1,5 +1,6 @@
 // server/SSEServer.ts
 import { ServerResponse } from 'node:http';
+import { SSE_HASH } from '../../constants';
 import { ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
 import { generateUniqueId } from '../shared';
 export class SSEServer implements ISSEServer {
@@ -55,7 +56,7 @@ export class SSEServer implements ISSEServer {
       const dataStr =
         typeof message.data === 'string' ? message.data : JSON.stringify(message.data);
 
-      dataStr.split('\n').forEach((line) => {
+      dataStr.split('\n').forEach(line => {
         sseMessage += `data: ${line}\n`;
       });
       sseMessage += '\n';
@@ -63,7 +64,7 @@ export class SSEServer implements ISSEServer {
       client.response.write(sseMessage);
       return true;
     } catch (error) {
-      console.error(`SSE send error to ${clientId}:`, error);
+      console.error(`SSE_HASH send error to ${clientId}:`, error);
       return false;
     }
   }
@@ -81,13 +82,13 @@ export class SSEServer implements ISSEServer {
   }
 
   registerControllers(controllers: ControllerType[]) {
-    this.controllers = controllers.filter((c) => c.sse);
+    this.controllers = controllers.filter(c => c.sse);
   }
 
   private async triggerHandlers(eventType: string, event: SSEEvent) {
     for (const controller of this.controllers) {
-      if (controller.sse.handlers && controller.sse.handlers[eventType]) {
-        for (const handler of controller.sse.handlers[eventType]) {
+      if (controller[SSE_HASH].handlers && controller[SSE_HASH].handlers[eventType]) {
+        for (const handler of controller[SSE_HASH].handlers[eventType]) {
           await handler.fn(event).catch(console.error);
         }
       }

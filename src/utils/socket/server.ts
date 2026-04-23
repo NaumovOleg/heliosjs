@@ -1,5 +1,6 @@
-import http from 'http';
+import http from 'node:http';
 import WebSocket, { WebSocketServer as Server } from 'ws';
+import { WS_HASH } from '../../constants';
 import { ControllerType } from '../../types/core';
 import {
   IWebSocketServer,
@@ -24,7 +25,7 @@ export class WebSocketServer implements IWebSocketServer {
       path: this.options.path,
     });
 
-    this.wss.on('connection', (socket) => {
+    this.wss.on('connection', socket => {
       this.handleConnection(socket);
     });
 
@@ -35,7 +36,7 @@ export class WebSocketServer implements IWebSocketServer {
       (socket as any).__wsHandled = true;
 
       if (this.shouldHandleWebSocket(request.url)) {
-        this.wss.handleUpgrade(request, socket, head, (ws) => {
+        this.wss.handleUpgrade(request, socket, head, ws => {
           this.wss.emit('connection', ws, request);
         });
       } else {
@@ -118,7 +119,7 @@ export class WebSocketServer implements IWebSocketServer {
   }
 
   private async handleClose(client: WebSocketClient) {
-    client.topics.forEach((topic) => {
+    client.topics.forEach(topic => {
       const topicClients = this.topics.get(topic);
       if (topicClients) {
         topicClients.delete(client.id);
@@ -150,8 +151,8 @@ export class WebSocketServer implements IWebSocketServer {
     topic?: string,
   ) {
     for (const controller of this.controllers) {
-      const controllerHandlers = controller.ws?.handlers?.[eventType] ?? [];
-      const matchingHandlers = controllerHandlers.filter((h) => {
+      const controllerHandlers = controller[WS_HASH]?.handlers?.[eventType] ?? [];
+      const matchingHandlers = controllerHandlers.filter(h => {
         if (h.type !== eventType) return false;
         if (!topic) return !h.topic;
         return !h.topic || h.topic === topic;
@@ -166,7 +167,7 @@ export class WebSocketServer implements IWebSocketServer {
       }
 
       if (eventType === 'message' && topic) {
-        const matchingSubs = controller.ws?.topics.filter((s) => s.topic === topic) ?? [];
+        const matchingSubs = controller[WS_HASH]?.topics.filter(s => s.topic === topic) ?? [];
 
         for (const sub of matchingSubs) {
           try {
@@ -180,7 +181,7 @@ export class WebSocketServer implements IWebSocketServer {
   }
 
   public registerControllers(controllers: ControllerType[]) {
-    this.controllers = controllers.filter((c) => !!c.ws);
+    this.controllers = controllers.filter(c => !!c[WS_HASH]);
   }
 
   public subscribeToTopic(client: WebSocketClient, topic: string) {
@@ -224,7 +225,7 @@ export class WebSocketServer implements IWebSocketServer {
       timestamp: new Date().toISOString(),
     });
 
-    topicClients.forEach((clientId) => {
+    topicClients.forEach(clientId => {
       if (exclude && exclude.includes(clientId)) {
         return;
       }
