@@ -23,17 +23,11 @@ export const parseBody = (request: {
   const { body, headers, isBase64Encoded } = request;
 
   if (!body) {
-    return {};
+    return;
   }
 
-  let processedBody = body;
-  if (isBase64Encoded && typeof body === 'string') {
-    try {
-      processedBody = Buffer.from(body, 'base64');
-    } catch (error) {
-      console.error('Failed to decode base64 body:', error);
-    }
-  }
+  const processedBody = body;
+
   let contentType = headers['content-type'] ?? headers['Content-Type'] ?? '';
   if (Array.isArray(contentType)) {
     contentType = contentType[0];
@@ -41,7 +35,15 @@ export const parseBody = (request: {
 
   const cleanContentType = contentType.split(';')[0].trim().toLowerCase();
   const getString = (data: unknown): string => {
-    let str = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+    let str;
+
+    if (isBase64Encoded) {
+      str = Buffer.from(String(data), 'base64').toString('utf8');
+    } else if (Buffer.isBuffer(data)) {
+      str = data.toString('utf8');
+    } else {
+      str = String(data);
+    }
 
     str = str.replace(/[^\x20-\x7E\x0A\x0D\x09]/g, '');
     if (str.charCodeAt(0) === 0xfeff) {
@@ -85,7 +87,7 @@ export const parseBody = (request: {
   }
 
   if (cleanContentType === 'application/xml' || cleanContentType === 'text/xml') {
-    return { xml: getString(processedBody) };
+    return getString(processedBody);
   }
 
   if (cleanContentType.startsWith('multipart/')) {
@@ -97,7 +99,7 @@ export const parseBody = (request: {
   }
 
   if (Buffer.isBuffer(processedBody)) {
-    return { raw: processedBody.toString('utf8') };
+    return processedBody.toString('utf8');
   }
 
   return processedBody;

@@ -1,5 +1,21 @@
 # Change Log
 
+## 7.0.5
+
+### Patch Changes
+
+- fic(parser)
+- Updated dependencies
+  - @heliosjs/core@2.4.5
+
+## 7.0.4
+
+### Patch Changes
+
+- body parser
+- Updated dependencies
+  - @heliosjs/core@2.4.4
+
 ## 7.0.3
 
 ### Patch Changes

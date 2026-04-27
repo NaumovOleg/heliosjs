@@ -13,17 +13,21 @@ export interface IController {
   [HANDLE_REQUEST_HASH]: Router;
 }
 
-export type MiddlewareCB = (
-  request: Request,
+export type MiddlewareCB<
+  B = unknown,
+  Q = Record<string, string | string[]>,
+  P = Record<string, string>,
+> = (
+  request: Request<B, Q, P>,
   response: Response,
   next: (err?: HeliosError) => Promise<any> | any,
-) => void | Promise<Request> | Request | Promise<void> | void;
+) => void | Promise<Request> | Request | Promise<void>;
 
-export type InterceptorCB = (
-  data: unknown,
-  req?: Request,
-  res?: Response,
-) => Promise<unknown> | unknown;
+export type InterceptorCB<
+  B = any,
+  Q = Record<string, string | string[]>,
+  P = Record<string, string>,
+> = (data: unknown, req?: Request<B, Q, P>, res?: Response) => Promise<unknown>;
 
 export type ErrorCB = (error: HeliosError, req?: Request, res?: Response) => unknown;
 

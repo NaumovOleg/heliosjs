@@ -19,7 +19,7 @@ export interface RequestOptions {
   path: string;
   headers: Record<string, string | string[]>;
   query: Record<string, string | string[]>;
-  body: any;
+  body?: any;
   params: Record<string, string>;
   cookies: Record<string, string>;
   sourceIp?: string;
@@ -35,16 +35,20 @@ export interface RequestOptions {
   source: RequestSource;
 }
 
-export interface Request {
+export interface Request<
+  B = unknown,
+  Q = Record<string, string | string[]>,
+  P = Record<string, string>,
+> {
   // Readonly properties
   method: string;
   path: string;
   url: string;
   requestUrl: URL;
   headers: Record<string, string | string[]>;
-  query: Record<string, string | string[]>;
-  body: unknown;
-  params: Record<string, string>;
+  query: Q;
+  body: B;
+  params: P;
   cookies: Record<string, string>;
   sourceIp: string;
   userAgent: string;

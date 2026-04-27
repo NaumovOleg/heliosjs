@@ -1,5 +1,17 @@
 # @heliosjs/grpc
 
+## 1.3.5
+
+### Patch Changes
+
+- fic(parser)
+
+## 1.3.4
+
+### Patch Changes
+
+- body parser
+
 ## 1.3.3
 
 ### Patch Changes

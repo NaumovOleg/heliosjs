@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.4.5
+
+### Patch Changes
+
+- fic(parser)
+
+## 2.4.4
+
+### Patch Changes
+
+- body parser
+
 ## 2.4.3
 
 ### Patch Changes
