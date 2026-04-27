@@ -41,13 +41,13 @@ export const parseBody = (request: {
 
   const cleanContentType = contentType.split(';')[0].trim().toLowerCase();
   const getString = (data: unknown): string => {
-    if (Buffer.isBuffer(data)) {
-      return data.toString('utf8');
+    let str = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+
+    str = str.replace(/[^\x20-\x7E\x0A\x0D\x09]/g, '');
+    if (str.charCodeAt(0) === 0xfeff) {
+      str = str.slice(1);
     }
-    if (typeof data === 'string') {
-      return data;
-    }
-    return String(data);
+    return str.trim();
   };
 
   if (cleanContentType === 'application/json') {
@@ -59,7 +59,7 @@ export const parseBody = (request: {
     }
   }
   if (cleanContentType.startsWith('text/')) {
-    return { text: getString(processedBody) };
+    return getString(processedBody);
   }
 
   if (cleanContentType === 'application/x-www-form-urlencoded') {

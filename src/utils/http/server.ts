@@ -42,10 +42,10 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
 };
 
 export const collectRawBody = (req: http.IncomingMessage): Promise<Buffer> => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
 
-    req.on('data', (chunk) => {
+    req.on('data', chunk => {
       chunks.push(Buffer.from(chunk));
     });
 
@@ -54,8 +54,6 @@ export const collectRawBody = (req: http.IncomingMessage): Promise<Buffer> => {
       resolve(buffer);
     });
 
-    req.on('error', () => {
-      resolve(Buffer.from(''));
-    });
+    req.on('error', reject);
   });
 };
