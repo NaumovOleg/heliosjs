@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 1.3.7
+
+### Patch Changes
+
+- fix
+
 ## 1.3.6
 
 ### Patch Changes
