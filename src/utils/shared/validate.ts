@@ -12,8 +12,12 @@ export async function validate(dtoClass: any, data: unknown) {
   }
 
   if (typeof dtoClass === 'function') {
-    const dto = new dtoClass(data);
-    const errors = await Validate(dto);
+    const instance = dtoClass.length > 0 ? new dtoClass(data) : plainToInstance(dtoClass, data);
+
+    if (!instance) {
+      throw { status: 400, message: 'Validation failed', validationError: 'Empty value' };
+    }
+    const errors = await Validate(instance);
 
     if (errors.length > 0) {
       const validationError = formatValidationErrors(errors);
