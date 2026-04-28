@@ -13,7 +13,7 @@ import { reflectMiddlewaresMetadata, reflectRouteMetadata, validate } from '../s
 import { WebSocketService } from '../socket';
 import { SSEService } from '../sse';
 import { handleCORS } from './cors';
-import { ForbiddenError } from './error';
+import { ForbiddenError, ValidationError } from './error';
 import { getBodyAndMultipart, getParams } from './helper';
 import { sanitizeRequest } from './sanitize';
 
@@ -123,6 +123,12 @@ export const execute = async (route: Route, request: Request, response: Response
       response.error(error);
       return response;
     }
+
+    if (error.validationError) {
+      response.error(error);
+      return response;
+    }
+
     let catched = error;
 
     for (const functions of route.functions.reverse()) {
@@ -143,6 +149,7 @@ export const execute = async (route: Route, request: Request, response: Response
       response.data = catched;
       break;
     }
+
     if (catched instanceof Error) {
       if (typeof error === 'string') {
         const err = new Error(error);
@@ -159,7 +166,6 @@ export const execute = async (route: Route, request: Request, response: Response
         response.error(catched);
       }
     }
-
     return response;
   }
 };

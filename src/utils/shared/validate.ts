@@ -15,13 +15,13 @@ export async function validate(dtoClass: any, data: unknown) {
     const instance = plainToInstance(dtoClass, data);
 
     if (!instance) {
-      throw { status: 400, message: 'Validation failed', errors: 'Empty value' };
+      throw { status: 400, message: 'Validation failed', validationError: 'Empty value' };
     }
     const errors = await Validate(instance);
 
     if (errors.length > 0) {
-      const formattedErrors = formatValidationErrors(errors);
-      throw { status: 400, message: 'Validation failed', errors: formattedErrors };
+      const validationError = formatValidationErrors(errors);
+      throw { status: 400, message: 'Validation failed', validationError };
     }
 
     return data;
@@ -31,7 +31,7 @@ export async function validate(dtoClass: any, data: unknown) {
 }
 
 function formatValidationErrors(errors: ValidationError[]): unknown[] {
-  return errors.map((error) => {
+  return errors.map(error => {
     const constraints = error.constraints || {};
 
     const children =

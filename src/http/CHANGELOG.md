@@ -1,5 +1,13 @@
 # Change Log
 
+## 7.0.6
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - @heliosjs/core@2.4.6
+
 ## 7.0.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.4.6
+
+### Patch Changes
+
+- fix
+
 ## 2.4.5
 
 ### Patch Changes

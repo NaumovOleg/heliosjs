@@ -1,5 +1,5 @@
 import { OK_STATUSES } from '../../constants';
-import { CookieOptions, Response, _Raw } from '../../types/core';
+import { _Raw, CookieOptions, Response } from '../../types/core';
 import { Meta } from '../../types/core/common';
 import { ResponseSource } from '../../types/core/response';
 import { ApplicationError } from './error';
@@ -299,13 +299,14 @@ export class Res implements Response {
       meta: this.meta,
     };
   }
-  error(error: unknown): this {
+  error(error: any): this {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: !!process.env.LOG_ERRORS,
     };
 
     const serialized = new ApplicationError(error as Error, { meta: this.meta, config });
+
     if (this.ok) {
       this.status = serialized.status ?? 500;
     }

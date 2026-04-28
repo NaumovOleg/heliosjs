@@ -28,8 +28,6 @@ ln -sf ../../../types/http src/http/src/types/http
 ln -sf ../../../utils/core src/http/src/utils/core
 ln -sf ../../../utils/http src/http/src/utils/http
 ln -sf ../../../utils/sse src/http/src/utils/sse
-ln -sf ../../../utils/shared src/http/src/utils/shared
-ln -sf ../../../utils/socket src/http/src/utils/socket
 ln -sf ../../README.md src/http
 
 echo -e "\n${YELLOW}Creating symlinks for middlewares module...${NC}"
@@ -38,6 +36,8 @@ mkdir src/middlewares/src/utils
 ln -sf ../../constants.ts src/middlewares/src/constants.ts
 ln -sf ../../../types/core src/middlewares/src/types/core
 ln -sf ../../../utils/shared src/middlewares/src/utils/shared
+ln -sf ../../../utils/core/error/validation.ts src/middlewares/src/utils/core/error/validation.ts
+
 ln -sf ../../README.md src/middlewares
 
 echo -e "\n${YELLOW}Creating symlinks for aws module...${NC}"

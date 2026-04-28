@@ -94,4 +94,5 @@ export type ErrorObject = Partial<{
   stack: string;
   errors: ErrorChildren[];
   details: ErrorDetails[];
+  validationError?: unknown;
 }>;

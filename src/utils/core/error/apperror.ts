@@ -58,8 +58,8 @@ export class ApplicationError {
       return error;
     }
 
-    if (error?.errors) {
-      const details = this.formatValidationErrors(error?.errors);
+    if (error instanceof ValidationError || error.details?.length || error.validationError) {
+      const details = this.formatValidationErrors(error?.details || (error.validationError as any));
       return new ValidationError(details!, request);
     }
 
@@ -110,11 +110,11 @@ export class ApplicationError {
   }
 
   private formatValidationErrors(errors: ErrorObject['errors']): ErrorDetails[] | undefined {
-    return errors?.map((error) => ({
+    return errors?.map(error => ({
       field: error.property,
       value: error.value,
       constraints: error.constraints ? Object.values(error.constraints) : [],
-      children: error.children?.length ? this.formatValidationErrors(error.children) : undefined,
+      children: error.children?.length ? this.formatValidationErrors(error.children) : [],
     }));
   }
 
