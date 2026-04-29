@@ -28,7 +28,7 @@ export const parseBody = (request: {
 
   const processedBody = body;
 
-  let contentType = headers['content-type'] ?? headers['Content-Type'] ?? '';
+  let contentType = headers['Content-Type'] ?? headers['content-type'] ?? '';
   if (Array.isArray(contentType)) {
     contentType = contentType[0];
   }
@@ -57,7 +57,7 @@ export const parseBody = (request: {
       const str = getString(processedBody);
       return JSON.parse(str);
     } catch (_: unknown) {
-      return { text: getString(processedBody), parseError: true };
+      return getString(processedBody);
     }
   }
   if (cleanContentType.startsWith('text/')) {

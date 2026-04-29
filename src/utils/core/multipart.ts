@@ -13,7 +13,7 @@ export class MultipartProcessor {
       return { fields: {}, files: {} };
     }
 
-    let contentType = headers['content-type'] ?? headers['Content-Type'] ?? '';
+    let contentType = headers['Content-Type'] ?? headers['content-type'] ?? '';
     if (Array.isArray(contentType)) {
       contentType = contentType[0];
     }
@@ -79,7 +79,7 @@ export class MultipartProcessor {
   }
 
   static isMultipart(request: Request): boolean {
-    let contentType = request.headers?.['content-type'] || request.headers?.['Content-Type'] || '';
+    let contentType = request.headers?.['Content-Type'] || request.headers?.['content-type'] || '';
     contentType = Array.isArray(contentType) ? contentType[0] : contentType;
     return contentType.startsWith('multipart/form-data');
   }

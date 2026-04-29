@@ -206,7 +206,7 @@ export class Res implements Response {
   }
 
   json(data: unknown): this {
-    this.setHeader('content-type', 'application/json');
+    this.setHeader('Content-Type', 'application/json');
     this._data = data;
     this._headersSent = true;
     this.end(this._data);
@@ -214,7 +214,7 @@ export class Res implements Response {
   }
 
   text(text: string): this {
-    this.setHeader('content-type', 'text/plain');
+    this.setHeader('Content-Type', 'text/plain');
     this._data = text;
     this._headersSent = true;
     this.send(this._data);
@@ -222,7 +222,7 @@ export class Res implements Response {
   }
 
   html(html: string): this {
-    this.setHeader('content-type', 'text/html');
+    this.setHeader('Content-Type', 'text/html');
     this._data = html;
     this._headersSent = true;
     this.send(this._data);
@@ -230,14 +230,9 @@ export class Res implements Response {
   }
 
   buffer(data: Buffer, contentType?: string): this {
-    if (contentType) {
-      this.setHeader('content-type', contentType);
-    } else {
-      this.setHeader('content-type', 'application/octet-stream');
-    }
+    this.setHeader('Content-Type', contentType ?? 'application/octet-stream');
     this._data = data;
     this._isBase64Encoded = this._source === 'lambda';
-
     this._headersSent = true;
     this.send(this._data);
     return this;
@@ -246,7 +241,7 @@ export class Res implements Response {
   stream(readable: NodeJS.ReadableStream, contentType?: string): this {
     if (this._source !== 'http') throw Error('Not implemented');
     if (contentType) {
-      this.setHeader('content-type', contentType);
+      this.setHeader('Content-Type', contentType);
     }
     this._data = readable;
     this.send(this._data);
