@@ -301,7 +301,6 @@ export class Res implements Response {
     };
 
     const serialized = new ApplicationError(error as Error, { meta: this.meta, config });
-
     if (this.ok) {
       this.status = serialized.status ?? 500;
     }

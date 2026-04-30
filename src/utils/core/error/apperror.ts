@@ -58,7 +58,7 @@ export class ApplicationError {
       return error;
     }
 
-    if (error instanceof ValidationError || error.details?.length || error.validationError) {
+    if (error instanceof ValidationError || error.validationError) {
       const details = this.formatValidationErrors(error?.details || (error.validationError as any));
       return new ValidationError(details!, request);
     }

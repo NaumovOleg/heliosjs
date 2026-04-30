@@ -136,6 +136,7 @@ export function Controller(
 
       [HANDLE_REQUEST_HASH] = async (request: Request, response: Response) => {
         const matched = matchRoutes(this[PRECOMILED_HASH], request.url, request.method);
+
         if (!matched) {
           return response.error(
             new NotFoundError(`Route ${request.url} not found`, request.requestId),
