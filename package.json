@@ -25,7 +25,13 @@
     "version-packages": "changeset version",
     "release": "changeset publish --provenance --access public"
   },
-  "workspaces": ["src/core", "src/middlewares", "src/http", "src/aws", "src/grpc"],
+  "workspaces": [
+    "src/core",
+    "src/middlewares",
+    "src/http",
+    "src/aws",
+    "src/grpc"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/NaumovOleg/heliosjs"
@@ -39,7 +45,8 @@
     "typescript",
     "aws",
     "lambda",
-    "graphql"
+    "graphql",
+    "grpc"
   ],
   "author": "Naumov Oleh",
   "peerDependencies": {},

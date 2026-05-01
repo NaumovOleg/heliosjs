@@ -1,5 +1,5 @@
-import { SSE_METADATA_KEY } from '../constants';
-import { createParamDecorator } from '../utils/core';
+import { SSE_METADATA_KEY } from '@heliosjs/core/constants';
+import { createParamDecorator } from '@heliosjs/core/utils';
 
 export type SSEHandlerType = 'connection' | 'close' | 'error';
 

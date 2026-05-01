@@ -1,5 +1,5 @@
-import { type Pipe } from './types/core';
-import { defineMiddlewaresMeta } from './utils/shared';
+import { type Pipe } from '@heliosjs/core/types';
+import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to register a data transformation pipe.
  *

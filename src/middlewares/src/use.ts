@@ -1,5 +1,5 @@
-import { MiddlewareCB } from './types/core';
-import { defineMiddlewaresMeta } from './utils/shared';
+import { MiddlewareCB } from '@heliosjs/core/types';
+import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 
 /**
  * Decorator to register middleware(s) at the controller or method level.

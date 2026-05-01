@@ -1,5 +1,16 @@
 # Change Log
 
+## 8.0.0
+
+### Major Changes
+
+- restructured dependencies
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@3.0.0
+
 ## 7.0.10
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.0.0
+
+### Major Changes
+
+- restructured dependencies
+
 ## 1.3.10
 
 ### Patch Changes

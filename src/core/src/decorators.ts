@@ -1,3 +1,5 @@
+import { ValidatorOptions } from 'class-validator';
+import { Dto } from './types';
 import { createParamDecorator } from './utils/core';
 
 /**
@@ -22,7 +24,11 @@ import { createParamDecorator } from './utils/core';
  * @Body(UserDto) user: UserDto
  * ```
  */
-export const Body = (dto?: unknown) => createParamDecorator('body', dto);
+export const Body = (
+  nameOrDto?: Dto | string,
+  nameOrOptions?: ValidatorOptions | string,
+  options?: ValidatorOptions,
+) => createParamDecorator('body', nameOrDto, nameOrOptions, options);
 
 /**
  * Parameter decorator to extract route parameters from the URL path.
@@ -48,12 +54,11 @@ export const Body = (dto?: unknown) => createParamDecorator('body', dto);
  * @Params(UserParamsDto) params: UserParamsDto
  * ```
  */
-export const Params = (dto?: unknown, name?: string) =>
-  createParamDecorator(
-    'params',
-    typeof dto == 'string' ? undefined : dto,
-    typeof dto == 'string' ? dto : name,
-  );
+export const Params = (
+  nameOrDto?: Dto | string,
+  nameOrOptions?: ValidatorOptions | string,
+  options?: ValidatorOptions,
+) => createParamDecorator('params', nameOrDto, nameOrOptions, options);
 
 /**
  * Parameter decorator to extract query parameters from the URL.
@@ -79,12 +84,11 @@ export const Params = (dto?: unknown, name?: string) =>
  * @Query(SearchDto) query: SearchDto
  * ```
  */
-export const Query = (dto?: unknown, name?: string) =>
-  createParamDecorator(
-    'query',
-    typeof dto == 'string' ? undefined : dto,
-    typeof dto == 'string' ? dto : name,
-  );
+export const Query = (
+  nameOrDto?: Dto | string,
+  nameOrOptions?: ValidatorOptions | string,
+  options?: ValidatorOptions,
+) => createParamDecorator('query', nameOrDto, nameOrOptions, options);
 
 /**
  * Parameter decorator to inject the HTTP request object into a controller method.

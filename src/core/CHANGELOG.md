@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.0.0
+
+### Major Changes
+
+- restructured dependencies
+
 ## 2.4.10
 
 ### Patch Changes

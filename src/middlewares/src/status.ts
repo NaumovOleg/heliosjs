@@ -1,4 +1,4 @@
-import { defineMiddlewaresMeta, reflectMiddlewaresMetadata } from './utils/shared';
+import { defineMiddlewaresMeta, reflectMiddlewaresMetadata } from '@heliosjs/core/utils';
 /**
  * Decorator to set the HTTP status code for the response.
  *

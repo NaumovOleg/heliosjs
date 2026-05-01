@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 // Server
 export { GrpcClient } from './client';
 // Decorators
