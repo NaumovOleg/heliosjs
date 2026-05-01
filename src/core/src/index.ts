@@ -4,14 +4,21 @@
  * This module provides centralized exports for controller and endpoint decorators,
  * as well as related types and utility functions used throughout the core framework.
  */
+import 'reflect-metadata';
+
 export * from './Controller';
+export * from './constants';
 export * from './decorators';
 export * from './Endpoint';
 export {
   CORSConfig,
+  ControllerClass,
+  ControllerType,
   ErrorHandler,
   HeliosError,
+  HTTP_METHODS,
   InterceptorCB,
+  ISSEService,
   MiddlewareCB,
   MultipartFile,
   Pipe,
@@ -19,6 +26,9 @@ export {
   Response,
   SanitizerConfig,
 } from './types/core';
+
+export { IWebSocketServer, IWebSocketService } from './types/ws';
+
 export {
   DependencyFailedError,
   DuplicateEntryError,

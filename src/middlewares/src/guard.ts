@@ -1,5 +1,5 @@
-import { type Guard, GuardFn } from './types/core';
-import { defineMiddlewaresMeta } from './utils/shared';
+import { type Guard, GuardFn } from '@heliosjs/core/types';
+import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to register a guard.
  *

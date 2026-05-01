@@ -1,4 +1,4 @@
-import { SERVER_CONFIG_KEY } from './constants';
+import { SERVER_CONFIG_KEY } from '@heliosjs/core/constants';
 import { ServerConfig } from './types/http';
 
 /**

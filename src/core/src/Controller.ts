@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import 'reflect-metadata';
 import {
   GET_SSE_CONTROLLER_HASH,
   GET_SSE_HANDLERS_HASH,
@@ -9,7 +8,7 @@ import {
   LOOKUP_SEE_HASH,
   LOOKUP_WS_HASH,
   META_HASH,
-  PRECOMILED_HASH,
+  PRECOMPILED_HASH,
   SSE_HASH,
   SSE_METADATA_KEY,
   TYPED_HANDLER_HASH,
@@ -102,14 +101,14 @@ export function Controller(
       [WS_HASH]?: WsControllerHandlers;
       [SSE_HASH]?: SeeControllerHandlers;
 
-      [PRECOMILED_HASH]: ControllerMeta;
+      [PRECOMPILED_HASH]: ControllerMeta;
 
       constructor(...args: any[]) {
         super(...args);
         this[LOOKUP_WS_HASH]();
         this[LOOKUP_SEE_HASH]();
 
-        this[PRECOMILED_HASH] = this[META_HASH](args[0]);
+        this[PRECOMPILED_HASH] = this[META_HASH](args[0]);
       }
 
       [META_HASH] = (parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta => {
@@ -127,7 +126,7 @@ export function Controller(
         meta.routes = collectRoutes(this, meta, prefix);
 
         const children = controller.controllers.map(
-          (Controller: any) => new Controller(meta)[PRECOMILED_HASH],
+          (Controller: any) => new Controller(meta)[PRECOMPILED_HASH],
         );
         meta.children = children;
 
@@ -135,7 +134,7 @@ export function Controller(
       };
 
       [HANDLE_REQUEST_HASH] = async (request: Request, response: Response) => {
-        const matched = matchRoutes(this[PRECOMILED_HASH], request.url, request.method);
+        const matched = matchRoutes(this[PRECOMPILED_HASH], request.url, request.method);
 
         if (!matched) {
           return response.error(

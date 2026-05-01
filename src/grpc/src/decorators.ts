@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import { GRPC_CLIENT_METADATA, GRPC_METHOD_METADATA, GRPC_SERVICE_METADATA } from './constants';
 import { GrpcClientInjection, GrpcMethodMetadata, ServiceOptions } from './types/grpc';
 

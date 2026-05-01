@@ -1,6 +1,6 @@
-import { WS_HANDLER, WS_TOPIC_KEY } from '../constants';
-import { WebSocketHandlerType } from '../types/ws';
-import { createParamDecorator } from '../utils/core';
+import { WS_HANDLER, WS_TOPIC_KEY } from '@heliosjs/core/constants';
+import { WebSocketHandlerType } from '@heliosjs/core/types';
+import { createParamDecorator } from '@heliosjs/core/utils';
 
 /**
  * Method decorator to handle WebSocket events.

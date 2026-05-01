@@ -4,7 +4,7 @@
     "compilerOptions": {
         "outDir": "./dist",
         "rootDir": "./src",
-        "preserveSymlinks": true,
+        "preserveSymlinks": false,
         "types": [
             "node"
         ]
