@@ -1,4 +1,4 @@
-import { type Guard, GuardFn } from '@heliosjs/core/types';
+import { type GuardClass, GuardFunction } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to register a guard.
@@ -14,7 +14,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  *
  * @example
  * // Using function guard
- * @Guard((req, res) => {
+ * @GuardClass((req, res) => {
  *   return !!req.headers.authorization;
  * })
  * class MyController {}
@@ -27,7 +27,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  *   }
  * }
  *
- * @Guard(AuthGuard)
+ * @GuardClass(AuthGuard)
  * class MyController {}
  *
  * @remarks
@@ -42,7 +42,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * Metadata is stored under the CONTROLLER_CONFIGURATION key and used
  * internally by the framework during request processing.
  */
-export function Guard(guard: Guard | GuardFn) {
+export function Guard(guard: GuardClass | GuardFunction) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
     const data = [{ guard: guard }];
 

@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/grpc",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Grpc support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,7 +20,6 @@
   "scripts": {
     "build": "yarn clean && tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
-    "prepublishOnly": "yarn build",
     "publish:public": "yarn publish --access public --no-git-tag-version",
     "publish:patch": "yarn version --patch --no-git-tag-version && yarn publish --access public",
     "publish:minor": "yarn version --minor --no-git-tag-version && yarn publish --access public",

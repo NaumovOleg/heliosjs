@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.1
+
+### Patch Changes
+
+- feat(guard): added types
+
 ## 3.1.0
 
 ### Minor Changes

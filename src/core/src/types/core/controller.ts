@@ -68,7 +68,7 @@ export type FunctionsMeta = {
   cors: CORSConfig[];
   sanitizers: SanitizerConfig[];
   pipes: Pipe[];
-  guards: (Guard | GuardFn)[];
+  guards: (GuardClass | GuardFunction)[];
   interceptors: InterceptorCB[];
   status?: number;
 };
@@ -119,12 +119,12 @@ export type Pipe = {
   ) => Record<string, string | string[]>;
 };
 
-export interface Guard {
+export interface GuardClass {
   new (...any: any[]): any;
   canActivate(request: Request, response: Response): boolean;
 }
 
-export type GuardFn = (request: Request, response: Response) => boolean;
+export type GuardFunction = (request: Request, response: Response) => boolean;
 
 export enum MiddlewaresMetadataItemProperty {
   middleware = 'middleware',
@@ -152,7 +152,7 @@ type MiddlewareTypeMap = {
   errorHandler: ErrorHandler;
   cors: CORSConfig;
   pipe: Pipe;
-  guard: Guard | GuardFn;
+  guard: GuardClass | GuardFunction;
   interceptor: InterceptorCB;
   status: number;
   sanitizer: SanitizerConfig;

@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.1
+
+### Patch Changes
+
+- feat(guard): added types
+- Updated dependencies
+  - @heliosjs/core@3.1.1
+
 ## 9.0.0
 
 ### Minor Changes
