@@ -39,7 +39,7 @@ export const SANITIZER = {
   },
 
   xss: () =>
-    Joi.string().custom((value) => {
+    Joi.string().custom(value => {
       if (typeof value !== 'string') return value;
       const sanitized = value
         .replace(/javascript:/gi, '')
@@ -104,11 +104,9 @@ export function applyJoiSanitization(
   }
 }
 
-export const sanitizeRequest = (request: Request, config: SanitizerConfig[]) => {
-  config.forEach((conf) => {
-    const { value, error } = applyJoiSanitization(request[conf.type], conf);
+export const sanitizeRequest = (request: Request, config: SanitizerConfig) => {
+  const { value, error } = applyJoiSanitization(request[config.type], config);
 
-    if (error) throw error;
-    request[conf.type] = value;
-  });
+  if (error) throw error;
+  request[config.type] = value;
 };

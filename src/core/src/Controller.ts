@@ -78,7 +78,7 @@ export function Controller(
       throw new TypeError(`Error in ${constructor.name}. Invalid route prefix.`);
     }
     if (controllers.some(c => typeof c !== 'function')) {
-      throw new TypeError(`Error in ${constructor.name}. Invalid subcontrollers`);
+      throw new TypeError(`Error in ${constructor.name}. Invalid sub-controllers`);
     }
     if (middlewares.some(c => typeof c !== 'function')) {
       throw new TypeError(`Error in ${constructor.name}. Invalid middlewares`);
@@ -86,7 +86,10 @@ export function Controller(
     const proto = constructor.prototype;
 
     defineControllerMeta({ name: constructor.name, prefix: routePrefix, controllers }, proto);
-    defineMiddlewaresMeta({ middlewares: controllerMiddlewares }, constructor);
+    defineMiddlewaresMeta(
+      controllerMiddlewares.map(middleware => ({ middleware })),
+      constructor,
+    );
 
     for (const key of Object.getOwnPropertyNames(proto)) {
       if (key === 'constructor') continue;
@@ -118,16 +121,17 @@ export function Controller(
 
         const meta: Omit<ControllerMeta, 'controllers'> = {
           routes: [],
-          functions: [...parent.functions, functions],
+          functions: [...parent.functions, ...functions],
           prefix,
           name: controller.name,
         };
 
         meta.routes = collectRoutes(this, meta, prefix);
 
-        const children = controller.controllers.map(
-          (Controller: any) => new Controller(meta)[PRECOMPILED_HASH],
-        );
+        const children = controller.controllers.map((Controller: any) => {
+          const instance = new Controller(meta);
+          return instance[PRECOMPILED_HASH];
+        });
         meta.children = children;
 
         return { ...controller, ...meta, controllers: controller.controllers };

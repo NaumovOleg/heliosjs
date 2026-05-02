@@ -38,9 +38,10 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * This metadata is accessible via Reflect API and used internally by the framework
  * to apply sanitization logic.
  */
-export function Sanitize(sanitizeConfig: SanitizerConfig | SanitizerConfig[]) {
+export function Sanitize(config: SanitizerConfig | SanitizerConfig[]) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    const data = { sanitizers: Array.isArray(sanitizeConfig) ? sanitizeConfig : [sanitizeConfig] };
+    const sanitizers = Array.isArray(config) ? config : [config];
+    const data = sanitizers.map(sanitizer => ({ sanitizer }));
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);

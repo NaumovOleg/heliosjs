@@ -1,4 +1,4 @@
-import { defineMiddlewaresMeta, reflectMiddlewaresMetadata } from '@heliosjs/core/utils';
+import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to set the HTTP status code for the response.
  *
@@ -35,9 +35,7 @@ import { defineMiddlewaresMeta, reflectMiddlewaresMetadata } from '@heliosjs/cor
 export function Status(status: number) {
   return function (target: any, propertyKey?: string): void {
     if (propertyKey) {
-      const meta = reflectMiddlewaresMetadata(target);
-      meta.status = status;
-      defineMiddlewaresMeta(meta, target, propertyKey);
+      defineMiddlewaresMeta([{ status }], target, propertyKey);
     }
   };
 }

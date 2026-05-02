@@ -1,5 +1,16 @@
 # Change Log
 
+## 9.0.0
+
+### Minor Changes
+
+- middlewares order
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@3.1.0
+
 ## 8.0.0
 
 ### Major Changes

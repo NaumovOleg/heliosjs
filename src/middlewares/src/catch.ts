@@ -29,7 +29,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  */
 export function Catch(handler: ErrorHandler) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    const data = { errors: [handler] };
+    const data = [{ errorHandler: handler }];
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);

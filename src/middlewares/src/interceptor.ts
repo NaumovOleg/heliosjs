@@ -43,9 +43,9 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * Metadata is stored using the MIDDLEWARES_CONFIG key and
  * used internally by the framework during request processing.
  */
-export function Intercept(handler: InterceptorCB) {
+export function Intercept(interceptor: InterceptorCB) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    const data = { interceptors: [handler] };
+    const data = [{ interceptor }];
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);

@@ -6,7 +6,7 @@ import { Request } from './request';
 import { Response } from './response';
 import { SanitizerConfig } from './sanitize';
 
-export type ControllerClass = { new (...args: any[]): any };
+export type ControllerClass = new (...args: any[]) => any;
 
 export type ControllerMethods = Array<{
   name: string;
@@ -77,10 +77,8 @@ export type Route = {
   route: string;
   method: HTTP_METHODS;
   cors?: CORSConfig[];
-  ok: number;
   parameters: ParamMetadata[];
-  interceptor?: InterceptorCB;
-  functions: FunctionsMeta[];
+  functions: MiddlewaresMetadataItem[];
   fn: (...args: any[]) => any;
 };
 export type NextFunction = (error?: unknown) => void;
@@ -89,7 +87,7 @@ export type ControllerMeta = {
   name: string;
   routes: Route[];
   children?: ControllerMeta[];
-  functions: MiddlewaresMetadata[];
+  functions: MiddlewaresMetadataItem[];
   controllers: ControllerClass[];
 };
 
@@ -128,13 +126,38 @@ export interface Guard {
 
 export type GuardFn = (request: Request, response: Response) => boolean;
 
-export type MiddlewaresMetadata = {
-  middlewares: MiddlewareCB[];
-  errors: ErrorHandler[];
-  cors: CORSConfig[];
-  sanitizers: SanitizerConfig[];
-  pipes: Pipe[];
-  guards: (Guard | GuardFn)[];
-  interceptors: InterceptorCB[];
-  status?: number;
+export enum MiddlewaresMetadataItemProperty {
+  middleware = 'middleware',
+  errorHandler = 'errorHandler',
+  cors = 'cors',
+  pipe = 'pipe',
+  guard = 'guard',
+  interceptor = 'interceptor',
+  status = 'status',
+  sanitizer = 'sanitizer',
+}
+
+export type MiddleWareItemType =
+  | 'middleware'
+  | 'errorHandler'
+  | 'cors'
+  | 'pipe'
+  | 'guard'
+  | 'interceptor'
+  | 'status'
+  | 'sanitizer';
+
+type MiddlewareTypeMap = {
+  middleware: MiddlewareCB;
+  errorHandler: ErrorHandler;
+  cors: CORSConfig;
+  pipe: Pipe;
+  guard: Guard | GuardFn;
+  interceptor: InterceptorCB;
+  status: number;
+  sanitizer: SanitizerConfig;
+};
+
+export type MiddlewaresMetadataItem = {
+  [K in MiddleWareItemType]?: MiddlewareTypeMap[K];
 };

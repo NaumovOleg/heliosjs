@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Request } from '../../types/core';
+import { MiddleWareItemType, MiddlewaresMetadataItem, Request } from '../../types/core';
 import { InterceptorCB, MiddlewareCB } from '../../types/core/common';
 import { MultipartProcessor } from './multipart';
 
@@ -9,7 +9,7 @@ export const normalizePath = (path: string): string => {
     '/' +
     path
       .split('/')
-      .filter((p) => p.length > 0)
+      .filter(p => p.length > 0)
       .join('/')
   );
 };
@@ -17,8 +17,8 @@ export const normalizePath = (path: string): string => {
 export const getParams = (fullRoutePattern: string, actualPath: string): Record<string, string> => {
   const normalizedPattern = normalizePath(fullRoutePattern);
   const normalizedPath = normalizePath(actualPath);
-  const patternSegments = normalizedPattern.split('/').filter((s) => s.length > 0);
-  const pathSegments = normalizedPath.split('/').filter((s) => s.length > 0);
+  const patternSegments = normalizedPattern.split('/').filter(s => s.length > 0);
+  const pathSegments = normalizedPath.split('/').filter(s => s.length > 0);
 
   if (patternSegments.length !== pathSegments.length) {
     return {};
@@ -71,4 +71,16 @@ export const getBodyAndMultipart = (request: Request) => {
   }
 
   return { multipart, body };
+};
+
+export const extractMiddlewares = <T extends MiddleWareItemType>(
+  fns: MiddlewaresMetadataItem[],
+  fnType: T,
+) => {
+  return (
+    fns
+      .filter(fn => !!fn[fnType])
+      .map(fn => fn[fnType])
+      .filter(Boolean) ?? []
+  );
 };

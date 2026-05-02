@@ -17,9 +17,9 @@ import { defineRouteMeta } from './utils/shared';
  */
 export function Endpoint(method: HTTP_METHODS, pathPattern?: string, middlewares?: MiddlewareCB[]) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const originalMethod = descriptor.value;
+    const originalMethod = target[propertyKey];
     if (!originalMethod) {
-      console.warn('❌ originalMethod is undefined!');
+      console.warn('❌ originalMethod is undefined!', method, pathPattern);
       return descriptor;
     }
 

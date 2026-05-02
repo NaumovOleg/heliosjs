@@ -5,6 +5,7 @@ import {
   ControllerMeta,
   ControllerType,
   MiddlewareCB,
+  MiddlewaresMetadataItem,
   NonEmptyArray,
   Request,
   Response,
@@ -194,7 +195,9 @@ export class Helios extends Plugin implements IHttpServer {
   }
 
   private async beforeRequest(request: Request, response: Response) {
-    sanitizeRequest(request, this.config.sanitizers ?? []);
+    for (const sanitizer of this.config.sanitizers ?? []) {
+      sanitizeRequest(request, sanitizer);
+    }
 
     for (const middleware of this.staticMiddlewares) {
       await middleware(request, response, NextFunction);
@@ -243,22 +246,23 @@ export class Helios extends Plugin implements IHttpServer {
   private compileControllers(appControllers: ControllerClass[]) {
     const prefix = '/';
 
+    const functions: MiddlewaresMetadataItem[] = this.middlewares.map(middleware => ({
+      middleware,
+    }));
+
+    if (this.config.cors) {
+      functions.unshift({ cors: this.config.cors });
+    }
+    if (this.config.errorHandler) {
+      functions.unshift({ errorHandler: this.config.errorHandler });
+    }
+
     const meta: ControllerMeta = {
       prefix,
       routes: [],
       name: 'server-entry',
       controllers: [],
-      functions: [
-        {
-          middlewares: this.middlewares ?? [],
-          errors: this.config.errorHandler ? [this.config.errorHandler] : [],
-          sanitizers: this.config.sanitizers ?? [],
-          pipes: [],
-          guards: [],
-          cors: this.config.cors ? [this.config.cors] : [],
-          interceptors: [],
-        },
-      ],
+      functions: functions.filter(Boolean),
     };
 
     const controllers: ControllerType[] = [];

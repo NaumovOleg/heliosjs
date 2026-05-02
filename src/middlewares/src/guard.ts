@@ -39,12 +39,12 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  *
  * If any guard returns `false`, the request handling is stopped.
  *
- * Metadata is stored under the CONTROLLER_CONFIGUARTION key and used
+ * Metadata is stored under the CONTROLLER_CONFIGURATION key and used
  * internally by the framework during request processing.
  */
 export function Guard(guard: Guard | GuardFn) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    const data = { guards: [guard] };
+    const data = [{ guard: guard }];
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);

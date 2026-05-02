@@ -26,12 +26,12 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * - type casting
  * - sanitization
  *
- * Metadata is stored under the CONTROLLER_CONFIGUARTION key and later used
+ * Metadata is stored under the CONTROLLER_CONFIGURATION key and later used
  * by the framework during request processing.
  */
 export function Pipe(pipe: Pipe) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-    const data = { pipes: [pipe] };
+    const data = [{ pipe }];
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);

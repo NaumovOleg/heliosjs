@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.1.0
+
+### Minor Changes
+
+- middlewares order
+
 ## 2.0.0
 
 ### Major Changes

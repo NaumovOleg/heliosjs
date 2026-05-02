@@ -13,7 +13,7 @@ import { WebSocketService } from '../socket';
 import { SSEService } from '../sse';
 import { handleCORS } from './cors';
 import { ForbiddenError } from './error';
-import { getBodyAndMultipart, getParams } from './helper';
+import { extractMiddlewares, getBodyAndMultipart, getParams } from './helper';
 import { sanitizeRequest } from './sanitize';
 
 export const execute = async (route: Route, request: Request, response: Response) => {
@@ -32,7 +32,7 @@ export const execute = async (route: Route, request: Request, response: Response
 
   if (!handledCors.permitted) {
     response.status = 403;
-    response.error(new ForbiddenError('Cors not pemitted'));
+    response.error(new ForbiddenError('Cors not permitted'));
     return response;
   }
 
@@ -100,10 +100,11 @@ export const execute = async (route: Route, request: Request, response: Response
     if (isError) {
       response.error(data);
     } else {
-      response.status = route.ok;
+      response.status = route.functions.find(fn => fn.status)?.status ?? 200;
+      const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
 
-      if (route.interceptor) {
-        data = await Promise.resolve(route.interceptor(data, data.request, data.response));
+      for (const interceptor of interceptors) {
+        data = await Promise.resolve(interceptor!(data, data.request, data.response));
       }
     }
 
@@ -123,28 +124,24 @@ export const execute = async (route: Route, request: Request, response: Response
       return response;
     }
 
-    let catched = error;
+    let caught = error;
 
-    for (const functions of route.functions.reverse()) {
-      if (!functions.errors.length) continue;
-      for (const handler of functions.errors) {
-        const resp = await Promise.resolve(handler(catched as Error, request, response)).catch(
-          err => err,
-        );
-        catched = resp;
-        if (resp instanceof Error) {
-          continue;
-        }
-        break;
-      }
-      if (catched instanceof Error) {
+    const errorHandlers = extractMiddlewares(route.functions, 'errorHandler').reverse();
+
+    for (const handler of errorHandlers) {
+      const resp = await Promise.resolve(handler!(caught as Error, request, response)).catch(
+        err => err,
+      );
+      caught = resp;
+      if (resp instanceof Error) {
         continue;
       }
-      response.data = catched;
+
+      response.data = caught;
       break;
     }
 
-    if (catched instanceof Error) {
+    if (caught instanceof Error) {
       if (typeof error === 'string') {
         const err = new Error(error);
         const errorData = {
@@ -157,7 +154,7 @@ export const execute = async (route: Route, request: Request, response: Response
         Object.assign(err, errorData);
         response.error(err);
       } else {
-        response.error(catched);
+        response.error(caught);
       }
     }
     return response;
@@ -189,19 +186,21 @@ export const NextFunction = (error?: Error) => {
 export const beforeRequest = async (request: Request, response: Response, route: Route) => {
   const handlers: ErrorHandler[] = [];
   try {
-    for (const batch of route.functions) {
-      sanitizeRequest(request, batch.sanitizers);
-
-      for (const guard of batch.guards) {
-        const permitted = await ('canActivate' in guard
-          ? guard.canActivate(request, response)
-          : guard(request, response));
+    for (const fn of route.functions) {
+      if (fn.sanitizer) {
+        sanitizeRequest(request, fn.sanitizer);
+      }
+      if (fn.guard) {
+        const permitted = await ('canActivate' in fn.guard
+          ? fn.guard.canActivate(request, response)
+          : fn.guard(request, response));
         if (!permitted) {
           throw new ForbiddenError();
         }
       }
 
-      for (const pipe of batch.pipes) {
+      if (fn.pipe) {
+        const pipe = fn.pipe;
         if (pipe.body) {
           request.body = pipe.body(request.body, request);
         }
@@ -218,10 +217,13 @@ export const beforeRequest = async (request: Request, response: Response, route:
           request.headers = pipe.headers(request.headers, request);
         }
       }
-      handlers.unshift(...batch.errors);
 
-      for (const middleware of batch.middlewares) {
-        await middleware(request, response, NextFunction);
+      if (fn.middleware) {
+        await fn.middleware(request, response, NextFunction);
+      }
+
+      if (fn.errorHandler) {
+        handlers.unshift(fn.errorHandler);
       }
     }
   } catch (err: any) {
@@ -236,7 +238,6 @@ export const beforeRequest = async (request: Request, response: Response, route:
 
 export const collectRoutes = (
   instance: ControllerInstance,
-
   meta: Omit<ControllerMeta, 'controllers'>,
   prefix: string = '/',
 ) => {
@@ -247,21 +248,16 @@ export const collectRoutes = (
   for (const name of propertyNames) {
     const functions = reflectMiddlewaresMetadata(instance, name);
     const routeMeta = reflectRouteMetadata(instance, name);
-    const ok = functions.status;
     const current = [prefix, routeMeta.route].join('/').replace(/\/+/g, '/');
-    const parentInterceptors = meta.functions.flatMap(({ interceptors }) => interceptors);
+    const routeMiddlewares = routeMeta.middlewares?.map?.(middleware => ({ middleware })) ?? [];
 
-    const interceptor = functions.interceptors.at(-1) ?? parentInterceptors.at(-1);
-
-    functions.middlewares.unshift(...routeMeta.middlewares);
+    functions.unshift(...routeMiddlewares.reverse());
 
     routes.push({
       ...routeMeta,
       name,
       route: current,
-      ok: ok ?? 200,
-      interceptor,
-      functions: [...meta.functions, functions],
+      functions: [...meta.functions, ...functions],
       fn: instance[name].bind(instance),
     });
   }

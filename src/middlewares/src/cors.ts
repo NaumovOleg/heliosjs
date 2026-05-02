@@ -45,7 +45,7 @@ export function Cors(config: CORSConfig = {}) {
 
     const finalConfig = { ...defaultConfig, ...config };
 
-    const data = { cors: [finalConfig] };
+    const data = [{ cors: finalConfig }];
 
     if (descriptor) {
       defineMiddlewaresMeta(data, target, propertyKey);
