@@ -120,7 +120,6 @@ export type Pipe = {
 };
 
 export interface GuardClass {
-  new (...any: any[]): any;
   canActivate(request: Request, response: Response): boolean;
 }
 

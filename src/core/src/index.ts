@@ -15,6 +15,8 @@ export {
   ControllerClass,
   ControllerType,
   ErrorHandler,
+  GuardClass,
+  GuardFunction,
   HeliosError,
   HTTP_METHODS,
   InterceptorCB,
