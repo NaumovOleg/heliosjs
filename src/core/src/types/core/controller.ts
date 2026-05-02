@@ -119,12 +119,16 @@ export type Pipe = {
   ) => Record<string, string | string[]>;
 };
 
-export interface GuardClass {
-  new (...any: any[]): any;
-  canActivate(request: Request, response: Response): boolean;
+export interface GuardInstance {
+  message?: string;
+  canActivate(request: Request, response: Response): Promise<boolean> | boolean | string;
 }
 
-export type GuardFunction = (request: Request, response: Response) => boolean;
+export type GuardClass = new (...args: any[]) => GuardInstance;
+export type GuardFunction = (
+  request: Request,
+  response: Response,
+) => Promise<boolean | string> | boolean | string;
 
 export enum MiddlewaresMetadataItemProperty {
   middleware = 'middleware',
@@ -152,7 +156,7 @@ type MiddlewareTypeMap = {
   errorHandler: ErrorHandler;
   cors: CORSConfig;
   pipe: Pipe;
-  guard: GuardClass | GuardFunction;
+  guard: GuardClass | GuardFunction | GuardInstance;
   interceptor: InterceptorCB;
   status: number;
   sanitizer: SanitizerConfig;

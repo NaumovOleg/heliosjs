@@ -1,5 +1,45 @@
 # Change Log
 
+## 9.0.4
+
+### Patch Changes
+
+- chore
+- Updated dependencies
+  - @heliosjs/core@3.1.4
+
+## 9.0.3
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - @heliosjs/core@3.1.3
+
+## 9.0.2
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - @heliosjs/core@3.1.2
+
+## 9.0.3
+
+### Patch Changes
+
+- guard
+- Updated dependencies
+  - @heliosjs/core@3.1.3
+
+## 9.0.2
+
+### Patch Changes
+
+- guard
+- Updated dependencies
+  - @heliosjs/core@3.1.2
+
 ## 9.0.1
 
 ### Patch Changes

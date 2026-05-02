@@ -9,10 +9,9 @@ import {
 import { UnauthorizedError } from './authorizations';
 import { BaseError } from './base';
 import { NotFoundError } from './notfound';
-import { ValidationError } from './validation';
 
 export class ApplicationError {
-  private config: ErrorHandlerConfig;
+  private readonly config: ErrorHandlerConfig;
   code: ErrorCode;
   status: number;
   message: string;
@@ -41,7 +40,7 @@ export class ApplicationError {
 
     this.code = appError.code;
     this.status = appError.status;
-    this.message = appError.code;
+    this.message = appError.message;
     this.details = appError.details;
     this.timestamp = appError.timestamp ?? new Date();
     this.requestId = data.meta.requestId;
@@ -141,7 +140,7 @@ export class ApplicationError {
     return {
       code: this.code,
       status: this.status,
-      message: this.code,
+      message: this.message,
       details: this.details,
       timestamp: this.timestamp ?? new Date(),
       requestId: this.requestId,

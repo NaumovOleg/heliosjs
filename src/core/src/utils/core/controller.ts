@@ -4,6 +4,9 @@ import {
   ControllerMeta,
   ErrorCode,
   ErrorHandler,
+  GuardClass,
+  GuardFunction,
+  GuardInstance,
   Request,
   Response,
   Route,
@@ -183,6 +186,47 @@ export const NextFunction = (error?: Error) => {
   if (error) throw error;
 };
 
+function isGuardInstance(guard: any): guard is GuardInstance {
+  return typeof guard === 'object' && guard !== null && typeof guard.canActivate === 'function';
+}
+
+function isGuardClass(guard: any): guard is GuardClass {
+  return (
+    typeof guard === 'function' &&
+    guard.prototype &&
+    typeof guard.prototype.canActivate === 'function'
+  );
+}
+
+async function runGuard(
+  guard: GuardInstance | GuardClass | GuardFunction,
+  request: Request,
+  response: Response,
+) {
+  let canActivate;
+  let message = 'Forbidden';
+  if (isGuardInstance(guard)) {
+    canActivate = await guard.canActivate(request, response);
+    message = guard.message ?? message;
+  } else if (isGuardClass(guard)) {
+    const guardInstance = new guard();
+    canActivate = await guardInstance.canActivate(request, response);
+    message = guardInstance.message ?? message;
+  } else {
+    const result = await guard(request, response);
+    if (result === false) {
+      canActivate = false;
+    }
+    if (typeof result === 'string') {
+      canActivate = false;
+      message = result;
+    }
+  }
+  if (!canActivate) {
+    throw new ForbiddenError(message);
+  }
+}
+
 export const beforeRequest = async (request: Request, response: Response, route: Route) => {
   const handlers: ErrorHandler[] = [];
   try {
@@ -191,12 +235,7 @@ export const beforeRequest = async (request: Request, response: Response, route:
         sanitizeRequest(request, fn.sanitizer);
       }
       if (fn.guard) {
-        const permitted = await ('canActivate' in fn.guard
-          ? fn.guard.canActivate(request, response)
-          : fn.guard(request, response));
-        if (!permitted) {
-          throw new ForbiddenError();
-        }
+        await runGuard(fn.guard, request, response);
       }
 
       if (fn.pipe) {

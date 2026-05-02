@@ -47,7 +47,7 @@ export function reflectMiddlewaresMetadata(
   return data;
 }
 export function reflectRouteMetadata(target: object, property: string): RouteMetadata {
-  const data = Reflect.getMetadata(DECORATOR.route, target.constructor, property) ?? {};
+  const data = Reflect.getMetadata(DECORATOR.route, target, property) ?? {};
 
   ['parameters', 'middlewares'].forEach(prop => {
     if (!data[prop]?.length) {
@@ -84,7 +84,7 @@ export function defineRouteMeta(
   property: string,
 ): void;
 export function defineRouteMeta(meta: Partial<RouteMetadata>, target: object, property: string) {
-  const existed = reflectRouteMetadata(target.constructor, property);
+  const existed = reflectRouteMetadata(target, property);
   const merged = Object.entries(meta).reduce((acc, [key, value]) => {
     if (Array.isArray(acc[key])) {
       acc[key] = acc[key].concat(value);
@@ -95,5 +95,5 @@ export function defineRouteMeta(meta: Partial<RouteMetadata>, target: object, pr
     return acc;
   }, existed as any);
 
-  Reflect.defineMetadata(DECORATOR.route, merged, target.constructor, property);
+  Reflect.defineMetadata(DECORATOR.route, merged, target, property);
 }

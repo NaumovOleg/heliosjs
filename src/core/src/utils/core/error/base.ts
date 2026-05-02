@@ -42,6 +42,7 @@ export class BaseError extends Error implements HeliosError {
     this.requestId = options?.requestId;
     this.path = options?.path;
     this.method = options?.method;
+    this.message = message;
 
     if (options?.cause) {
       this.cause = options.cause;

@@ -11,8 +11,8 @@ export class Res implements Response {
   private _cookies: string[] = [];
   private _isBase64Encoded: boolean = false;
   private _headersSent: boolean = false;
-  private _source: ResponseSource;
-  private _raw: _Raw;
+  private readonly _source: ResponseSource;
+  private readonly _raw: _Raw;
   meta: Meta;
 
   constructor(source: ResponseSource = 'unknown', meta: Meta, raw: _Raw) {
@@ -239,7 +239,7 @@ export class Res implements Response {
   }
 
   stream(readable: NodeJS.ReadableStream, contentType?: string): this {
-    if (this._source !== 'http') throw Error('Not implemented');
+    if (this._source !== 'http') throw new Error('Not implemented');
     if (contentType) {
       this.setHeader('Content-Type', contentType);
     }
@@ -252,7 +252,7 @@ export class Res implements Response {
     const serialized = typeof data === 'object' ? JSON.stringify(data) : data;
     this._headersSent = true;
     if (typeof this.raw?.end !== 'function') {
-      console.log('Method not implemented');
+      console.error('Method not implemented');
     }
     this.setHeader('X-Response-Time', `${Date.now() - this.meta.startTime}ms`);
 
