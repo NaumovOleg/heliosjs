@@ -30,7 +30,7 @@ export {
   SanitizerConfig,
 } from './types/core';
 
-export { IWebSocketServer, IWebSocketService } from './types/ws';
+export { IWebSocketServer, IWebSocketService, WebSocketEvent } from './types/ws';
 
 export {
   DependencyFailedError,

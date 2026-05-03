@@ -116,7 +116,8 @@ export function Controller(
 
       [META_HASH] = (parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta => {
         const controller = reflectControllerMeta(proto);
-        const functions = reflectMiddlewaresMetadata(constructor);
+        const functions = reflectMiddlewaresMetadata(this.constructor);
+
         const prefix = (parent.prefix + '/' + controller.prefix).replaceAll(/\/+/g, '/');
 
         const meta: Omit<ControllerMeta, 'controllers'> = {
