@@ -1,8 +1,8 @@
 // parsers/event-normalizers.ts
 
-import { HTTP_METHODS, RequestOptions } from '@heliosjs/core/types';
+import type { HTTP_METHODS, RequestOptions } from '@heliosjs/core/types';
 import { parseBody, parseHeaders, parseQuery, parseRequestCookie } from '@heliosjs/core/utils';
-import {
+import type {
   ALBEvent,
   APIGatewayProxyEvent,
   APIGatewayProxyEventV2,
@@ -11,7 +11,7 @@ import {
   Context,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
-import { LambdaEvent } from '../../types/aws';
+import type { LambdaEvent } from '../../types/aws';
 import {
   getMultiValueQueryStringParameters,
   getQueryStringParameters,
@@ -24,7 +24,7 @@ import {
 import { parseCloudFrontHeaders } from './parsers';
 
 const getUrls = (
-  event: APIGatewayProxyEvent | APIGatewayProxyEventV2 | ALBEvent | CloudFrontRequest,
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2 | ALBEvent | CloudFrontRequest
 ) => {
   const protocol = event.headers?.['x-forwarded-proto'] || 'https';
   const host = event.headers?.host || 'localhost';
@@ -38,7 +38,7 @@ const getUrls = (
  * Safely convert path parameters
  */
 const normalizePathParams = (
-  params?: APIGatewayProxyEvent['pathParameters'] | Record<string, string | undefined> | null,
+  params?: APIGatewayProxyEvent['pathParameters'] | Record<string, string | undefined> | null
 ): Record<string, string> => {
   const result: Record<string, string> = {};
 
@@ -57,7 +57,7 @@ const normalizePathParams = (
 
 export const normalizeAPIGatewayEvent = (
   event: APIGatewayProxyEvent,
-  context: Context,
+  context: Context
 ): RequestOptions => {
   const headers = parseHeaders(event.headers);
   const body = parseBody({ headers, body: event.body, isBase64Encoded: event.isBase64Encoded });
@@ -93,7 +93,7 @@ export const normalizeAPIGatewayEvent = (
 
 export const normalizeAPIGatewayV2Event = (
   event: APIGatewayProxyEventV2,
-  context: Context,
+  context: Context
 ): RequestOptions => {
   const rawBody = Buffer.from(event.body || '', 'base64');
   const headers = parseHeaders(event.headers);
@@ -160,7 +160,7 @@ export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOpt
 
 export const normalizeCloudFrontEvent = (
   event: CloudFrontRequestEvent,
-  context: Context,
+  context: Context
 ): RequestOptions => {
   const record = event.Records?.[0];
   const request = record?.cf?.request;
@@ -230,12 +230,9 @@ export interface LambdaFunctionUrlEvent {
   cookies?: string[];
 }
 
-/**
- * Нормализует Lambda Function URL event
- */
 export const normalizeLambdaFunctionUrlEvent = (
   event: LambdaFunctionURLEvent,
-  context: Context,
+  context: Context
 ): RequestOptions => {
   const query: Record<string, string | string[]> = {};
   if (event.queryStringParameters) {
@@ -251,7 +248,7 @@ export const normalizeLambdaFunctionUrlEvent = (
   }
   const cookies: Record<string, string> = {};
   if (event.cookies) {
-    event.cookies.forEach(cookie => {
+    event.cookies.forEach((cookie) => {
       const [name, value] = cookie.split('=');
       if (name && value) {
         cookies[name] = decodeURIComponent(value);

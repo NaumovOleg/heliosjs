@@ -1,8 +1,8 @@
 // core/RequestFactory.ts
 
 import { Req } from '@heliosjs/core/utils';
-import { Context } from 'aws-lambda';
-import { LambdaEvent } from '../../types/aws';
+import type { Context } from 'aws-lambda';
+import type { LambdaEvent } from '../../types/aws';
 import { normalizeEvent } from './lambda.event.normalizers';
 
 export class RequestFactory {

@@ -1,5 +1,5 @@
 // core/ResponseFactory.ts
-import { Meta } from '@heliosjs/core/types';
+import type { Meta } from '@heliosjs/core/types';
 import { Res } from '@heliosjs/core/utils';
 
 export class ResponseFactory {

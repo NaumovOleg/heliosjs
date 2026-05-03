@@ -1,15 +1,1 @@
-{
-    "extends": "../../tsconfig.json",
-    "composite": true,
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "preserveSymlinks": false,
-        "types": [
-            "node"
-        ]
-    },
-    "include": [
-        "src/**/*",
-    ],
-}
+../../symlinks/tsconfig.json

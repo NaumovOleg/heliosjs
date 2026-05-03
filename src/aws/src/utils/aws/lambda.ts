@@ -1,4 +1,4 @@
-import {
+import type {
   ALBEvent,
   ALBEventRequestContext,
   APIGatewayEventRequestContext,
@@ -9,7 +9,7 @@ import {
   CloudFrontRequestEvent,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
-import { LambdaEvent, NormalizedEvent, RequestContext } from '../../types/aws';
+import type { LambdaEvent, NormalizedEvent, RequestContext } from '../../types/aws';
 
 export const isRestApiEvent = (event: LambdaEvent): event is APIGatewayProxyEvent => {
   return (
@@ -52,7 +52,7 @@ export const getEventType = (event: LambdaEvent): 'rest' | 'http' | 'url' => {
 };
 
 export const isAPIGatewayV2Context = (
-  ctx: RequestContext,
+  ctx: RequestContext
 ): ctx is APIGatewayEventRequestContextV2 => {
   return 'http' in ctx && 'apiId' in ctx;
 };
@@ -62,7 +62,7 @@ export const isLambdaUrlContext = (ctx: RequestContext): ctx is APIGatewayEventR
 };
 
 export const isAPIGatewayV1Context = (
-  ctx: RequestContext,
+  ctx: RequestContext
 ): ctx is APIGatewayEventRequestContext => {
   return 'identity' in ctx && 'httpMethod' in ctx;
 };
@@ -151,7 +151,7 @@ export const getSourceIp = (event: NormalizedEvent): string => {
 };
 
 export const getQueryStringParameters = (
-  event: APIGatewayProxyEvent | APIGatewayProxyEventV2 | ALBEvent,
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2 | ALBEvent
 ) => {
   const query: Record<string, string> = {};
   Object.entries(event.queryStringParameters ?? {}).forEach(([key, value]) => {

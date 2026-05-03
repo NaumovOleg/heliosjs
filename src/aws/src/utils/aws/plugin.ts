@@ -1,5 +1,5 @@
-import { MiddlewareCB } from '@heliosjs/core/types';
-import { Hooks, PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/aws';
+import type { MiddlewareCB } from '@heliosjs/core/types';
+import type { Hooks, PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/aws';
 
 export class Plugin {
   plugins: TPlugin[] = [];

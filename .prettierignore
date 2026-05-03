@@ -1,0 +1,19 @@
+# Build outputs
+dist/
+build/
+coverage/
+out/
+.next/
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment and configs
+.env*
+*.log
+
+# Generated files
+CHANGELOG.md

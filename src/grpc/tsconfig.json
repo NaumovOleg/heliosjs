@@ -1,14 +1,1 @@
-{
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "preserveSymlinks": false,
-        "types": [
-            "node"
-        ]
-    },
-    "include": [
-        "src/**/*",
-    ],
-}
+../../symlinks/tsconfig.json

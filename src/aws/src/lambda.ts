@@ -1,5 +1,5 @@
 import { HANDLE_REQUEST_HASH } from '@heliosjs/core/constants';
-import {
+import type {
   ControllerClass,
   ControllerMeta,
   ControllerType,
@@ -8,14 +8,8 @@ import {
   Response,
 } from '@heliosjs/core/types';
 import { ApplicationError, getErrorType } from '@heliosjs/core/utils';
-import {
-  ALBResult,
-  APIGatewayProxyResult,
-  APIGatewayProxyResultV2,
-  Context,
-  Handler,
-} from 'aws-lambda';
-import { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
+import type { Context, Handler } from 'aws-lambda';
+import type { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
 
 export class Helios extends Plugin implements ILambdaAdapter {
@@ -90,11 +84,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
     return this.toLambdaResponse(request, response, eventType);
   }
 
-  private toLambdaResponse(
-    request: Request,
-    response: Response,
-    eventType: string,
-  ): APIGatewayProxyResult | APIGatewayProxyResultV2 | ALBResult {
+  private async toLambdaResponse(request: Request, response: Response, eventType: string) {
     const statusCode = response.data?.status ?? response?.status ?? 200;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -133,7 +123,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
       Object.assign(commonResponse, { body: response?.data && JSON.stringify(response?.data) });
     }
 
-    this.callPluginHook('afterResponse', request, response);
+    await this.callPluginHook('afterResponse', request, response);
     switch (eventType) {
       case 'rest':
         return { ...commonResponse, isBase64Encoded: false };
