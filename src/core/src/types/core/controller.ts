@@ -1,68 +1,87 @@
-import { HANDLE_REQUEST_HASH, WS_HASH } from '../../constants';
-import { HTTP_METHODS, InterceptorCB, MiddlewareCB, ParamMetadata } from './common';
-import { CORSConfig } from './cors';
-import { ErrorHandler } from './error';
-import { Request } from './request';
-import { Response } from './response';
-import { SanitizerConfig } from './sanitize';
+import type { HTTP_METHODS, InterceptorCB, MiddlewareCB, ParamMetadata } from './common';
+import type { CORSConfig } from './cors';
+import type { ErrorHandler } from './error';
+import type { Request } from './request';
+import type { Response } from './response';
+import type { SanitizerConfig } from './sanitize';
 
 export type ControllerClass = new (...args: any[]) => any;
 
-export type ControllerMethods = Array<{
+export interface IController {
+  precompiled: ControllerMeta;
+  meta: (parent: Omit<ControllerMeta, 'controllers'>) => ControllerMeta;
+  websocket?: WsControllerHandlers;
+  sse?: SeeControllerHandlers;
+  request: (request: Request, response: Response) => Promise<Response>;
+  lookupWs: () => void;
+  lookupSse: () => void;
+  getWsTopics: () => unknown[];
+  getWsHandlers: (type: string) => WsHandlerMeta[];
+  getSseHandlers: (type: string) => WsHandlerMeta[];
+  typedHandlers: (handlers: WsHandlerMeta[], type: string) => WsHandlerMeta[];
+  getSseController: () => {
+    instance: IController;
+    handlers: {
+      connection: ReturnType<IController['getSseHandlers']>;
+      close: ReturnType<IController['getSseHandlers']>;
+      error: ReturnType<IController['getSseHandlers']>;
+    };
+  };
+}
+
+export type ControllerMethods = {
   name: string;
   httpMethod: HTTP_METHODS;
   pattern: string;
   middlewares?: MiddlewareCB[];
-}>;
+}[];
 
-export type ControllerType = {
-  [HANDLE_REQUEST_HASH]?(request: Request, response: Response): Promise<any>;
-  [WS_HASH]?: WsControllerHandlers;
+export interface ControllerType {
+  request?(request: Request, response: Response): Promise<any>;
+  websocket?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
   new (...args: any[]): any;
-};
+}
 
 export type ControllerInstance = InstanceType<ControllerType>;
 
 export interface ControllerConfig {
   prefix: string;
-  middlewares?: Array<MiddlewareCB>;
+  middlewares?: MiddlewareCB[];
   controllers?: ControllerInstance[];
 }
 
-export type SSE_HANDLER_META = {
+export interface SSE_HANDLER_META {
   type: string;
   method: string;
-};
+}
 
-export type HandlerMeta = {
-  type: 'connection';
-  topic: undefined;
-  method: 'onconnect';
+export interface WsHandlerMeta {
+  type: string;
+  topic?: undefined;
+  method: string;
   fn: (...args: any[]) => any;
-};
+}
 
-export type WsHandlerMeta = HandlerMeta & { topic?: string };
-
-export type WsControllerHandlers = {
+export interface WsControllerHandlers {
   handlers: {
     connection: WsHandlerMeta[];
     message: WsHandlerMeta[];
     close: WsHandlerMeta[];
     error: WsHandlerMeta[];
   };
-  topics: HandlerMeta[];
-};
+  topics: WsHandlerMeta[];
+}
 
-export type SeeControllerHandlers = {
+export interface SeeControllerHandlers {
   handlers: {
-    connection: HandlerMeta[];
-    close: HandlerMeta[];
-    error: HandlerMeta[];
+    connection: WsHandlerMeta[];
+    close: WsHandlerMeta[];
+    error: WsHandlerMeta[];
   };
-};
+}
 
-export type FunctionsMeta = {
+export interface FunctionsMeta {
   middlewares: MiddlewareCB[];
   errors: ErrorHandler[];
   cors: CORSConfig[];
@@ -71,8 +90,8 @@ export type FunctionsMeta = {
   guards: (GuardClass | GuardFunction)[];
   interceptors: InterceptorCB[];
   status?: number;
-};
-export type Route = {
+}
+export interface Route {
   name: string;
   route: string;
   method: HTTP_METHODS;
@@ -80,44 +99,44 @@ export type Route = {
   parameters: ParamMetadata[];
   functions: MiddlewaresMetadataItem[];
   fn: (...args: any[]) => any;
-};
+}
 export type NextFunction = (error?: unknown) => void;
-export type ControllerMeta = {
+export interface ControllerMeta {
   prefix: string;
   name: string;
   routes: Route[];
   children?: ControllerMeta[];
   functions: MiddlewaresMetadataItem[];
   controllers: ControllerClass[];
-};
+}
 
-export type ControllerMetadata = {
+export interface ControllerMetadata {
   prefix: string;
   name: string;
   middlewares: MiddlewareCB[];
   controllers: ControllerInstance[];
-};
-export type RouteMetadata = {
+}
+export interface RouteMetadata {
   route: string;
   method: HTTP_METHODS;
   middlewares: MiddlewareCB[];
   parameters: ParamMetadata[];
-};
+}
 
 export type PipeKey = 'body' | 'query' | 'params' | 'headers';
 
-export type Pipe = {
+export interface Pipe {
   body?: (body: unknown, request: Request) => unknown;
   query?: (
     query: Record<string, string | string[]>,
-    request: Request,
+    request: Request
   ) => Record<string, string | string[]>;
   params?: (params: Record<string, string>, request: Request) => Record<string, string>;
   headers?: (
     headers: Record<string, string | string[]>,
-    request: Request,
+    request: Request
   ) => Record<string, string | string[]>;
-};
+}
 
 export interface GuardInstance {
   message?: string;
@@ -127,7 +146,7 @@ export interface GuardInstance {
 export type GuardClass = new (...args: any[]) => GuardInstance;
 export type GuardFunction = (
   request: Request,
-  response: Response,
+  response: Response
 ) => Promise<boolean | string> | boolean | string;
 
 export enum MiddlewaresMetadataItemProperty {
@@ -151,7 +170,7 @@ export type MiddleWareItemType =
   | 'status'
   | 'sanitizer';
 
-type MiddlewareTypeMap = {
+interface MiddlewareTypeMap {
   middleware: MiddlewareCB;
   errorHandler: ErrorHandler;
   cors: CORSConfig;
@@ -160,7 +179,7 @@ type MiddlewareTypeMap = {
   interceptor: InterceptorCB;
   status: number;
   sanitizer: SanitizerConfig;
-};
+}
 
 export type MiddlewaresMetadataItem = {
   [K in MiddleWareItemType]?: MiddlewareTypeMap[K];

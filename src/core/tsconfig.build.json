@@ -1,1 +1,7 @@
-../../symlinks/tsconfig.build.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": true,
+    "outDir": "./dist",
+  },
+}

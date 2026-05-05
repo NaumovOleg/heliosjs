@@ -1,12 +1,10 @@
-import { ServerResponse } from 'node:http';
-import { ISSEService, SSEClient, SSEMessage } from '../../types/core';
-import { SSEServer } from './server';
+import type { ServerResponse } from 'node:http';
+import type { ISSEService, SSEMessage } from '../../types/core';
+import type { SSEServer } from './server';
 
 export class SSEService implements ISSEService {
   private static instance: SSEService;
-  private sse: SSEServer | null = null;
-
-  private constructor() {}
+  private sse: SSEServer;
 
   static getInstance(): SSEService {
     if (!SSEService.instance) {
@@ -38,7 +36,7 @@ export class SSEService implements ISSEService {
     return this.sse !== null;
   }
 
-  createConnection(res: ServerResponse): SSEClient {
-    return this.sse!.createConnection(res);
+  createConnection(res: ServerResponse) {
+    return this.sse.createConnection(res);
   }
 }

@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.1.4
+
+### Patch Changes
+
+- Refactored controller prototype
+
 ## 2.1.3
 
 ### Patch Changes

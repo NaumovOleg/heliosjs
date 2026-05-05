@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.6
+
+### Patch Changes
+
+- Refactored controller prototype
+- Updated dependencies
+  - @heliosjs/core@3.1.7
+
 ## 9.0.5
 
 ### Patch Changes

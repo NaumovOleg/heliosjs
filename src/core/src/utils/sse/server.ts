@@ -1,13 +1,14 @@
 // server/SSEServer.ts
-import { ServerResponse } from 'node:http';
-import { SSE_HASH } from '../../constants';
-import { ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
+import type { ServerResponse } from 'node:http';
+
+import type { ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
 import { generateUniqueId } from '../shared';
+
 export class SSEServer implements ISSEServer {
-  private readonly clients: Map<string, SSEClient> = new Map();
+  private readonly clients = new Map<string, SSEClient>();
   controllers: any[] = [];
 
-  public createConnection(res: ServerResponse): SSEClient {
+  public createConnection(res: ServerResponse) {
     const clientId = generateUniqueId();
 
     res.writeHead(200, {
@@ -29,14 +30,12 @@ export class SSEServer implements ISSEServer {
 
     this.clients.set(clientId, client);
 
-    this.triggerHandlers('connection', {
-      type: 'connection',
-      client,
-      data: res,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.triggerHandlers('connection', { type: 'connection', client, data: res });
 
-    res.on('close', () => {
+    res.on('close', async () => {
       this.clients.delete(clientId);
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.triggerHandlers('close', { type: 'close', client });
     });
 
@@ -56,7 +55,7 @@ export class SSEServer implements ISSEServer {
       const dataStr =
         typeof message.data === 'string' ? message.data : JSON.stringify(message.data);
 
-      dataStr.split('\n').forEach(line => {
+      dataStr.split('\n').forEach((line) => {
         sseMessage += `data: ${line}\n`;
       });
       sseMessage += '\n';
@@ -82,13 +81,13 @@ export class SSEServer implements ISSEServer {
   }
 
   registerControllers(controllers: ControllerType[]) {
-    this.controllers = controllers.filter(c => c.sse);
+    this.controllers = controllers.filter((c) => c.sse);
   }
 
   private async triggerHandlers(eventType: string, event: SSEEvent) {
     for (const controller of this.controllers) {
-      if (controller[SSE_HASH].handlers && controller[SSE_HASH].handlers[eventType]) {
-        for (const handler of controller[SSE_HASH].handlers[eventType]) {
+      if (controller.sse?.handlers?.[eventType]) {
+        for (const handler of controller.sse.handlers[eventType]) {
           await handler.fn(event).catch(console.error);
         }
       }

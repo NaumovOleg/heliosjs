@@ -1,4 +1,3 @@
-import { HANDLE_REQUEST_HASH } from '@heliosjs/core/constants';
 import type {
   ControllerClass,
   ControllerMeta,
@@ -66,13 +65,13 @@ export class Helios extends Plugin implements ILambdaAdapter {
     let processed;
 
     try {
-      if (typeof this.controller[HANDLE_REQUEST_HASH] !== 'function') {
+      if (typeof this.controller.request !== 'function') {
         throw new TypeError('Controller must have [HANDLE_REQUEST_HASH] method');
       }
 
       await this.callPluginHook('beforeRoute', request, response);
 
-      processed = await this.controller[HANDLE_REQUEST_HASH]?.(request, response);
+      processed = await this.controller.request(request, response);
     } catch (error: unknown) {
       return this.handleError(error as ErrorObject, request);
     }

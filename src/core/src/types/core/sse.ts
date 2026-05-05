@@ -1,4 +1,4 @@
-import { ServerResponse } from 'http';
+import type { ServerResponse } from 'node:http';
 
 export interface SSEClient {
   id: string;

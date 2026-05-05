@@ -1,33 +1,28 @@
-import { ServerResponse } from 'node:http';
-import { ValidationOptions } from 'class-validator';
-import { HANDLE_REQUEST_HASH } from '../../constants';
-import { HeliosError } from './error';
-import { Request } from './request';
-import { Response } from './response';
+import type { ServerResponse } from 'node:http';
+import type { ValidationOptions } from 'class-validator';
+import type { HeliosError } from './error';
+import type { Request } from './request';
+import type { Response } from './response';
 
 export type Router = (
   req: Request,
-  res?: ServerResponse,
+  res?: ServerResponse
 ) => Promise<{ status: number; data: unknown; message?: string }>;
-
-export interface IController {
-  [HANDLE_REQUEST_HASH]: Router;
-}
 
 export type MiddlewareCB<
   B = unknown,
   Q = Record<string, string | string[]>,
-  P = Record<string, string>,
+  P = Record<string, string>
 > = (
   request: Request<B, Q, P>,
   response: Response,
-  next: (err?: HeliosError) => Promise<any> | any,
+  next: (err?: HeliosError) => Promise<any> | any
 ) => void | Promise<Request> | Request | Promise<void>;
 
 export type InterceptorCB<
   B = any,
   Q = Record<string, string | string[]>,
-  P = Record<string, string>,
+  P = Record<string, string>
 > = (data: unknown, req?: Request<B, Q, P>, res?: Response) => Promise<unknown> | unknown;
 
 export type ErrorCB = (error: HeliosError, req?: Request, res?: Response) => unknown;
@@ -54,10 +49,10 @@ export interface ParamMetadata {
   options?: ValidationOptions;
 }
 
-export type ResponseWithStatus = {
+export interface ResponseWithStatus {
   status: number;
   [key: string]: unknown;
-};
+}
 
 export enum HTTP_METHODS {
   ANY = 'ANY',
@@ -70,13 +65,13 @@ export enum HTTP_METHODS {
   HEAD = 'HEAD',
 }
 
-export type Meta = {
+export interface Meta {
   requestUrl: URL;
   method: string;
   requestId: string;
   sourceIp: string;
   userAgent: string;
   startTime: number;
-};
+}
 
 export type NonEmptyArray<T> = readonly [T, ...T[]] | [T, ...T[]];

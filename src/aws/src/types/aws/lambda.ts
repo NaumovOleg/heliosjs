@@ -1,6 +1,5 @@
-import { HANDLE_REQUEST_HASH } from '@heliosjs/core/constants';
-import { ControllerType, Request } from '@heliosjs/core/types';
-import {
+import type { ControllerType, Request } from '@heliosjs/core/types';
+import type {
   ALBEvent,
   ALBEventRequestContext,
   APIGatewayEventRequestContext,
@@ -12,7 +11,7 @@ import {
   Handler,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
-import { Plugin } from './plugin';
+import type { Plugin } from './plugin';
 
 export interface LambdaFunctionUrlEvent {
   version: string;
@@ -75,7 +74,7 @@ export interface LambdaApp {
 
 export interface Lambda {
   beforeStart?: () => Promise<void>;
-  [HANDLE_REQUEST_HASH](request: Request): Promise<unknown>;
+  request(request: Request): Promise<unknown>;
 }
 
 export interface ILambdaAdapter {

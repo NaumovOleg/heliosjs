@@ -2,16 +2,17 @@
 import globals from 'globals';
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import prettier from 'eslint-plugin-prettier';
+import unusedImports from 'eslint-plugin-unused-imports';
+import { defineConfig } from 'eslint/config';
 
-export default tseslint.config(
+export default defineConfig([
   eslint.configs.recommended,
   ...tseslint.configs.strict,
   ...tseslint.configs.stylistic,
 
   {
     files: ['**/*.ts'],
-    plugins: { prettier },
+    plugins: { 'unused-imports': unusedImports },
     languageOptions: {
       globals: {
         ...globals.node,
@@ -25,8 +26,11 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
+      'unused-imports/no-unused-imports': 'error',
+      '@typescript-eslint/no-extraneous-class': 'off',
       'no-console': 'warn',
       'no-unused-vars': 'off',
+
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -41,8 +45,6 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       'no-console': 'off',
-      'prettier/prettier': 'error',
-      ...prettier.configs.recommended.rules,
     },
   },
   {
@@ -60,5 +62,5 @@ export default tseslint.config(
       '**/*.config.js',
       '**/temp-*/**',
     ],
-  }
-);
+  },
+]);

@@ -1,8 +1,8 @@
-import http from 'node:http';
-import WebSocket, { WebSocketServer as Server } from 'ws';
-import { WS_HASH } from '../../constants';
-import { ControllerType } from '../../types/core';
-import {
+import type http from 'node:http';
+import type WebSocket from 'ws';
+import { WebSocketServer as Server } from 'ws';
+import type { ControllerType } from '../../types/core';
+import type {
   IWebSocketServer,
   WebSocketClient,
   WebSocketEvent,
@@ -12,8 +12,8 @@ import { generateUniqueId } from '../shared';
 
 export class WebSocketServer implements IWebSocketServer {
   wss: Server;
-  private readonly clients: Map<string, WebSocketClient> = new Map();
-  private readonly topics: Map<string, Set<string>> = new Map();
+  private readonly clients = new Map<string, WebSocketClient>();
+  private readonly topics = new Map<string, Set<string>>();
   private controllers: ControllerType[] = [];
   private readonly options: any;
 
@@ -25,9 +25,7 @@ export class WebSocketServer implements IWebSocketServer {
       path: this.options.path,
     });
 
-    this.wss.on('connection', socket => {
-      this.handleConnection(socket);
-    });
+    this.wss.on('connection', (socket) => this.handleConnection(socket));
 
     server.on('upgrade', (request, socket, head) => {
       if ((socket as any).__wsHandled) {
@@ -36,7 +34,7 @@ export class WebSocketServer implements IWebSocketServer {
       (socket as any).__wsHandled = true;
 
       if (this.shouldHandleWebSocket(request.url)) {
-        this.wss.handleUpgrade(request, socket, head, ws => {
+        this.wss.handleUpgrade(request, socket, head, (ws) => {
           this.wss.emit('connection', ws, request);
         });
       } else {
@@ -45,7 +43,7 @@ export class WebSocketServer implements IWebSocketServer {
     });
   }
 
-  private shouldHandleWebSocket(url: string = ''): boolean {
+  private shouldHandleWebSocket(url = ''): boolean {
     return url.startsWith(this.options.path);
   }
 
@@ -61,17 +59,11 @@ export class WebSocketServer implements IWebSocketServer {
 
     this.clients.set(clientId, client);
 
-    socket.on('message', (data: WebSocket.Data) => {
-      this.handleMessage(client, data);
-    });
+    socket.on('message', (data: WebSocket.Data) => this.handleMessage(client, data));
 
-    socket.on('close', () => {
-      this.handleClose(client);
-    });
+    socket.on('close', () => this.handleClose(client));
 
-    socket.on('error', (error: Error) => {
-      this.handleError(client, error);
-    });
+    socket.on('error', (error: Error) => this.handleError(client, error));
 
     await this.triggerHandlers('connection', { type: 'connection', client });
   }
@@ -99,7 +91,7 @@ export class WebSocketServer implements IWebSocketServer {
             client,
             message,
           },
-          message.topic,
+          message.topic
         );
 
         this.publishToTopic(message.topic, message.data, [client.id]);
@@ -111,15 +103,14 @@ export class WebSocketServer implements IWebSocketServer {
         client,
         message,
       });
-    } catch (_: unknown) {
-      client.socket.send(
-        JSON.stringify({ type: 'error', data: { message: 'Invalid message format' } }),
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      client.socket.send(JSON.stringify({ type: 'error', data: { message: error.message } }));
     }
   }
 
   private async handleClose(client: WebSocketClient) {
-    client.topics.forEach(topic => {
+    client.topics.forEach((topic) => {
       const topicClients = this.topics.get(topic);
       if (topicClients) {
         topicClients.delete(client.id);
@@ -148,11 +139,11 @@ export class WebSocketServer implements IWebSocketServer {
   private async triggerHandlers(
     eventType: 'connection' | 'message' | 'close' | 'error',
     event: WebSocketEvent,
-    topic?: string,
+    topic?: string
   ) {
     for (const controller of this.controllers) {
-      const controllerHandlers = controller[WS_HASH]?.handlers?.[eventType] ?? [];
-      const matchingHandlers = controllerHandlers.filter(h => {
+      const controllerHandlers = controller.websocket?.handlers?.[eventType] ?? [];
+      const matchingHandlers = controllerHandlers.filter((h) => {
         if (h.type !== eventType) return false;
         if (!topic) return !h.topic;
         return !h.topic || h.topic === topic;
@@ -167,7 +158,7 @@ export class WebSocketServer implements IWebSocketServer {
       }
 
       if (eventType === 'message' && topic) {
-        const matchingSubs = controller[WS_HASH]?.topics.filter(s => s.topic === topic) ?? [];
+        const matchingSubs = controller.websocket?.topics.filter((s) => s.topic === topic) ?? [];
 
         for (const sub of matchingSubs) {
           try {
@@ -181,7 +172,7 @@ export class WebSocketServer implements IWebSocketServer {
   }
 
   public registerControllers(controllers: ControllerType[]) {
-    this.controllers = controllers.filter(c => !!c[WS_HASH]);
+    this.controllers = controllers.filter((c) => !!c.websocket);
   }
 
   public subscribeToTopic(client: WebSocketClient, topic: string) {
@@ -189,7 +180,7 @@ export class WebSocketServer implements IWebSocketServer {
       this.topics.set(topic, new Set());
     }
 
-    this.topics.get(topic)!.add(client.id);
+    this.topics.get(topic)?.add(client.id);
     client.topics.add(topic);
 
     client.socket.send(JSON.stringify({ type: 'subscribed', topic, data: { success: true } }));
@@ -210,7 +201,7 @@ export class WebSocketServer implements IWebSocketServer {
         type: 'unsubscribed',
         topic,
         data: { success: true },
-      }),
+      })
     );
   }
 
@@ -225,8 +216,8 @@ export class WebSocketServer implements IWebSocketServer {
       timestamp: new Date().toISOString(),
     });
 
-    topicClients.forEach(clientId => {
-      if (exclude && exclude.includes(clientId)) {
+    topicClients.forEach((clientId) => {
+      if (exclude?.includes(clientId)) {
         return;
       }
 

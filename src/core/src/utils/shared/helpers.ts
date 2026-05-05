@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { DECORATOR } from '../../constants';
-import {
+import type {
   ControllerMeta,
   MiddlewaresMetadataItem,
   RouteMetadata,
@@ -35,7 +35,7 @@ export function defineControllerMeta(meta: Partial<ControllerMeta>, target: obje
 
 export function reflectMiddlewaresMetadata(
   target: any,
-  property?: string,
+  property?: string
 ): MiddlewaresMetadataItem[] {
   let data;
   if (property) {
@@ -49,7 +49,7 @@ export function reflectMiddlewaresMetadata(
 export function reflectRouteMetadata(target: object, property: string): RouteMetadata {
   const data = Reflect.getMetadata(DECORATOR.route, target, property) ?? {};
 
-  ['parameters', 'middlewares'].forEach(prop => {
+  ['parameters', 'middlewares'].forEach((prop) => {
     if (!data[prop]?.length) {
       data[prop] = [];
     }
@@ -58,16 +58,10 @@ export function reflectRouteMetadata(target: object, property: string): RouteMet
   return data;
 }
 
-export function defineMiddlewaresMeta(meta: MiddlewaresMetadataItem[], target: object): void;
 export function defineMiddlewaresMeta(
   meta: MiddlewaresMetadataItem[],
   target: object,
-  property?: string,
-): void;
-export function defineMiddlewaresMeta(
-  meta: MiddlewaresMetadataItem[],
-  target: object,
-  property?: string,
+  property?: string
 ) {
   const existed = reflectMiddlewaresMetadata(target, property);
 
@@ -81,7 +75,7 @@ export function defineMiddlewaresMeta(
 export function defineRouteMeta(
   meta: Partial<RouteMetadata>,
   target: object,
-  property: string,
+  property: string
 ): void;
 export function defineRouteMeta(meta: Partial<RouteMetadata>, target: object, property: string) {
   const existed = reflectRouteMetadata(target, property);

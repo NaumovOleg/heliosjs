@@ -1,8 +1,7 @@
-import { CONTROLLER_PROPERTIES_HASH, TO_VALIDATE } from '../../constants';
-import {
+import { TO_VALIDATE } from '../../constants';
+import type {
   ControllerInstance,
   ControllerMeta,
-  ErrorCode,
   ErrorHandler,
   GuardClass,
   GuardFunction,
@@ -11,6 +10,7 @@ import {
   Response,
   Route,
 } from '../../types/core';
+import { ErrorCode } from '../../types/core';
 import { reflectMiddlewaresMetadata, reflectRouteMetadata, validate } from '../shared';
 import { WebSocketService } from '../socket';
 import { SSEService } from '../sse';
@@ -30,7 +30,7 @@ export const execute = async (route: Route, request: Request, response: Response
         continue: acc.continue && cors.continue,
       };
     },
-    { permitted: true, continue: true },
+    { permitted: true, continue: true }
   );
 
   if (!handledCors.permitted) {
@@ -52,11 +52,11 @@ export const execute = async (route: Route, request: Request, response: Response
     const args: unknown[] = [];
 
     const totalParams = Math.max(
-      route.parameters.length ? Math.max(...route.parameters.map(p => p.index)) + 1 : 0,
+      route.parameters.length ? Math.max(...route.parameters.map((p) => p.index)) + 1 : 0
     );
 
     for (let i = 0; i < totalParams; i++) {
-      const param = route.parameters.find(p => p.index === i);
+      const param = route.parameters.find((p) => p.index === i);
 
       if (!param) {
         args[i] = undefined;
@@ -103,7 +103,7 @@ export const execute = async (route: Route, request: Request, response: Response
     if (isError) {
       response.error(data);
     } else {
-      response.status = route.functions.find(fn => fn.status)?.status ?? 200;
+      response.status = route.functions.find((fn) => fn.status)?.status ?? 200;
       const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
 
       for (const interceptor of interceptors) {
@@ -133,7 +133,7 @@ export const execute = async (route: Route, request: Request, response: Response
 
     for (const handler of errorHandlers) {
       const resp = await Promise.resolve(handler!(caught as Error, request, response)).catch(
-        err => err,
+        (err) => err
       );
       caught = resp;
       if (resp instanceof Error) {
@@ -169,7 +169,7 @@ export const getAllMethods = (obj: unknown): string[] => {
   let current = Object.getPrototypeOf(obj);
 
   while (current && current !== Object.prototype) {
-    Object.getOwnPropertyNames(current).forEach(name => {
+    Object.getOwnPropertyNames(current).forEach((name) => {
       if (name !== 'constructor' && typeof current[name] === 'function') {
         methods.add(name);
       }
@@ -177,9 +177,7 @@ export const getAllMethods = (obj: unknown): string[] => {
     current = Object.getPrototypeOf(current);
   }
 
-  return Array.from(methods).filter(
-    name => !['constructor', ...CONTROLLER_PROPERTIES_HASH].includes(name),
-  );
+  return Array.from(methods).filter((name) => !['constructor'].includes(name));
 };
 
 export const NextFunction = (error?: Error) => {
@@ -201,7 +199,7 @@ function isGuardClass(guard: any): guard is GuardClass {
 async function runGuard(
   guard: GuardInstance | GuardClass | GuardFunction,
   request: Request,
-  response: Response,
+  response: Response
 ) {
   let canActivate;
   let message = 'Forbidden';
@@ -269,26 +267,27 @@ export const beforeRequest = async (request: Request, response: Response, route:
     if ([ErrorCode.FORBIDDEN, ErrorCode.RATE_LIMIT_EXCEEDED].includes(err.code)) {
       throw err;
     }
-    const promises = handlers.map(handler => handler(err, request, response));
+    const promises = handlers.map((handler) => handler(err, request, response));
     if (promises.length) return Promise.all(promises);
     throw err;
   }
 };
 
-export const collectRoutes = (
+export function collectRoutes(
   instance: ControllerInstance,
   meta: Omit<ControllerMeta, 'controllers'>,
-  prefix: string = '/',
-) => {
-  const propertyNames = getAllMethods(instance);
+  prefix = '/'
+) {
+  const propertyNames = getAllMethods(instance.constructor.prototype);
 
   const routes: Route[] = [];
 
   for (const name of propertyNames) {
     const functions = reflectMiddlewaresMetadata(instance, name);
     const routeMeta = reflectRouteMetadata(instance, name);
+
     const current = [prefix, routeMeta.route].join('/').replace(/\/+/g, '/');
-    const routeMiddlewares = routeMeta.middlewares?.map?.(middleware => ({ middleware })) ?? [];
+    const routeMiddlewares = routeMeta.middlewares?.map?.((middleware) => ({ middleware })) ?? [];
 
     functions.unshift(...routeMiddlewares.reverse());
 
@@ -302,4 +301,4 @@ export const collectRoutes = (
   }
 
   return routes;
-};
+}
