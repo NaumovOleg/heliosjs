@@ -5,6 +5,7 @@ import type { Request } from './request';
 import type { Response } from './response';
 import type { SanitizerConfig } from './sanitize';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControllerClass = new (...args: any[]) => any;
 
 export interface IController {
@@ -37,9 +38,11 @@ export type ControllerMethods = {
 }[];
 
 export interface ControllerType {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   request?(request: Request, response: Response): Promise<any>;
   websocket?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new (...args: any[]): any;
 }
 
@@ -60,6 +63,7 @@ export interface WsHandlerMeta {
   type: string;
   topic?: undefined;
   method: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => any;
 }
 
@@ -98,6 +102,7 @@ export interface Route {
   cors?: CORSConfig[];
   parameters: ParamMetadata[];
   functions: MiddlewaresMetadataItem[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => any;
 }
 export type NextFunction = (error?: unknown) => void;
@@ -126,7 +131,8 @@ export interface RouteMetadata {
 export type PipeKey = 'body' | 'query' | 'params' | 'headers';
 
 export interface Pipe {
-  body?: (body: unknown, request: Request) => unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body?: (body: any, request: Request) => any;
   query?: (
     query: Record<string, string | string[]>,
     request: Request
@@ -143,6 +149,7 @@ export interface GuardInstance {
   canActivate(request: Request, response: Response): Promise<boolean> | boolean | string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GuardClass = new (...args: any[]) => GuardInstance;
 export type GuardFunction = (
   request: Request,

@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/grpc",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Grpc support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.7
+
+### Patch Changes
+
+- fixed pipe type
+- Updated dependencies
+  - @heliosjs/core@3.1.8
+
 ## 9.0.6
 
 ### Patch Changes

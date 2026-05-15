@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.1.5
+
+### Patch Changes
+
+- fixed pipe type
+
 ## 2.1.4
 
 ### Patch Changes

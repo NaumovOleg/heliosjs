@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.8
+
+### Patch Changes
+
+- fixed pipe type
+
 ## 3.1.7
 
 ### Patch Changes
