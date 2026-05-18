@@ -1,9 +1,10 @@
 import type { ControllerMeta, IController } from '../types/core';
 
 import { reflectControllerMeta, reflectMiddlewaresMetadata } from '../utils/shared';
+import { CONTROLLER_PRECOMPILED } from '../constants';
 import { collectRoutes } from '../utils/core';
 
-export const meta: IController['meta'] = function (
+export const meta = function (
   this: IController,
   parent: Omit<ControllerMeta, 'controllers'>
 ): ControllerMeta {
@@ -24,7 +25,7 @@ export const meta: IController['meta'] = function (
   const children = controller.controllers.map(
     (Controller: new (...args: unknown[]) => IController) => {
       const instance = new Controller(meta);
-      return instance.precompiled;
+      return instance[CONTROLLER_PRECOMPILED];
     }
   );
   meta.children = children;

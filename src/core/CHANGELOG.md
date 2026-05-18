@@ -1,5 +1,17 @@
 # Change Log
 
+## 3.1.11
+
+### Patch Changes
+
+- removed console
+
+## 3.1.10
+
+### Patch Changes
+
+- fixed error handling
+
 ## 3.1.9
 
 ### Patch Changes

@@ -1,3 +1,15 @@
+import {
+  CONTROLLER_GET_SSE_CONTROLLER,
+  CONTROLLER_GET_SSE_HANDLERS,
+  CONTROLLER_GET_WS_HANDLERS,
+  CONTROLLER_GET_WS_TOPICS,
+  CONTROLLER_LOOKUP_SSE,
+  CONTROLLER_LOOKUP_WS,
+  CONTROLLER_META,
+  CONTROLLER_PRECOMPILED,
+  CONTROLLER_REQUEST,
+  CONTROLLER_TYPED_HANDLERS,
+} from '../../constants';
 import type { HTTP_METHODS, InterceptorCB, MiddlewareCB, ParamMetadata } from './common';
 import type { CORSConfig } from './cors';
 import type { ErrorHandler } from './error';
@@ -9,23 +21,23 @@ import type { SanitizerConfig } from './sanitize';
 export type ControllerClass = new (...args: any[]) => any;
 
 export interface IController {
-  precompiled: ControllerMeta;
-  meta: (parent: Omit<ControllerMeta, 'controllers'>) => ControllerMeta;
+  [CONTROLLER_PRECOMPILED]: ControllerMeta;
+  [CONTROLLER_META]: (parent: Omit<ControllerMeta, 'controllers'>) => ControllerMeta;
   websocket?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
-  request: (request: Request, response: Response) => Promise<Response | null>;
-  lookupWs: () => void;
-  lookupSse: () => void;
-  getWsTopics: () => unknown[];
-  getWsHandlers: (type: string) => WsHandlerMeta[];
-  getSseHandlers: (type: string) => WsHandlerMeta[];
-  typedHandlers: (handlers: WsHandlerMeta[], type: string) => WsHandlerMeta[];
-  getSseController: () => {
+  [CONTROLLER_REQUEST]: (request: Request, response: Response) => Promise<Response | null>;
+  [CONTROLLER_LOOKUP_WS]: () => void;
+  [CONTROLLER_LOOKUP_SSE]: () => void;
+  [CONTROLLER_GET_WS_TOPICS]: () => unknown[];
+  [CONTROLLER_GET_WS_HANDLERS]: (type: string) => WsHandlerMeta[];
+  [CONTROLLER_GET_SSE_HANDLERS]: (type: string) => WsHandlerMeta[];
+  [CONTROLLER_TYPED_HANDLERS]: (handlers: WsHandlerMeta[], type: string) => WsHandlerMeta[];
+  [CONTROLLER_GET_SSE_CONTROLLER]: () => {
     instance: IController;
     handlers: {
-      connection: ReturnType<IController['getSseHandlers']>;
-      close: ReturnType<IController['getSseHandlers']>;
-      error: ReturnType<IController['getSseHandlers']>;
+      connection: ReturnType<IController[typeof CONTROLLER_GET_SSE_HANDLERS]>;
+      close: ReturnType<IController[typeof CONTROLLER_GET_SSE_HANDLERS]>;
+      error: ReturnType<IController[typeof CONTROLLER_GET_SSE_HANDLERS]>;
     };
   };
 }
@@ -38,8 +50,23 @@ export type ControllerMethods = {
 }[];
 
 export interface ControllerType {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  request?(request: Request, response: Response): Promise<any>;
+  [CONTROLLER_PRECOMPILED]?: ControllerMeta;
+  [CONTROLLER_META]?(parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta;
+  [CONTROLLER_REQUEST]?(request: Request, response: Response): Promise<any>;
+  [CONTROLLER_LOOKUP_WS]?(): void;
+  [CONTROLLER_LOOKUP_SSE]?(): void;
+  [CONTROLLER_GET_WS_TOPICS]?(): unknown[];
+  [CONTROLLER_GET_WS_HANDLERS]?(type: string): WsHandlerMeta[];
+  [CONTROLLER_GET_SSE_HANDLERS]?(type: string): WsHandlerMeta[];
+  [CONTROLLER_TYPED_HANDLERS]?(handlers: WsHandlerMeta[], type: string): WsHandlerMeta[];
+  [CONTROLLER_GET_SSE_CONTROLLER]?(): {
+    instance: IController;
+    handlers: {
+      connection: ReturnType<NonNullable<ControllerType[typeof CONTROLLER_GET_SSE_HANDLERS]>>;
+      close: ReturnType<NonNullable<ControllerType[typeof CONTROLLER_GET_SSE_HANDLERS]>>;
+      error: ReturnType<NonNullable<ControllerType[typeof CONTROLLER_GET_SSE_HANDLERS]>>;
+    };
+  };
   websocket?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,7 +1,12 @@
 import type { IController, WsHandlerMeta } from '../types/core';
-import { WS_HANDLER, WS_TOPIC_KEY } from '../constants';
+import {
+  CONTROLLER_GET_WS_HANDLERS,
+  CONTROLLER_TYPED_HANDLERS,
+  WS_HANDLER,
+  WS_TOPIC_KEY,
+} from '../constants';
 
-export const typedHandlers: IController['typedHandlers'] = function (
+export const typedHandlers = function (
   this: IController,
   handlers: WsHandlerMeta[],
   type: string
@@ -16,14 +21,14 @@ export const typedHandlers: IController['typedHandlers'] = function (
   return resp;
 };
 
-export const getWsHandlers: IController['getWsHandlers'] = function (
+export const getWsHandlers = function (
   this: IController,
   type: string
 ) {
   const handlers = Reflect.getMetadata(WS_HANDLER, this.constructor) || [];
-  return this.typedHandlers(handlers, type);
+  return this[CONTROLLER_TYPED_HANDLERS](handlers, type);
 };
-export const getWsTopics: IController['getWsTopics'] = function (this: IController) {
+export const getWsTopics = function (this: IController) {
   const topics = Reflect.getMetadata(WS_TOPIC_KEY, this.constructor) || [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,12 +38,12 @@ export const getWsTopics: IController['getWsTopics'] = function (this: IControll
   }));
 };
 
-export const lookupWs: IController['lookupWs'] = function (this: IController) {
-  const connection = this.getWsHandlers('connection');
-  const message = this.getWsHandlers('message');
-  const error = this.getWsHandlers('error');
-  const close = this.getWsHandlers('close');
-  const topics = this.getWsHandlers('topics');
+export const lookupWs = function (this: IController) {
+  const connection = this[CONTROLLER_GET_WS_HANDLERS]('connection');
+  const message = this[CONTROLLER_GET_WS_HANDLERS]('message');
+  const error = this[CONTROLLER_GET_WS_HANDLERS]('error');
+  const close = this[CONTROLLER_GET_WS_HANDLERS]('close');
+  const topics = this[CONTROLLER_GET_WS_HANDLERS]('topics');
 
   if ([...connection, ...message, ...error, ...close, ...topics].length === 0) {
     return;

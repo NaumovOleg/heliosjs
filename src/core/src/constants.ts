@@ -43,3 +43,14 @@ export enum DECORATOR {
 export const GRPC_SERVICE_METADATA = Symbol('grpc:service');
 export const GRPC_METHOD_METADATA = Symbol('grpc:method');
 export const GRPC_CLIENT_METADATA = Symbol('grpc:client');
+
+export const CONTROLLER_REQUEST = Symbol('controller:request');
+export const CONTROLLER_META = Symbol('controller:meta');
+export const CONTROLLER_TYPED_HANDLERS = Symbol('controller:typedHandlers');
+export const CONTROLLER_GET_WS_HANDLERS = Symbol('controller:getWsHandlers');
+export const CONTROLLER_LOOKUP_WS = Symbol('controller:lookupWs');
+export const CONTROLLER_GET_WS_TOPICS = Symbol('controller:getWsTopics');
+export const CONTROLLER_GET_SSE_HANDLERS = Symbol('controller:getSseHandlers');
+export const CONTROLLER_LOOKUP_SSE = Symbol('controller:lookupSse');
+export const CONTROLLER_GET_SSE_CONTROLLER = Symbol('controller:getSseController');
+export const CONTROLLER_PRECOMPILED = Symbol('controller:precompiled');

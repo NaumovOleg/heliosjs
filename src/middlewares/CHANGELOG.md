@@ -1,5 +1,21 @@
 # Change Log
 
+## 9.0.10
+
+### Patch Changes
+
+- removed console
+- Updated dependencies
+  - @heliosjs/core@3.1.11
+
+## 9.0.9
+
+### Patch Changes
+
+- fixed error handling
+- Updated dependencies
+  - @heliosjs/core@3.1.10
+
 ## 9.0.8
 
 ### Patch Changes

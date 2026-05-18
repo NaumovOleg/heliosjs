@@ -3,10 +3,17 @@ import type {
   ControllerClass,
   ControllerConfig,
   ControllerMeta,
+  IController,
   MiddlewareCB,
   SeeControllerHandlers,
   WsControllerHandlers,
 } from './types/core';
+import {
+  CONTROLLER_LOOKUP_SSE,
+  CONTROLLER_LOOKUP_WS,
+  CONTROLLER_META,
+  CONTROLLER_PRECOMPILED,
+} from './constants';
 import { defineControllerMeta, defineMiddlewaresMeta } from './utils/shared';
 import descriptors from './descriptors';
 
@@ -60,14 +67,15 @@ export function Controller(config: string | ControllerConfig, middlewares: Middl
     const Wrapped = class extends constructor {
       websocket?: WsControllerHandlers;
       sse?: SeeControllerHandlers;
-      precompiled: ControllerMeta;
+      [CONTROLLER_PRECOMPILED]: ControllerMeta;
 
       constructor(...args: any[]) {
         super(...args);
-        this.lookupWs();
-        this.lookupSse();
+        const controller = this as unknown as IController;
+        controller[CONTROLLER_LOOKUP_WS]();
+        controller[CONTROLLER_LOOKUP_SSE]();
 
-        this.precompiled = this.meta(args[0]);
+        this[CONTROLLER_PRECOMPILED] = controller[CONTROLLER_META](args[0]);
       }
     };
 

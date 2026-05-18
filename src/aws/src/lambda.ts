@@ -2,10 +2,12 @@ import type {
   ControllerClass,
   ControllerMeta,
   ControllerType,
+  IController,
   ErrorObject,
   Request,
   Response,
 } from '@heliosjs/core/types';
+import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
 import { ApplicationError, getErrorType } from '@heliosjs/core/utils';
 import type { Context, Handler } from 'aws-lambda';
 import type { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
@@ -65,13 +67,14 @@ export class Helios extends Plugin implements ILambdaAdapter {
     let processed;
 
     try {
-      if (typeof this.controller.request !== 'function') {
+      const controller = this.controller as unknown as IController;
+      if (typeof controller[CONTROLLER_REQUEST] !== 'function') {
         throw new TypeError('Controller must have [HANDLE_REQUEST_HASH] method');
       }
 
       await this.callPluginHook('beforeRoute', request, response);
 
-      processed = await this.controller.request(request, response);
+      processed = await controller[CONTROLLER_REQUEST](request, response);
     } catch (error: unknown) {
       return this.handleError(error as ErrorObject, request);
     }

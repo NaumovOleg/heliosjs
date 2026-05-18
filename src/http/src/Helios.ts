@@ -1,10 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import http from 'node:http';
-import { CONTROLLERS } from '@heliosjs/core/constants';
+import { CONTROLLER_REQUEST, CONTROLLERS } from '@heliosjs/core/constants';
 import type {
   ControllerClass,
   ControllerMeta,
   ControllerType,
+  IController,
   MiddlewareCB,
   MiddlewaresMetadataItem,
   NonEmptyArray,
@@ -237,8 +238,9 @@ export class Helios extends Plugin implements IHttpServer {
   }
   private async runController(request: Request, response: Response) {
     for (const instance of this.rootControllers ?? []) {
-      if (typeof instance.request === 'function') {
-        const done = await instance.request(request, response);
+      const controller = instance as unknown as IController;
+      if (typeof controller[CONTROLLER_REQUEST] === 'function') {
+        const done = await controller[CONTROLLER_REQUEST](request, response);
         if (done) {
           break;
         }

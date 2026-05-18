@@ -1,16 +1,16 @@
 import { OK_STATUSES } from '../../constants';
-import { _Raw, CookieOptions, Response } from '../../types/core';
-import { Meta } from '../../types/core/common';
-import { ResponseSource } from '../../types/core/response';
+import type { _Raw, CookieOptions, Response } from '../../types/core';
+import type { Meta } from '../../types/core/common';
+import type { ResponseSource } from '../../types/core/response';
 import { ApplicationError } from './error';
 
 export class Res implements Response {
-  private _status: number = 200;
+  private _status = 200;
   private _headers: Record<string, string | string[]> = {};
   private _data: unknown;
   private _cookies: string[] = [];
-  private _isBase64Encoded: boolean = false;
-  private _headersSent: boolean = false;
+  private _isBase64Encoded = false;
+  private _headersSent = false;
   private readonly _source: ResponseSource;
   private readonly _raw: _Raw;
   meta: Meta;
@@ -261,13 +261,13 @@ export class Res implements Response {
 
   // ==================== Response Methods ====================
 
-  redirect(url: string, statusCode: number = 302): this {
+  redirect(url: string, statusCode = 302): this {
     this._status = statusCode;
     this.setHeader('location', url);
     return this;
   }
 
-  notFound(message: string = 'Not Found'): this {
+  notFound(message = 'Not Found'): this {
     this._status = 404;
     this.json({ error: message });
     return this;
@@ -301,10 +301,8 @@ export class Res implements Response {
     };
 
     const serialized = new ApplicationError(error as Error, { meta: this.meta, config });
-    if (this.ok) {
-      this.status = serialized.status ?? 500;
-    }
 
+    this.status = serialized.status ?? 500;
     this.data = serialized;
 
     return this;
