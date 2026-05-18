@@ -13,7 +13,7 @@ export interface IController {
   meta: (parent: Omit<ControllerMeta, 'controllers'>) => ControllerMeta;
   websocket?: WsControllerHandlers;
   sse?: SeeControllerHandlers;
-  request: (request: Request, response: Response) => Promise<Response>;
+  request: (request: Request, response: Response) => Promise<Response | null>;
   lookupWs: () => void;
   lookupSse: () => void;
   getWsTopics: () => unknown[];

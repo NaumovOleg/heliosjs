@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.8
+
+### Patch Changes
+
+- route fix
+- Updated dependencies
+  - @heliosjs/core@3.1.9
+
 ## 9.0.7
 
 ### Patch Changes

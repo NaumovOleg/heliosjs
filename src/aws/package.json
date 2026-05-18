@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/aws",
-  "version": "9.0.7",
+  "version": "9.0.8",
   "description": "Aws lambda support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,7 +29,7 @@
     "aws-lambda": "^1.0.7"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^3.1.8",
+    "@heliosjs/core": "^3.1.9",
     "typescript": ">=4.0.0",
     "reflect-metadata": "^0.2.2",
     "@types/node": "^25.5.0",

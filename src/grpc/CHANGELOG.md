@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.1.6
+
+### Patch Changes
+
+- route fix
+
 ## 2.1.5
 
 ### Patch Changes
