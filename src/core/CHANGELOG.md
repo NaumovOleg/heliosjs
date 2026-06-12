@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.1.13
+
+### Patch Changes
+
+- Stabilyzed dependency
+- Improve source-code documentation quality and stabilize dependency management across the monorepo.
+
+  - add comprehensive JSDoc for primary runtime usage methods (HTTP, Lambda, gRPC, WebSocket, SSE)
+  - standardize and pin dependency versions for deterministic installs
+  - align changesets publishing behavior for public npm packages
+
 ## 3.1.12
 
 ### Patch Changes

@@ -3,8 +3,14 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [],
-  "access": "restricted",
+  "linked": [
+    [
+      "@heliosjs/http",
+      "@heliosjs/aws",
+      "@heliosjs/middlewares"
+    ]
+  ],
+  "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": []

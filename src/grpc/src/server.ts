@@ -1,14 +1,10 @@
-import {
-  loadPackageDefinition,
-  Server,
-  ServerCredentials,
-  UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+import type { UntypedServiceImplementation } from '@grpc/grpc-js';
+import { loadPackageDefinition, Server, ServerCredentials } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 import { firstValueFrom, Observable } from 'rxjs';
-import { GrpcClient } from './client';
+import type { GrpcClient } from './client';
 import { GRPC_CLIENT_METADATA, GRPC_METHOD_METADATA, GRPC_SERVICE_METADATA } from './constants';
-import {
+import type {
   GrpcMethodMetadata,
   GrpcServerOptions,
   ProtoGroup,
@@ -17,12 +13,31 @@ import {
 } from './types/grpc';
 import { normalizeError } from './utils/grpc';
 
+/**
+ * Decorator-driven gRPC server runtime for Helios services.
+ *
+ * Services are discovered from `@GrpcService` and `@GrpcMethod` metadata and
+ * registered against proto definitions at startup.
+ *
+ * @example
+ * ```ts
+ * const server = new GrpcServer({ url: '0.0.0.0:50051' });
+ * server.registerService(UserService);
+ * await server.start();
+ * ```
+ */
 export class GrpcServer {
   private readonly server: Server;
   private readonly options: { url: string } & Partial<GrpcServerOptions>;
-  private readonly protoGroups: Map<string, ProtoGroup> = new Map();
-  private readonly clients: Map<string, GrpcClient> = new Map();
+  private readonly protoGroups = new Map<string, ProtoGroup>();
+  private readonly clients = new Map<string, GrpcClient>();
 
+  /**
+   * Creates a gRPC server instance.
+   *
+   * @param options - Server bind URL, credentials, and proto loading options.
+   * @param clients - Optional named clients map used for dependency injection.
+   */
   constructor(options: Partial<GrpcServerOptions>, clients?: Map<string, GrpcClient>) {
     this.server = new Server();
     this.options = { url: '0.0.0.0:5000', ...options };
@@ -31,6 +46,12 @@ export class GrpcServer {
     }
   }
 
+  /**
+   * Registers a decorated gRPC service class.
+   *
+   * @param ServiceClass - Class annotated with `@GrpcService` and method decorators.
+   * @throws Error when service metadata is missing or proto service is not found.
+   */
   registerService(ServiceClass: new (...args: unknown[]) => unknown): void {
     const serviceMeta: ServiceMeta = Reflect.getMetadata(GRPC_SERVICE_METADATA, ServiceClass);
     const methodsMeta: GrpcMethodMetadata[] =
@@ -47,18 +68,19 @@ export class GrpcServer {
 
     if (!serviceDefinition) {
       throw new Error(
-        `Service "${serviceName}" not found in proto file ${serviceMeta.options.protoPath}`,
+        `Service "${serviceName}" not found in proto file ${serviceMeta.options.protoPath}`
       );
     }
 
     const handlers: UntypedServiceImplementation = {};
 
     for (const methodMeta of methodsMeta) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const methodName = this.normalizeMethodName(methodMeta.methodName!);
       const handler = instance[methodMeta.handler].bind(instance);
 
       handlers[methodName] = (call: unknown, callback: unknown) => {
-        this.executeHandler(handler, methodMeta, call, callback);
+        return this.executeHandler(handler, methodMeta, call, callback);
       };
     }
 
@@ -66,27 +88,26 @@ export class GrpcServer {
     this.server.addService(serviceDefinition, handlers);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private createInstanceWithInjections(ServiceClass: new (...args: unknown[]) => unknown): any {
-    // Получаем метаданные о клиентах для инжекции
     const clientParams: { index: number; name: string }[] =
       Reflect.getMetadata(GRPC_CLIENT_METADATA, ServiceClass) || [];
 
     if (clientParams.length === 0) {
-      // Нет зависимостей - просто создаём экземпляр
       return new ServiceClass();
     }
 
-    // Создаём массив аргументов для конструктора
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const args: any[] = [];
-    const maxIndex = Math.max(...clientParams.map(p => p.index), -1);
+    const maxIndex = Math.max(...clientParams.map((p) => p.index), -1);
 
     for (let i = 0; i <= maxIndex; i++) {
-      const param = clientParams.find(p => p.index === i);
+      const param = clientParams.find((p) => p.index === i);
       if (param) {
         const client = this.clients.get(param.name);
         if (!client) {
           throw new Error(
-            `Client "${param.name}" not found for injection into ${ServiceClass.name}`,
+            `Client "${param.name}" not found for injection into ${ServiceClass.name}`
           );
         }
         args[i] = client;
@@ -101,6 +122,7 @@ export class GrpcServer {
   private getOrLoadProtoGroup(serviceMeta: ServiceOptions): ProtoGroup {
     const key = `${serviceMeta.protoPath}|${serviceMeta.package}`;
     if (this.protoGroups.has(key)) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return this.protoGroups.get(key)!;
     }
 
@@ -138,6 +160,11 @@ export class GrpcServer {
     return current[serviceName]?.service ?? null;
   }
 
+  /**
+   * Binds and starts accepting gRPC requests.
+   *
+   * @returns Promise resolved when bind succeeds.
+   */
   async start(): Promise<void> {
     const [host, port] = this.options.url.split(':');
     const credentials = this.options.credentials || ServerCredentials.createInsecure();
@@ -154,8 +181,13 @@ export class GrpcServer {
     });
   }
 
+  /**
+   * Gracefully stops the gRPC server.
+   *
+   * @returns Promise resolved when shutdown completes.
+   */
   async stop(): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.server.tryShutdown(() => resolve());
     });
   }
@@ -165,10 +197,13 @@ export class GrpcServer {
   }
 
   private async executeHandler(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     handler: Function,
     methodMeta: GrpcMethodMetadata,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     call: any,
-    callback: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callback: any
   ) {
     try {
       const request = methodMeta.isStream ? call : call.request;
@@ -177,8 +212,8 @@ export class GrpcServer {
       if (result instanceof Observable) {
         if (methodMeta.isStream) {
           result.subscribe({
-            next: value => call.write(value),
-            error: err => call.emit('error', err),
+            next: (value) => call.write(value),
+            error: (err) => call.emit('error', err),
             complete: () => call.end(),
           });
           callback(null, null);

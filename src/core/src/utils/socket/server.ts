@@ -15,8 +15,15 @@ export class WebSocketServer implements IWebSocketServer {
   private readonly clients = new Map<string, WebSocketClient>();
   private readonly topics = new Map<string, Set<string>>();
   private controllers: ControllerType[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly options: any;
 
+  /**
+   * Creates low-level WebSocket server bound to an existing HTTP server.
+   *
+   * @param server - Parent HTTP server instance.
+   * @param options - WebSocket options including endpoint path.
+   */
   constructor(server: http.Server, options?: { path: string }) {
     this.options = options;
 
@@ -28,9 +35,11 @@ export class WebSocketServer implements IWebSocketServer {
     this.wss.on('connection', (socket) => this.handleConnection(socket));
 
     server.on('upgrade', (request, socket, head) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((socket as any).__wsHandled) {
         return;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (socket as any).__wsHandled = true;
 
       if (this.shouldHandleWebSocket(request.url)) {
@@ -171,10 +180,21 @@ export class WebSocketServer implements IWebSocketServer {
     }
   }
 
+  /**
+   * Registers controller instances with WebSocket metadata.
+   *
+   * @param controllers - Controller instances to scan for WS handlers/topics.
+   */
   public registerControllers(controllers: ControllerType[]) {
     this.controllers = controllers.filter((c) => !!c.websocket);
   }
 
+  /**
+   * Subscribes a client to a topic.
+   *
+   * @param client - Connected WebSocket client.
+   * @param topic - Topic name.
+   */
   public subscribeToTopic(client: WebSocketClient, topic: string) {
     if (!this.topics.has(topic)) {
       this.topics.set(topic, new Set());
@@ -186,6 +206,12 @@ export class WebSocketServer implements IWebSocketServer {
     client.socket.send(JSON.stringify({ type: 'subscribed', topic, data: { success: true } }));
   }
 
+  /**
+   * Removes topic subscription for a client.
+   *
+   * @param client - Connected WebSocket client.
+   * @param topic - Topic name.
+   */
   public unsubscribeFromTopic(client: WebSocketClient, topic: string) {
     const topicClients = this.topics.get(topic);
     if (topicClients) {
@@ -205,6 +231,13 @@ export class WebSocketServer implements IWebSocketServer {
     );
   }
 
+  /**
+   * Publishes message payload to topic subscribers.
+   *
+   * @param topic - Topic name.
+   * @param data - Message payload.
+   * @param exclude - Optional client ids to skip.
+   */
   public publishToTopic(topic: string, data: unknown, exclude?: string[]) {
     const topicClients = this.topics.get(topic);
     if (!topicClients) return;
@@ -228,6 +261,13 @@ export class WebSocketServer implements IWebSocketServer {
     });
   }
 
+  /**
+   * Sends a direct payload to a specific client.
+   *
+   * @param clientId - Target client id.
+   * @param message - Payload to send.
+   * @returns `true` when client is connected and message was sent.
+   */
   public sendToClient(clientId: string, message: unknown): boolean {
     const client = this.clients.get(clientId);
     if (client) {
@@ -237,6 +277,12 @@ export class WebSocketServer implements IWebSocketServer {
     return false;
   }
 
+  /**
+   * Broadcasts payload to all connected clients.
+   *
+   * @param message - Broadcast payload.
+   * @param excludeClientId - Optional client id to exclude.
+   */
   public broadcast(message: unknown, excludeClientId?: string) {
     const messageStr = JSON.stringify(message);
     this.clients.forEach((client, clientId) => {
@@ -246,6 +292,9 @@ export class WebSocketServer implements IWebSocketServer {
     });
   }
 
+  /**
+   * Returns live server statistics.
+   */
   public getStats() {
     return {
       clients: this.clients.size,

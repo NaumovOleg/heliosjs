@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MiddlewareCB } from '@heliosjs/core/types';
-import { Plugin as HttpPlgin, HttpPluginHooks, PluginHookKeys, PluginKeys } from '../../types/http';
+import type { MiddlewareCB } from '@heliosjs/core/types';
+import type {
+  Plugin as HttpPlugin,
+  HttpPluginHooks,
+  PluginHookKeys,
+  PluginKeys,
+} from '../../types/http';
 
 export class Plugin {
-  plugins: HttpPlgin[] = [];
+  plugins: HttpPlugin[] = [];
   middlewares: MiddlewareCB[] = [];
   protected async callPluginHook<K extends PluginHookKeys>(
     hookName: K,
@@ -33,6 +38,22 @@ export class Plugin {
     }
   }
 
+  /**
+   * Registers a plugin and attaches its middleware/hook lifecycle.
+   *
+   * @param plugin - Plugin instance implementing Helios HTTP plugin hooks.
+   * @returns Current host instance for fluent chaining.
+   *
+   * @example
+   * ```ts
+   * app.usePlugin({
+   *   name: 'logger',
+   *   hooks: {
+   *     beforeRoute: async (req) => console.log(req.path),
+   *   },
+   * });
+   * ```
+   */
   usePlugin(plugin: any) {
     this.plugins.push(plugin);
     plugin.onInit?.(this);

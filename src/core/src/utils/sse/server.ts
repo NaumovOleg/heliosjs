@@ -6,8 +6,15 @@ import { generateUniqueId } from '../shared';
 
 export class SSEServer implements ISSEServer {
   private readonly clients = new Map<string, SSEClient>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controllers: any[] = [];
 
+  /**
+   * Creates and registers a new SSE client connection.
+   *
+   * @param res - Raw HTTP response used as event stream transport.
+   * @returns Registered SSE client descriptor.
+   */
   public createConnection(res: ServerResponse) {
     const clientId = generateUniqueId();
 
@@ -42,6 +49,13 @@ export class SSEServer implements ISSEServer {
     return client;
   }
 
+  /**
+   * Sends a server-sent event payload to a specific client.
+   *
+   * @param clientId - Target client id.
+   * @param message - SSE message fields (`event`, `id`, `retry`, `data`).
+   * @returns `true` if message was written successfully.
+   */
   public sendToClient(clientId: string, message: SSEMessage): boolean {
     const client = this.clients.get(clientId);
     if (!client) return false;
@@ -68,6 +82,12 @@ export class SSEServer implements ISSEServer {
     }
   }
 
+  /**
+   * Broadcasts one SSE message to all connected clients.
+   *
+   * @param message - SSE payload to broadcast.
+   * @param excludeClientId - Optional client id to skip.
+   */
   public broadcast(message: SSEMessage, excludeClientId?: string) {
     this.clients.forEach((_, clientId) => {
       if (clientId !== excludeClientId) {
@@ -76,10 +96,18 @@ export class SSEServer implements ISSEServer {
     });
   }
 
+  /**
+   * Returns current SSE connection statistics.
+   */
   public getStats() {
     return { clients: this.clients.size };
   }
 
+  /**
+   * Registers controller instances that define SSE handlers.
+   *
+   * @param controllers - Controller instances with SSE metadata.
+   */
   registerControllers(controllers: ControllerType[]) {
     this.controllers = controllers.filter((c) => c.sse);
   }

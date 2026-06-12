@@ -13,10 +13,27 @@ import type { Context, Handler } from 'aws-lambda';
 import type { ILambdaAdapter, LambdaEvent, Plugin as LambdaPlugin } from './types/aws';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
 
+/**
+ * AWS Lambda adapter for Helios controllers.
+ *
+ * Wraps a Helios controller and exposes a Lambda `handler` compatible with
+ * API Gateway REST/HTTP events and Lambda Function URLs.
+ *
+ * @example
+ * ```ts
+ * const app = new Helios(AppController);
+ * export const handler = app.handler;
+ * ```
+ */
 export class Helios extends Plugin implements ILambdaAdapter {
   handler: Handler;
   controller: ControllerType;
   plugins: LambdaPlugin[] = [];
+  /**
+   * Creates a Lambda adapter with a root Helios controller.
+   *
+   * @param controller - Decorated controller class that handles incoming requests.
+   */
   constructor(controller: ControllerClass) {
     super();
 

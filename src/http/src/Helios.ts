@@ -30,6 +30,18 @@ import {
   staticMiddleware,
 } from './utils/http';
 
+/**
+ * HTTP runtime entrypoint for Helios applications.
+ *
+ * It compiles decorated controllers, wires middleware/plugins, and exposes
+ * lifecycle methods to start/stop the underlying Node.js HTTP server.
+ *
+ * @example
+ * ```ts
+ * const app = new Helios(AppModule);
+ * await app.listen(3000, '0.0.0.0');
+ * ```
+ */
 export class Helios extends Plugin implements IHttpServer {
   private readonly config: ServerConfig;
   private isRunning = false;
@@ -44,6 +56,12 @@ export class Helios extends Plugin implements IHttpServer {
   staticMiddlewares: ((...args: any[]) => any)[] = [];
   rootControllers: ControllerType[] = [];
 
+  /**
+   * Creates a new Helios HTTP application.
+   *
+   * @param configOrClass - Root module/class that contains server decorators
+   * and controller configuration.
+   */
   constructor(configOrClass: new (...args: unknown[]) => unknown) {
     super();
     this.config = resolveConfig(configOrClass);
@@ -79,6 +97,11 @@ export class Helios extends Plugin implements IHttpServer {
     this.logConfig();
   }
 
+  /**
+   * Initializes the built-in WebSocket server using current HTTP server and config.
+   *
+   * This method is called automatically when `websocket` config is enabled.
+   */
   setUpWebsocket() {
     this.websocket = new WebSocketServer(this.app, {
       path: this.config.websocket?.path ?? '/ws',
@@ -108,6 +131,22 @@ export class Helios extends Plugin implements IHttpServer {
     `);
   }
 
+  /**
+   * Starts the HTTP server.
+   *
+   * If no arguments are provided, values are resolved from server config and
+   * then fallback to `3000` and `localhost`.
+   *
+   * @param port - Optional TCP port.
+   * @param host - Optional hostname or IP to bind.
+   * @returns Promise resolving with the underlying Node.js server instance.
+   *
+   * @example
+   * ```ts
+   * await app.listen();
+   * await app.listen(8080, '127.0.0.1');
+   * ```
+   */
   public async listen(port?: number, host?: string) {
     if (this.isRunning) {
       return this.app;
@@ -130,6 +169,14 @@ export class Helios extends Plugin implements IHttpServer {
     });
   }
 
+  /**
+   * Gracefully stops the HTTP server.
+   *
+   * Executes plugin `onStop` hooks and resolves when all open connections are
+   * closed. If the server is already stopped, it resolves immediately.
+   *
+   * @returns Promise that resolves once shutdown is complete.
+   */
   public async close(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.isRunning) {
@@ -149,6 +196,11 @@ export class Helios extends Plugin implements IHttpServer {
     });
   }
 
+  /**
+   * Returns runtime status and effective server configuration.
+   *
+   * @returns Current running flag and resolved server config.
+   */
   public status() {
     return { running: this.isRunning, config: this.config };
   }
@@ -350,6 +402,22 @@ export class Helios extends Plugin implements IHttpServer {
     }
   }
 
+  /**
+   * Registers a global middleware at runtime.
+   *
+   * Middleware added via this method runs before route dispatch for every request.
+   *
+   * @param middleware - Middleware callback to prepend to global middleware chain.
+   * @returns Current Helios instance for chaining.
+   *
+   * @example
+   * ```ts
+   * app.use(async (req, res, next) => {
+   *   req.headers['x-request-source'] = 'runtime';
+   *   await next();
+   * });
+   * ```
+   */
   public use(middleware: MiddlewareCB): this {
     this.globalMiddlewares.unshift(middleware);
     return this;

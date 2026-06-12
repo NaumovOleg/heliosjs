@@ -12,6 +12,7 @@ export class Plugin {
       const hook = plugin.hooks?.[hookName];
       if (hook) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (hook as any)(...args);
         } catch (error) {
           console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
@@ -24,6 +25,7 @@ export class Plugin {
       const hook = plugin?.[hookName];
       if (hook) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (hook as any)(...args);
         } catch (error) {
           console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
@@ -32,6 +34,23 @@ export class Plugin {
     }
   }
 
+  /**
+   * Registers a Lambda plugin and executes its initialization hook.
+   *
+   * @param plugin - Plugin object implementing Lambda lifecycle hooks.
+   * @returns Current adapter instance for fluent chaining.
+   *
+   * @example
+   * ```ts
+   * app.usePlugin({
+   *   name: 'metrics',
+   *   hooks: {
+   *     beforeRequest: async (event) => console.log(event.requestContext),
+   *   },
+   * });
+   * ```
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   usePlugin(plugin: any) {
     this.plugins.push(plugin);
     plugin.onInit?.(this);

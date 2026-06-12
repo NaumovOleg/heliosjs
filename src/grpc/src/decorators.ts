@@ -1,5 +1,5 @@
 import { GRPC_CLIENT_METADATA, GRPC_METHOD_METADATA, GRPC_SERVICE_METADATA } from './constants';
-import { GrpcClientInjection, GrpcMethodMetadata, ServiceOptions } from './types/grpc';
+import type { GrpcClientInjection, GrpcMethodMetadata, ServiceOptions } from './types/grpc';
 
 const defineMethod = (meta: GrpcMethodMetadata, target: object) => {
   const existingMethods: GrpcMethodMetadata[] =
@@ -12,7 +12,9 @@ const defineMethod = (meta: GrpcMethodMetadata, target: object) => {
 
 /**
  * Decorator to mark a class as a gRPC service
- * @param serviceName - Name of the service (matches .proto definition)
+ *
+ * @param serviceName - Service name as defined in proto.
+ * @param options - Proto loading options (`protoPath`, `package`, loader options).
  */
 export function GrpcService(serviceName: string, options?: ServiceOptions): ClassDecorator {
   return (target: object) => {
@@ -22,8 +24,9 @@ export function GrpcService(serviceName: string, options?: ServiceOptions): Clas
 
 /**
  * Decorator to mark a method as a gRPC handler
- * @param serviceName - Optional service name (auto-detected from class if omitted)
- * @param methodName - Optional method name (auto-detected from method name if omitted)
+ *
+ * @param serviceName - Optional service name override.
+ * @param methodName - Optional RPC method name override.
  */
 export function GrpcMethod(serviceName?: string, methodName?: string): MethodDecorator {
   return (target: object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
@@ -34,7 +37,7 @@ export function GrpcMethod(serviceName?: string, methodName?: string): MethodDec
         handler: propertyKey as string,
         isStream: false,
       },
-      target.constructor,
+      target.constructor
     );
 
     return descriptor;
@@ -42,7 +45,12 @@ export function GrpcMethod(serviceName?: string, methodName?: string): MethodDec
 }
 
 /**
- * Decorator for streaming gRPC methods
+ * Decorator for streaming gRPC methods.
+ *
+ * Marks handler as a streaming endpoint and wires stream call object to handler.
+ *
+ * @param serviceName - Optional service name override.
+ * @param methodName - Optional RPC method name override.
  */
 export function GrpcStreamMethod(serviceName?: string, methodName?: string): MethodDecorator {
   return (target: object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
@@ -53,7 +61,7 @@ export function GrpcStreamMethod(serviceName?: string, methodName?: string): Met
         handler: propertyKey as string,
         isStream: true,
       },
-      target.constructor,
+      target.constructor
     );
 
     return descriptor;
@@ -62,7 +70,8 @@ export function GrpcStreamMethod(serviceName?: string, methodName?: string): Met
 
 /**
  * Decorator to inject a gRPC client
- * @param name - Injection token for the client package
+ *
+ * @param name - Registered client name from `GrpcModule.forRoot({ clients: ... })`.
  */
 export function InjectGrpcClient(name: string) {
   return (target: object, propertyKey: string | symbol | undefined, parameterIndex: number) => {

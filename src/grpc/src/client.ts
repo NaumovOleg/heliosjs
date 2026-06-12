@@ -1,13 +1,35 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { Observable } from 'rxjs';
-import { ClientGrpc, GrpcClientOptions } from './types/grpc';
+import type { ClientGrpc, GrpcClientOptions } from './types/grpc';
 
+/**
+ * gRPC client wrapper that exposes service methods as RxJS observables.
+ *
+ * @example
+ * ```ts
+ * const client = new GrpcClient({
+ *   protoPath: './user.proto',
+ *   package: 'user.v1',
+ *   url: 'localhost:50051',
+ * });
+ *
+ * const service = client.getService<UserServiceClient>('UserService');
+ * service.findById({ id: '42' }).subscribe(console.log);
+ * ```
+ */
 export class GrpcClient implements ClientGrpc {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private client: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private protoDefinition: any;
   private readonly options: GrpcClientOptions;
 
+  /**
+   * Creates a gRPC client and loads proto definitions immediately.
+   *
+   * @param options - gRPC client connection and proto loading options.
+   */
   constructor(options: GrpcClientOptions) {
     this.options = {
       url: 'localhost:5000',
@@ -39,8 +61,12 @@ export class GrpcClient implements ClientGrpc {
   }
 
   /**
-   * Get a service client instance
-   * @param serviceName - Name of the service to get
+   * Returns a typed service client from loaded proto package.
+   *
+   * Each service method is wrapped to return an `Observable`.
+   *
+   * @param serviceName - Service name as defined in proto.
+   * @returns Service proxy object with observable-returning methods.
    */
   getService<T extends object>(serviceName: string): T {
     const credentials = this.options.credentials || grpc.credentials.createInsecure();
@@ -60,13 +86,16 @@ export class GrpcClient implements ClientGrpc {
       throw new Error(`Service "${serviceName}" not found`);
     }
 
-    this.client = new serviceDefinition(this.options.url!, credentials);
+    this.client = new serviceDefinition(this.options.url, credentials);
 
     // Wrap methods to return Observables
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrapped: any = {};
     for (const methodName in this.client) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       wrapped[methodName] = (...args: any[]) => {
-        return new Observable(observer => {
+        return new Observable((observer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.client[methodName](...args, (error: any, response: any) => {
             if (error) {
               observer.error(error);
@@ -83,7 +112,7 @@ export class GrpcClient implements ClientGrpc {
   }
 
   /**
-   * Close the client connection
+   * Closes the active service client channel.
    */
   close(): void {
     if (this.client && this.client.close) {
