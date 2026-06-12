@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/core",
-  "version": "3.1.11",
+  "version": "3.1.12",
   "description": "Core functionality for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -37,23 +37,31 @@
   "peerDependencies": {
     "typescript": ">=4.0.0",
     "reflect-metadata": "^0.2.2",
-    "@types/node": "^25.5.0"
+    "@types/node": ">=18.0.0"
   },
   "exports": {
     ".": {
+      "import": "./dist/index.js",
       "require": "./dist/index.js",
+      "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./utils": {
+      "import": "./dist/utils/index.js",
       "require": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js",
       "types": "./dist/utils/index.d.ts"
     },
     "./types": {
+      "import": "./dist/types/index.js",
       "require": "./dist/types/index.js",
+      "default": "./dist/types/index.js",
       "types": "./dist/types/index.d.ts"
     },
     "./constants": {
+      "import": "./dist/constants.js",
       "require": "./dist/constants.js",
+      "default": "./dist/constants.js",
       "types": "./dist/constants.d.ts"
     }
   }

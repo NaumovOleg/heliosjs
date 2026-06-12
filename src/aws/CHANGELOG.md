@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.11
+
+### Patch Changes
+
+- version fixes
+- Updated dependencies
+  - @heliosjs/core@3.1.12
+
 ## 9.0.10
 
 ### Patch Changes

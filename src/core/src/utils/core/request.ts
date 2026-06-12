@@ -48,7 +48,6 @@ export class Req implements Request {
     this.context = options.context;
     this.url = options.url;
     this.rawBody = options.rawBody;
-    this.raw = options.raw;
     this.isBase64Encoded = options.isBase64Encoded ?? this.base64Encoded();
     this.startTime = Date.now();
   }

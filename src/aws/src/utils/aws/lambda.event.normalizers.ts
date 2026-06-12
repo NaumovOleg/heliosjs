@@ -116,6 +116,7 @@ export const normalizeAPIGatewayV2Event = (
     body,
     source: 'lambda',
     timestamp: new Date(),
+    raw: event,
     event,
     context,
     isBase64Encoded: event.isBase64Encoded || false,
