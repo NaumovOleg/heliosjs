@@ -15,7 +15,8 @@
   },
   "files": [
     "dist/*",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "yarn clean && tsc -p tsconfig.build.json",
