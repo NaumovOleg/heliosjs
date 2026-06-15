@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.16
+
+### Patch Changes
+
+- rate limit
+
 ## 3.1.15
 
 ### Patch Changes

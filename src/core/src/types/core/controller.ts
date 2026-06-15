@@ -16,6 +16,7 @@ import type { ErrorHandler } from './error';
 import type { Request } from './request';
 import type { Response } from './response';
 import type { SanitizerConfig } from './sanitize';
+import type { RateLimitOptions } from './ratelimit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControllerClass = new (...args: any[]) => any;
@@ -192,6 +193,7 @@ export enum MiddlewaresMetadataItemProperty {
   interceptor = 'interceptor',
   status = 'status',
   sanitizer = 'sanitizer',
+  rateLimit = 'rateLimit',
 }
 
 export type MiddleWareItemType =
@@ -202,7 +204,8 @@ export type MiddleWareItemType =
   | 'guard'
   | 'interceptor'
   | 'status'
-  | 'sanitizer';
+  | 'sanitizer'
+  | 'rateLimit';
 
 interface MiddlewareTypeMap {
   middleware: MiddlewareCB;
@@ -213,6 +216,7 @@ interface MiddlewareTypeMap {
   interceptor: InterceptorCB;
   status: number;
   sanitizer: SanitizerConfig;
+  rateLimit: RateLimitOptions;
 }
 
 export type MiddlewaresMetadataItem = {

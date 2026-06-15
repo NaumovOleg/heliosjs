@@ -5,6 +5,7 @@ export * from './error';
 export * from './fingerprint';
 export * from './multipart';
 export * from './rbac';
+export * from './ratelimit';
 export * from './request';
 export * from './response';
 export * from './sanitize';

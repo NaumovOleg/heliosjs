@@ -18,6 +18,7 @@ import { handleCORS } from './cors';
 import { getOrComputeFingerprint } from './fingerprint';
 import { ForbiddenError } from './error';
 import { extractMiddlewares, getBodyAndMultipart, getParams } from './helper';
+import { enforceRateLimit } from './ratelimit';
 import { sanitizeRequest } from './sanitize';
 
 export const execute = async (route: Route, request: Request, response: Response) => {
@@ -229,6 +230,8 @@ export async function runGuard(
 }
 
 export const beforeRequest = async (request: Request, response: Response, route: Route) => {
+  await enforceRateLimit(request, response, route);
+
   const handlers: ErrorHandler[] = [];
   try {
     for (const fn of route.functions) {

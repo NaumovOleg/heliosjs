@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.15
+
+### Patch Changes
+
+- rate limit
+- Updated dependencies
+  - @heliosjs/core@3.1.16
+
 ## 9.0.14
 
 ### Patch Changes

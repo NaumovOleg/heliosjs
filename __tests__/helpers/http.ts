@@ -32,6 +32,7 @@ export function makeRequest(overrides: Record<string, any> = {}): Request {
 
 export interface FakeResponse extends Response {
   errored?: Error;
+  headers: Record<string, string | string[]>;
 }
 
 export function makeResponse(): FakeResponse {
@@ -39,8 +40,17 @@ export function makeResponse(): FakeResponse {
     status: 200,
     data: undefined,
     errored: undefined,
+    headers: {},
     error(e: Error) {
       this.errored = e;
+    },
+    setHeader(name: string, value: string | string[]) {
+      this.headers[name] = value;
+      return this;
+    },
+    setHeaders(headers: Record<string, string | string[]>) {
+      Object.assign(this.headers, headers);
+      return this;
     },
   };
   return res as FakeResponse;

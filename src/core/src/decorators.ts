@@ -1,6 +1,8 @@
-import { ValidatorOptions } from 'class-validator';
-import { Dto } from './types';
+import type { ValidatorOptions } from 'class-validator';
+import type { Dto } from './types';
 import { createParamDecorator } from './utils/core';
+import { defineMiddlewaresMeta } from './utils/shared';
+import type { RateLimitOptions } from './types/core/ratelimit';
 
 /**
  * Parameter decorator to extract and validate the request body from an incoming HTTP request.
@@ -27,7 +29,7 @@ import { createParamDecorator } from './utils/core';
 export const Body = (
   nameOrDto?: Dto | string,
   nameOrOptions?: ValidatorOptions | string,
-  options?: ValidatorOptions,
+  options?: ValidatorOptions
 ) => createParamDecorator('body', nameOrDto, nameOrOptions, options);
 
 /**
@@ -57,7 +59,7 @@ export const Body = (
 export const Params = (
   nameOrDto?: Dto | string,
   nameOrOptions?: ValidatorOptions | string,
-  options?: ValidatorOptions,
+  options?: ValidatorOptions
 ) => createParamDecorator('params', nameOrDto, nameOrOptions, options);
 
 /**
@@ -87,7 +89,7 @@ export const Params = (
 export const Query = (
   nameOrDto?: Dto | string,
   nameOrOptions?: ValidatorOptions | string,
-  options?: ValidatorOptions,
+  options?: ValidatorOptions
 ) => createParamDecorator('query', nameOrDto, nameOrOptions, options);
 
 /**
@@ -181,3 +183,34 @@ export const Res = () => createParamDecorator('response');
  * ```
  */
 export const Fingerprint = () => createParamDecorator('fingerprint');
+
+/**
+ * Method or controller decorator that enforces a request rate limit.
+ *
+ * Validation runs at decoration time; enforcement runs per request. Method-level
+ * usage overrides controller-level, which overrides the global config set via
+ * `setRateLimitConfig`. The limit key defaults to the request fingerprint.
+ *
+ * @example
+ * ```ts
+ * @RateLimit({ max: 100, windowMs: 60_000 })
+ * @RateLimit({ max: 10, windowMs: 1000, strategy: slidingWindow(redisStore) })
+ * ```
+ */
+export function RateLimit(options: RateLimitOptions) {
+  if (!(options.max > 0)) {
+    throw new TypeError('@RateLimit: `max` must be a positive number');
+  }
+  if (!(options.windowMs > 0)) {
+    throw new TypeError('@RateLimit: `windowMs` must be a positive number');
+  }
+
+  return function (target: any, propertyKey?: string) {
+    const item = { rateLimit: options };
+    if (propertyKey) {
+      defineMiddlewaresMeta([item], target, propertyKey);
+    } else {
+      defineMiddlewaresMeta([item], target);
+    }
+  };
+}
