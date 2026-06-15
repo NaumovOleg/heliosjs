@@ -88,10 +88,6 @@ export class Helios extends Plugin implements IHttpServer {
       this.setUpWebsocket();
     }
 
-    if (this.config.graphql) {
-      this.setupGraphQL();
-    }
-
     if (this.config.sse?.enabled) {
       this.sse = new SSEServer();
       this.sse.registerControllers(this.controllers);
@@ -158,6 +154,10 @@ export class Helios extends Plugin implements IHttpServer {
 
     const listenPort = port || this.config.port || 3000;
     const listenHost = host || this.config.host || 'localhost';
+
+    if (this.config.graphql) {
+      await this.setupGraphQL();
+    }
 
     return this.app.listen(listenPort, listenHost, async () => {
       this.isRunning = true;
