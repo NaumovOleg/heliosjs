@@ -39,7 +39,8 @@ export type ParamDecoratorType =
   | 'event'
   | 'context'
   | 'sse'
-  | 'ws';
+  | 'ws'
+  | 'fingerprint';
 
 export interface ParamMetadata {
   index: number;

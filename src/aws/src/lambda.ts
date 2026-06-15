@@ -8,7 +8,7 @@ import type {
   Response,
 } from '@heliosjs/core/types';
 import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
-import { ApplicationError, getErrorType, setRolesExtractor } from '@heliosjs/core/utils';
+import { ApplicationError, getErrorType, setFingerprintConfig, setRolesExtractor } from '@heliosjs/core/utils';
 import type { Context, Handler } from 'aws-lambda';
 import type { ILambdaAdapter, LambdaEvent, LambdaOptions, Plugin as LambdaPlugin } from './types/aws';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
@@ -38,6 +38,9 @@ export class Helios extends Plugin implements ILambdaAdapter {
     super();
     if (options?.rbac?.getRoles) {
       setRolesExtractor(options.rbac.getRoles);
+    }
+    if (options?.fingerprint) {
+      setFingerprintConfig(options.fingerprint);
     }
     this.controller = this.compileController(controller);
     this.handler = this.createHandler();

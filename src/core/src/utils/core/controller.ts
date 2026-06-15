@@ -15,6 +15,7 @@ import { reflectMiddlewaresMetadata, reflectRouteMetadata, validate } from '../s
 import { WebSocketService } from '../socket';
 import { SSEService } from '../sse';
 import { handleCORS } from './cors';
+import { getOrComputeFingerprint } from './fingerprint';
 import { ForbiddenError } from './error';
 import { extractMiddlewares, getBodyAndMultipart, getParams } from './helper';
 import { sanitizeRequest } from './sanitize';
@@ -82,6 +83,9 @@ export const execute = async (route: Route, request: Request, response: Response
       }
       if (param.type === 'response') {
         value = response;
+      }
+      if (param.type === 'fingerprint') {
+        value = getOrComputeFingerprint(request);
       }
 
       if (TO_VALIDATE.includes(param.type)) {

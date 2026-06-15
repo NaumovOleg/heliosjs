@@ -18,6 +18,7 @@ import {
   SSEServer,
   SSEService,
   sanitizeRequest,
+  setFingerprintConfig,
   setRolesExtractor,
   WebSocketServer,
   WebSocketService,
@@ -68,6 +69,9 @@ export class Helios extends Plugin implements IHttpServer {
     this.config = resolveConfig(configOrClass);
     if (this.config.rbac?.getRoles) {
       setRolesExtractor(this.config.rbac.getRoles);
+    }
+    if (this.config.fingerprint) {
+      setFingerprintConfig(this.config.fingerprint);
     }
 
     this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);

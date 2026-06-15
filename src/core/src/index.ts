@@ -15,6 +15,8 @@ export {
   ControllerClass,
   ControllerType,
   ErrorHandler,
+  FingerprintComponent,
+  FingerprintConfig,
   GuardClass,
   GuardFunction,
   GuardInstance,
@@ -35,9 +37,13 @@ export {
 export { IWebSocketServer, IWebSocketService, WebSocketEvent } from './types/ws';
 
 export {
+  computeFingerprint,
+  DEFAULT_COMPONENTS,
   DependencyFailedError,
   DuplicateEntryError,
   ForbiddenError,
+  getFingerprintConfig,
+  getOrComputeFingerprint,
   getRolesExtractor,
   InternalServerError,
   InvalidStateError,
@@ -45,6 +51,7 @@ export {
   RateLimitExceededError,
   SANITIZER,
   ServiceUnavailableError,
+  setFingerprintConfig,
   setRolesExtractor,
   UnauthorizedError,
   ValidationError,

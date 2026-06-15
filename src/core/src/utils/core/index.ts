@@ -2,6 +2,7 @@ export * from './controller';
 export * from './cors';
 export * from './endpoint';
 export * from './error';
+export * from './fingerprint';
 export * from './headers';
 export * from './match';
 export * from './multipart';

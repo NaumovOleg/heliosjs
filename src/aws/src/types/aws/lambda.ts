@@ -1,4 +1,4 @@
-import type { ControllerType, RBACConfig, Request } from '@heliosjs/core/types';
+import type { ControllerType, FingerprintConfig, RBACConfig, Request } from '@heliosjs/core/types';
 import type {
   ALBEvent,
   ALBEventRequestContext,
@@ -86,4 +86,6 @@ export interface ILambdaAdapter {
 export interface LambdaOptions {
   /** Role-based access control configuration consumed by the `@Roles` guard. */
   rbac?: RBACConfig;
+  /** Request fingerprinting configuration consumed by `@Fingerprint()` / `@UseFingerprint()`. */
+  fingerprint?: FingerprintConfig;
 }

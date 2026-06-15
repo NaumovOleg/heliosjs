@@ -167,3 +167,17 @@ export const Files = (name?: string) => createParamDecorator('multipart', undefi
  * ```
  */
 export const Res = () => createParamDecorator('response');
+
+/**
+ * Parameter decorator that injects the request fingerprint.
+ *
+ * The value is computed lazily from the configured components (default:
+ * ip + User-Agent + Accept-Language) and cached in request state, so it works
+ * whether or not `@UseFingerprint()` ran first.
+ *
+ * @example
+ * ```ts
+ * getData(@Fingerprint() fp: string) {}
+ * ```
+ */
+export const Fingerprint = () => createParamDecorator('fingerprint');

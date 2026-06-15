@@ -4,6 +4,7 @@ import {
   ControllerClass,
   ControllerType,
   ErrorHandler,
+  FingerprintConfig,
   InterceptorCB,
   MiddlewareCB,
   RBACConfig,
@@ -49,6 +50,11 @@ export interface ServerConfig {
    * Role-based access control configuration consumed by the `@Roles` guard.
    */
   rbac?: RBACConfig;
+
+  /**
+   * Request fingerprinting configuration consumed by `@Fingerprint()` / `@UseFingerprint()`.
+   */
+  fingerprint?: FingerprintConfig;
 
   /**
    * Array of controller types
