@@ -6,6 +6,7 @@ import {
   ErrorHandler,
   InterceptorCB,
   MiddlewareCB,
+  RBACConfig,
   SanitizerConfig,
 } from '@heliosjs/core/types';
 import { PubSub } from 'type-graphql';
@@ -43,6 +44,11 @@ export interface ServerConfig {
    * @type {ErrorHandler}
    */
   errorHandler?: ErrorHandler;
+
+  /**
+   * Role-based access control configuration consumed by the `@Roles` guard.
+   */
+  rbac?: RBACConfig;
 
   /**
    * Array of controller types

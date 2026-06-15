@@ -1,5 +1,13 @@
 # Change Log
 
+## 9.0.13
+
+### Patch Changes
+
+- roles guard
+- Updated dependencies
+  - @heliosjs/core@3.1.14
+
 ## 9.0.12
 
 ### Patch Changes

@@ -3,6 +3,7 @@ export * from './controller';
 export * from './cors';
 export * from './error';
 export * from './multipart';
+export * from './rbac';
 export * from './request';
 export * from './response';
 export * from './sanitize';

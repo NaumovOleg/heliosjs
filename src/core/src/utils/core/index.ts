@@ -5,6 +5,7 @@ export * from './error';
 export * from './headers';
 export * from './match';
 export * from './multipart';
+export * from './rbac';
 export * from './request';
 export * from './response';
 export * from './sanitize';

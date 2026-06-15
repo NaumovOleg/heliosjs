@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.1.9
+
+### Patch Changes
+
+- roles guard
+
 ## 2.1.8
 
 ### Patch Changes

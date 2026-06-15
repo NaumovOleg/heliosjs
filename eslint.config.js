@@ -61,6 +61,9 @@ export default defineConfig([
       '.env',
       '**/*.config.js',
       '**/temp-*/**',
+      '**/*.test.ts',
+      '**/vitest.config.ts',
+      '**/vitest.setup.ts',
     ],
   },
 ]);

@@ -1,4 +1,4 @@
-import type { ControllerType, Request } from '@heliosjs/core/types';
+import type { ControllerType, RBACConfig, Request } from '@heliosjs/core/types';
 import type {
   ALBEvent,
   ALBEventRequestContext,
@@ -81,4 +81,9 @@ export interface ILambdaAdapter {
   handler: Handler;
   controller: ControllerType;
   plugins: Plugin[];
+}
+
+export interface LambdaOptions {
+  /** Role-based access control configuration consumed by the `@Roles` guard. */
+  rbac?: RBACConfig;
 }

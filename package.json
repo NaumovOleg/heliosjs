@@ -29,7 +29,9 @@
     "changeset:status": "changeset status --verbose",
     "version-packages": "changeset version",
     "release": "changeset publish --provenance --access public",
-    "lint": "npx eslint --fix"
+    "lint": "npx eslint --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "workspaces": [
     "src/core",
@@ -86,6 +88,7 @@
     "type-graphql": "2.0.0-rc.3",
     "typescript": "6.0.2",
     "typescript-eslint": "8.59.1",
+    "vitest": "^4.1.9",
     "ws": "8.19.0"
   },
   "dependencies": {

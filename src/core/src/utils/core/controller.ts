@@ -196,7 +196,7 @@ function isGuardClass(guard: any): guard is GuardClass {
   );
 }
 
-async function runGuard(
+export async function runGuard(
   guard: GuardInstance | GuardClass | GuardFunction,
   request: Request,
   response: Response
@@ -212,12 +212,11 @@ async function runGuard(
     message = guardInstance.message ?? message;
   } else {
     const result = await guard(request, response);
-    if (result === false) {
-      canActivate = false;
-    }
     if (typeof result === 'string') {
       canActivate = false;
       message = result;
+    } else {
+      canActivate = result;
     }
   }
   if (!canActivate) {

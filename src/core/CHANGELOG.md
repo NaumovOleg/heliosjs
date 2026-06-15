@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.14
+
+### Patch Changes
+
+- roles guard
+
 ## 3.1.13
 
 ### Patch Changes

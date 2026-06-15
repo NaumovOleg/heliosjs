@@ -18,6 +18,7 @@ import {
   SSEServer,
   SSEService,
   sanitizeRequest,
+  setRolesExtractor,
   WebSocketServer,
   WebSocketService,
 } from '@heliosjs/core/utils';
@@ -65,6 +66,9 @@ export class Helios extends Plugin implements IHttpServer {
   constructor(configOrClass: new (...args: unknown[]) => unknown) {
     super();
     this.config = resolveConfig(configOrClass);
+    if (this.config.rbac?.getRoles) {
+      setRolesExtractor(this.config.rbac.getRoles);
+    }
 
     this.middlewares = this.middlewares.concat(this.config.middlewares ?? []);
     this.rootControllers = this.compileControllers(this.config.controllers ?? []);
