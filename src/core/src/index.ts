@@ -48,6 +48,7 @@ export {
   InternalServerError,
   InvalidStateError,
   NotFoundError,
+  PayloadTooLargeError,
   RateLimitExceededError,
   SANITIZER,
   ServiceUnavailableError,

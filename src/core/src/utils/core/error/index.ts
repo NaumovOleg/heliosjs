@@ -8,6 +8,7 @@ export * from './helpers';
 export * from './internal';
 export * from './invalidState';
 export * from './notfound';
+export * from './payloadTooLarge';
 export * from './rateLimit';
 export * from './serviceUnavailable';
 export * from './validation';

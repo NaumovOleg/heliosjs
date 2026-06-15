@@ -1,5 +1,3 @@
-import http from 'node:http';
-
 import {
   CATCH,
   INTERCEPT,
@@ -45,21 +43,4 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     sanitizers,
     websocketPath: decoratorConfig.websocketPath ?? '/ws',
   };
-};
-
-export const collectRawBody = (req: http.IncomingMessage): Promise<Buffer> => {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-
-    req.on('data', chunk => {
-      chunks.push(Buffer.from(chunk));
-    });
-
-    req.on('end', () => {
-      const buffer = Buffer.concat(chunks);
-      resolve(buffer);
-    });
-
-    req.on('error', reject);
-  });
 };

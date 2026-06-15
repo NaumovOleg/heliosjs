@@ -17,5 +17,15 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     include: ['__tests__/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      all: true,
+      include: [
+        'src/core/src/utils/core/match.ts',
+        'src/core/src/utils/shared/parsers.ts',
+        'src/core/src/utils/core/controller.ts',
+      ],
+      thresholds: { lines: 65, functions: 75, statements: 65, branches: 65 },
+    },
   },
 });

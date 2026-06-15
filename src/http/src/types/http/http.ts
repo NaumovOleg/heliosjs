@@ -47,6 +47,21 @@ export interface ServerConfig {
   errorHandler?: ErrorHandler;
 
   /**
+   * Maximum request body size in bytes. Defaults to 1 MB. `0` disables the limit.
+   */
+  bodyLimit?: number;
+
+  /**
+   * Node HTTP server `requestTimeout` in milliseconds. When unset, Node's default applies.
+   */
+  requestTimeout?: number;
+
+  /**
+   * Node HTTP server `headersTimeout` in milliseconds. When unset, Node's default applies.
+   */
+  headersTimeout?: number;
+
+  /**
    * Role-based access control configuration consumed by the `@Roles` guard.
    */
   rbac?: RBACConfig;

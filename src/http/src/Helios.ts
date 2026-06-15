@@ -80,6 +80,13 @@ export class Helios extends Plugin implements IHttpServer {
 
     this.app = http.createServer(this.requestHandler.bind(this));
 
+    if (this.config.requestTimeout !== undefined) {
+      this.app.requestTimeout = this.config.requestTimeout;
+    }
+    if (this.config.headersTimeout !== undefined) {
+      this.app.headersTimeout = this.config.headersTimeout;
+    }
+
     for (const st of this.config.statics ?? []) {
       const staticMw = staticMiddleware(st.path, st.options);
       this.staticMiddlewares.push(staticMw);
@@ -216,7 +223,7 @@ export class Helios extends Plugin implements IHttpServer {
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
     const startTime = Date.now();
 
-    const request = await RequestFactory.create(req);
+    const request = await RequestFactory.create(req, this.config.bodyLimit);
     const response = ResponseFactory.create(res, request);
 
     try {

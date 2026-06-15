@@ -61,6 +61,8 @@ export class BaseError extends Error implements HeliosError {
         return 403;
       case ErrorCode.NOT_FOUND:
         return 404;
+      case ErrorCode.PAYLOAD_TOO_LARGE:
+        return 413;
       case ErrorCode.RATE_LIMIT_EXCEEDED:
         return 429;
       case ErrorCode.DATABASE_ERROR:

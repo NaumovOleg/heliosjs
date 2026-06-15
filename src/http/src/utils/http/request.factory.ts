@@ -6,13 +6,13 @@ import {
   parseRequestCookie,
   Req,
 } from '@heliosjs/core/utils';
-import { collectRawBody } from './server';
+import { collectRawBody } from './body';
 
 export class RequestFactory {
   /**
    * Create Request from HTTP IncomingMessage
    */
-  static async create(req: IncomingMessage): Promise<Req> {
+  static async create(req: IncomingMessage, maxBytes?: number): Promise<Req> {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || 'localhost';
     const fullUrl = `${protocol}://${host}${req.url}`;
@@ -27,7 +27,7 @@ export class RequestFactory {
       req.socket.remoteAddress ??
       '0.0.0.0';
 
-    const rawBody = await collectRawBody(req);
+    const rawBody = await collectRawBody(req, maxBytes);
 
     const body = parseBody({
       body: rawBody,
