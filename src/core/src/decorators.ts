@@ -73,20 +73,20 @@ export const Params = (
  * @example
  * ```ts
  * // Extract all query parameters as an object
- * @Query() query: any
+ * @QueryParam() query: any
  *
  * // Extract a specific query parameter by name
- * @Query('search') search: string
+ * @QueryParam('search') search: string
  *
  * // Validate and transform query parameters using a DTO
  * class SearchDto {
  *   search: string;
  * }
  *
- * @Query(SearchDto) query: SearchDto
+ * @QueryParam(SearchDto) query: SearchDto
  * ```
  */
-export const Query = (
+export const QueryParam = (
   nameOrDto?: Dto | string,
   nameOrOptions?: ValidatorOptions | string,
   options?: ValidatorOptions

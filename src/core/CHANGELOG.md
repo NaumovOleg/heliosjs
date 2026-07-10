@@ -1,5 +1,31 @@
 # Change Log
 
+## 3.2.0
+
+### Minor Changes
+
+- added http query method support
+
+## 4.0.0
+
+### Major Changes
+
+- Add support for the HTTP `QUERY` method.
+
+  - `HTTP_METHODS.QUERY` was added to the method enum.
+  - A new `@Query(path, middlewares)` endpoint decorator registers a `QUERY` route.
+
+  **Breaking:** the `@Query()` parameter decorator, which extracts query string
+  parameters from the URL, is renamed to `@QueryParam()`. The name `Query` now
+  belongs to the endpoint decorator.
+
+  ```diff
+  -  @Get('/search')
+  -  search(@Query('q') q: string) {}
+  +  @Get('/search')
+  +  search(@QueryParam('q') q: string) {}
+  ```
+
 ## 3.1.16
 
 ### Patch Changes

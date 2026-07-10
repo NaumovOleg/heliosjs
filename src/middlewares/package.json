@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/middlewares",
-  "version": "9.0.15",
+  "version": "10.0.0",
   "description": "Middlewares for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,7 +30,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
-    "@heliosjs/core": "^3.1.16",
+    "@heliosjs/core": "^3.2.0",
     "@types/node": ">=20.0.0",
     "reflect-metadata": "^0.2.2",
     "typescript": ">=5.0.0"

@@ -9,7 +9,7 @@ import { defineRouteMeta } from './utils/shared';
  *
  * It also allows attaching middlewares that will be applied when the endpoint is accessed.
  *
- * @param method - The HTTP method (e.g., 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'ANY').
+ * @param method - The HTTP method (e.g., 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'QUERY', 'ANY').
  * @param pathPattern - Optional route pattern string to match the endpoint path.
  * @param middlewares - Optional array of middlewares to apply to this endpoint.
  *
@@ -109,6 +109,26 @@ export const Options = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  */
 export const Head = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.HEAD, pathPattern, middlewares);
+};
+
+/**
+ * Shortcut decorator for HTTP QUERY method.
+ *
+ * QUERY is a safe, idempotent method that carries a request body, so the
+ * request payload is read from the body rather than the URL query string.
+ *
+ * @param pathPattern - Optional route pattern string.
+ * @param middlewares - Optional array of middlewares.
+ * @returns Method decorator for QUERY endpoint.
+ *
+ * @example
+ * ```ts
+ * @Query('/search')
+ * search(@Body() filter: SearchDto) {}
+ * ```
+ */
+export const Query = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
+  return Endpoint(HTTP_METHODS.QUERY, pathPattern, middlewares);
 };
 
 // /**

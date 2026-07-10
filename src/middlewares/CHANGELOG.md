@@ -1,5 +1,23 @@
 # Change Log
 
+## 10.0.0
+
+### Minor Changes
+
+- added http query method support
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@3.2.0
+
+## 10.0.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@4.0.0
+
 ## 9.0.15
 
 ### Patch Changes

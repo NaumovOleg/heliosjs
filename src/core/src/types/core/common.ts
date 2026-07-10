@@ -64,6 +64,7 @@ export enum HTTP_METHODS {
   PUT = 'PUT',
   OPTIONS = 'OPTIONS',
   HEAD = 'HEAD',
+  QUERY = 'QUERY',
 }
 
 export interface Meta {
