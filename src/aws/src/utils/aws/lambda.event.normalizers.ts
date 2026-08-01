@@ -257,7 +257,10 @@ export const normalizeLambdaFunctionUrlEvent = (
     });
   }
 
-  const protocol = event.requestContext.http.protocol.split('/')[0].toLowerCase();
+  const forwardedProto = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'];
+  const protocol =
+    forwardedProto?.split(',')[0]?.trim().toLowerCase() ||
+    event.requestContext.http.protocol.split('/')[0].toLowerCase();
   const host = event.requestContext.domainName;
   const path = event.rawPath;
   const queryString = event.rawQueryString ? `?${event.rawQueryString}` : '';
@@ -291,7 +294,7 @@ export const normalizeLambdaFunctionUrlEvent = (
     method: event.requestContext.http.method,
     path: event.rawPath,
     requestUrl,
-    url: requestUrl.toString(),
+    url: path,
     headers,
     query,
     body,

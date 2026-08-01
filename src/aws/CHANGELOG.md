@@ -1,5 +1,11 @@
 # Change Log
 
+## 10.0.1
+
+### Patch Changes
+
+- lambda url fix
+
 ## 10.0.0
 
 ### Minor Changes
