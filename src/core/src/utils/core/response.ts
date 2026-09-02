@@ -104,8 +104,8 @@ export class Res implements Response {
 
   setHeader(name: string, value: string | string[]): this {
     this._headers[name.toLowerCase()] = value;
-    if (this.raw?.headers) {
-      this.raw.headers[name.toLowerCase()] = value;
+    if (this.raw?.setHeader) {
+      this.raw.setHeader(name, value);
     }
     return this;
   }
@@ -120,8 +120,8 @@ export class Res implements Response {
 
   removeHeader(name: string): this {
     delete this._headers[name.toLowerCase()];
-    if (this.raw?.headers) {
-      delete this.raw.headers[name.toLowerCase()];
+    if (this.raw?.removeHeader) {
+      this.raw.removeHeader(name.toLowerCase());
     }
     return this;
   }

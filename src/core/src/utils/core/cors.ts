@@ -2,7 +2,8 @@ import { CORSConfig, Request, Response } from '../../types/core';
 import { getOrigin } from './headers';
 
 function setOriginHeader(res: Response, config: CORSConfig, origin: string) {
-  if (config.origin === '*') {
+  const effectiveOrigin = config.origin ?? '*';
+  if (effectiveOrigin === '*') {
     if (config.credentials) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     } else {
@@ -20,16 +21,18 @@ export function handleCORS(
   config: CORSConfig,
 ): { permitted: boolean; continue: boolean } {
   const origin = getOrigin(req);
+  const effectiveOrigin = config.origin ?? '*';
 
   function isOriginAllowed(): boolean {
-    if (!origin) return false;
-    if (config.origin === '*') return true;
-    if (typeof config.origin === 'string') return config.origin === origin;
-    if (Array.isArray(config.origin)) return config.origin.includes(origin);
-    if (typeof config.origin === 'function') return config.origin(origin);
+    if (!origin) return true;
+    if (effectiveOrigin === '*') return true;
+    if (typeof effectiveOrigin === 'string') return effectiveOrigin === origin;
+    if (Array.isArray(effectiveOrigin)) return effectiveOrigin.includes(origin);
+    if (typeof effectiveOrigin === 'function') return effectiveOrigin(origin);
 
     return false;
   }
+
   if (origin && !isOriginAllowed()) {
     res.status = 403;
     res.setHeader('Content-Type', 'application/json');
@@ -40,9 +43,7 @@ export function handleCORS(
   const isPreflight =
     req.method === 'OPTIONS' && req.headers['access-control-request-method'] && origin;
   if (isPreflight) {
-    if (origin) {
-      setOriginHeader(res, config, origin);
-    }
+    setOriginHeader(res, config, origin ?? '*');
     if (config.methods) {
       res.setHeader('Access-Control-Allow-Methods', config.methods.join(', '));
     }

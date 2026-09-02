@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.2.3
+
+### Patch Changes
+
+- cors fixes
+
 ## 3.2.2
 
 ### Patch Changes

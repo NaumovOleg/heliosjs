@@ -28,6 +28,8 @@ export type _Raw = Partial<{
   headers: { [key: string]: string | string[] };
   cookies: string[];
   end(args: unknown): unknown;
+  setHeader(name: string, value: string | string[]): void;
+  removeHeader(name: string): void;
   requestUrl: URL;
   method: string;
   requestId: string;
