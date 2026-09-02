@@ -1,6 +1,19 @@
 import { CORSConfig, Request, Response } from '../../types/core';
 import { getOrigin } from './headers';
 
+function setOriginHeader(res: Response, config: CORSConfig, origin: string) {
+  if (config.origin === '*') {
+    if (config.credentials) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Vary', 'Origin');
+}
+
 export function handleCORS(
   req: Request,
   res: Response,
@@ -28,15 +41,7 @@ export function handleCORS(
     req.method === 'OPTIONS' && req.headers['access-control-request-method'] && origin;
   if (isPreflight) {
     if (origin) {
-      if (config.origin === '*') {
-        if (config.credentials) {
-          res.setHeader('Access-Control-Allow-Origin', origin);
-        } else {
-          res.setHeader('Access-Control-Allow-Origin', '*');
-        }
-      } else {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      }
+      setOriginHeader(res, config, origin);
     }
     if (config.methods) {
       res.setHeader('Access-Control-Allow-Methods', config.methods.join(', '));
@@ -60,15 +65,7 @@ export function handleCORS(
     return { permitted: true, continue: false };
   }
   if (origin) {
-    if (config.origin === '*') {
-      if (config.credentials) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      } else {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-      }
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
+    setOriginHeader(res, config, origin);
 
     if (config.credentials) {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -80,12 +77,4 @@ export function handleCORS(
   }
 
   return { permitted: true, continue: true };
-}
-
-export function isPreflightRequest(req: Request): boolean {
-  return !!(
-    req.method === 'OPTIONS' &&
-    req.headers['access-control-request-method'] &&
-    req.headers.origin
-  );
 }

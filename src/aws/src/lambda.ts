@@ -2,13 +2,14 @@ import type {
   ControllerClass,
   ControllerMeta,
   ControllerType,
+  CORSConfig,
   IController,
   ErrorObject,
   Request,
   Response,
 } from '@heliosjs/core/types';
 import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
-import { ApplicationError, getErrorType, setFingerprintConfig, setRolesExtractor } from '@heliosjs/core/utils';
+import { ApplicationError, getErrorType, handleCORS, setFingerprintConfig, setRolesExtractor } from '@heliosjs/core/utils';
 import type { Context, Handler } from 'aws-lambda';
 import type { ILambdaAdapter, LambdaEvent, LambdaOptions, Plugin as LambdaPlugin } from './types/aws';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
@@ -29,6 +30,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
   handler: Handler;
   controller: ControllerType;
   plugins: LambdaPlugin[] = [];
+  private readonly corsConfig?: CORSConfig;
   /**
    * Creates a Lambda adapter with a root Helios controller.
    *
@@ -42,6 +44,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
     if (options?.fingerprint) {
       setFingerprintConfig(options.fingerprint);
     }
+    this.corsConfig = options?.cors;
     this.controller = this.compileController(controller);
     this.handler = this.createHandler();
   }
@@ -108,32 +111,22 @@ export class Helios extends Plugin implements ILambdaAdapter {
     return this.toLambdaResponse(request, response, eventType);
   }
 
-  private async toLambdaResponse(request: Request, response: Response, eventType: string) {
-    const statusCode = response.data?.status ?? response?.status ?? 200;
+  private toLambdaHeaders(request: Request, response: Response): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
-      ...response.headers,
     };
-
-    const originHeader = request.headers['origin'] || request.headers['Origin'];
-    let origin: string | undefined;
-
-    if (originHeader) {
-      if (Array.isArray(originHeader)) {
-        origin = originHeader[0];
-      } else {
-        origin = originHeader;
-      }
+    for (const [key, value] of Object.entries(response.headers)) {
+      headers[key] = Array.isArray(value) ? value.join(', ') : value;
     }
+    return headers;
+  }
 
-    if (origin) {
-      headers['Access-Control-Allow-Origin'] = origin;
-      headers['Access-Control-Allow-Credentials'] = 'true';
-      headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS';
-      headers['Access-Control-Allow-Headers'] =
-        'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token';
-    }
+  private async toLambdaResponse(request: Request, response: Response, eventType: string) {
+    const statusCode = response.data?.status ?? response?.status ?? 200;
+
+    const corsHeaders = this.buildCorsHeaders(request, response);
+    const headers = { ...this.toLambdaHeaders(request, response), ...corsHeaders };
 
     const body = JSON.stringify({
       success: statusCode < 400,
@@ -165,6 +158,30 @@ export class Helios extends Plugin implements ILambdaAdapter {
     }
   }
 
+  private buildCorsHeaders(request: Request, response: Response): Record<string, string> {
+    if (!this.corsConfig) {
+      const originHeader = request.headers.origin || request.headers.Origin;
+      const origin = Array.isArray(originHeader) ? originHeader[0] : (originHeader as string) || '*';
+      return {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+      };
+    }
+
+    const corsResult = handleCORS(request, response, this.corsConfig);
+    const headers: Record<string, string> = {};
+    for (const [key, value] of Object.entries(response.headers)) {
+      headers[key] = Array.isArray(value) ? value.join(', ') : value;
+    }
+
+    if (!corsResult.permitted) {
+      headers['Access-Control-Allow-Origin'] = headers['Access-Control-Allow-Origin'] || '*';
+    }
+
+    return headers;
+  }
+
   private handleError(error: ErrorObject, request: Request) {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
@@ -179,11 +196,13 @@ export class Helios extends Plugin implements ILambdaAdapter {
     const statusCode = serialized.status || 500;
     const body = JSON.stringify(serialized);
 
+    const tempResponse = ResponseFactory.create(request);
+    const corsHeaders = this.buildCorsHeaders(request, tempResponse);
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
+      ...corsHeaders,
     };
 
     return { statusCode, headers, body, isBase64Encoded: false };

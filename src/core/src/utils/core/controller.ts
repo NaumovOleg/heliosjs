@@ -24,7 +24,9 @@ import { sanitizeRequest } from './sanitize';
 export const execute = async (route: Route, request: Request, response: Response) => {
   request.params = getParams(route.route, request.url);
 
-  const handledCors = (route.cors ?? []).reduce(
+  const corsConfigs = route.cors ?? route.functions.filter((fn) => fn.cors).map((fn) => fn.cors!);
+
+  const handledCors = corsConfigs.reduce(
     (acc, conf) => {
       const cors = handleCORS(request, response, conf);
       return {
@@ -297,11 +299,15 @@ export function collectRoutes(
 
     functions.unshift(...routeMiddlewares.reverse());
 
+    const allFunctions = [...meta.functions, ...functions];
+    const corsConfigs = allFunctions.filter((fn) => fn.cors).map((fn) => fn.cors!);
+
     routes.push({
       ...routeMeta,
       name,
       route: current,
-      functions: [...meta.functions, ...functions],
+      cors: corsConfigs.length > 0 ? corsConfigs : undefined,
+      functions: allFunctions,
       fn: instance[name].bind(instance),
     });
   }

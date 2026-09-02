@@ -101,6 +101,9 @@ export class Helios extends Plugin implements IHttpServer {
 
     if (this.config.sse?.enabled) {
       this.sse = new SSEServer();
+      if (this.config.cors) {
+        this.sse.setCorsConfig(this.config.cors);
+      }
       this.sse.registerControllers(this.controllers);
       SSEService.getInstance().initialize(this.sse);
     }
@@ -246,7 +249,6 @@ export class Helios extends Plugin implements IHttpServer {
         return this.sendResponse(request, response, startTime);
       }
       if (!handledCors.continue && handledCors.permitted) {
-        response.status = 204;
         return this.sendResponse(request, response, startTime);
       }
 
@@ -321,9 +323,6 @@ export class Helios extends Plugin implements IHttpServer {
       middleware,
     }));
 
-    if (this.config.cors) {
-      functions.unshift({ cors: this.config.cors });
-    }
     if (this.config.errorHandler) {
       functions.unshift({ errorHandler: this.config.errorHandler });
     }

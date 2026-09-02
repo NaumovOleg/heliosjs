@@ -28,7 +28,6 @@ export const STOPPED = `
 export const OK_STATUSES = [200, 201, 202, 203, 204, 205, 206, 207, 208, 226];
 export const TO_VALIDATE = ['headers', 'params', 'multipart', 'query', 'body'];
 
-export const CORS_METADATA = 'cors:config';
 export const SSE_METADATA_KEY = 'sse:handlers';
 export const SSE_TOPIC_KEY = 'sse:topics';
 export const SSE_SERVICE_KEY = 'sse:service';

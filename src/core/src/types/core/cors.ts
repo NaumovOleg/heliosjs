@@ -5,6 +5,5 @@ export interface CORSConfig {
   exposedHeaders?: string[];
   credentials?: boolean;
   maxAge?: number;
-  preflightContinue?: boolean;
   optionsSuccessStatus?: number;
 }

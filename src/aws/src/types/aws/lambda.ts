@@ -1,4 +1,4 @@
-import type { ControllerType, FingerprintConfig, RBACConfig, Request } from '@heliosjs/core/types';
+import type { ControllerType, CORSConfig, FingerprintConfig, RBACConfig, Request } from '@heliosjs/core/types';
 import type {
   ALBEvent,
   ALBEventRequestContext,
@@ -88,4 +88,6 @@ export interface LambdaOptions {
   rbac?: RBACConfig;
   /** Request fingerprinting configuration consumed by `@Fingerprint()` / `@UseFingerprint()`. */
   fingerprint?: FingerprintConfig;
+  /** CORS configuration. If not provided, no origin validation is performed. */
+  cors?: CORSConfig;
 }

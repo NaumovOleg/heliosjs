@@ -1,29 +1,54 @@
 // server/SSEServer.ts
 import type { ServerResponse } from 'node:http';
 
-import type { ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
+import type { CORSConfig, ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
 import { generateUniqueId } from '../shared';
 
 export class SSEServer implements ISSEServer {
   private readonly clients = new Map<string, SSEClient>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controllers: any[] = [];
+  private corsConfig?: CORSConfig;
+
+  setCorsConfig(config: CORSConfig) {
+    this.corsConfig = config;
+  }
 
   /**
    * Creates and registers a new SSE client connection.
    *
    * @param res - Raw HTTP response used as event stream transport.
+   * @param origin - Optional origin header value for CORS.
    * @returns Registered SSE client descriptor.
    */
-  public createConnection(res: ServerResponse) {
+  public createConnection(res: ServerResponse, origin?: string) {
     const clientId = generateUniqueId();
 
-    res.writeHead(200, {
+    const headers: Record<string, string> = {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-    });
+    };
+
+    if (origin) {
+      if (!this.corsConfig) {
+        headers['Access-Control-Allow-Origin'] = origin;
+      } else {
+        const allowed = this.isOriginAllowed(origin);
+        if (allowed) {
+          headers['Access-Control-Allow-Origin'] =
+            this.corsConfig.origin === '*' && !this.corsConfig.credentials ? '*' : origin;
+          headers['Vary'] = 'Origin';
+          if (this.corsConfig.credentials) {
+            headers['Access-Control-Allow-Credentials'] = 'true';
+          }
+        }
+      }
+    } else if (!this.corsConfig || this.corsConfig.origin === '*') {
+      headers['Access-Control-Allow-Origin'] = '*';
+    }
+
+    res.writeHead(200, headers);
 
     res.write(': connected\n\n');
 
@@ -47,6 +72,15 @@ export class SSEServer implements ISSEServer {
     });
 
     return client;
+  }
+
+  private isOriginAllowed(origin: string): boolean {
+    if (!this.corsConfig) return true;
+    if (this.corsConfig.origin === '*') return true;
+    if (typeof this.corsConfig.origin === 'string') return this.corsConfig.origin === origin;
+    if (Array.isArray(this.corsConfig.origin)) return this.corsConfig.origin.includes(origin);
+    if (typeof this.corsConfig.origin === 'function') return this.corsConfig.origin(origin);
+    return false;
   }
 
   /**

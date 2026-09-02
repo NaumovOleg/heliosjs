@@ -22,7 +22,7 @@ export interface SSEEvent {
 }
 
 export interface ISSEServer {
-  createConnection(res: ServerResponse): SSEClient;
+  createConnection(res: ServerResponse, origin?: string): SSEClient;
   sendToClient(clientId: string, message: SSEMessage): boolean;
   broadcast(message: SSEMessage, excludeClientId?: string): void;
   getStats(): { clients: number };
@@ -34,5 +34,5 @@ export interface ISSEService {
   broadcast(message: SSEMessage, excludeClientId?: string): void;
   getStats(): { clients: number };
   isAvailable(): boolean;
-  createConnection(res: ServerResponse): SSEClient;
+  createConnection(res: ServerResponse, origin?: string): SSEClient;
 }
