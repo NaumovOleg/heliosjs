@@ -110,7 +110,9 @@ export const execute = async (route: Route, request: Request, response: Response
     if (isError) {
       response.error(data);
     } else {
-      response.status = route.functions.find((fn) => fn.status)?.status ?? 200;
+      if (!response.isRedirect) {
+        response.status = route.functions.find((fn) => fn.status)?.status ?? 200;
+      }
       const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
 
       for (const interceptor of interceptors) {

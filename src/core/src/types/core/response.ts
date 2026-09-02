@@ -47,6 +47,7 @@ export interface Response {
   source: ResponseSource;
   raw: _Raw;
   headersSent: boolean;
+  isRedirect: boolean;
   ok: boolean;
   meta: { requestUrl: URL; method: string };
 

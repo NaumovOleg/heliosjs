@@ -8,6 +8,7 @@ export class Res implements Response {
   private _status = 200;
   private _headers: Record<string, string | string[]> = {};
   private _data: unknown;
+  private _isRedirect = false;
   private _cookies: string[] = [];
   private _isBase64Encoded = false;
   private _headersSent = false;
@@ -82,12 +83,16 @@ export class Res implements Response {
     return this.raw?.headersSent ?? this._headersSent;
   }
 
+  get isRedirect(): boolean {
+    return this._isRedirect;
+  }
+
   // ==================== Status Methods ====================
 
   set status(code: number) {
     if (!code) return;
     this._status = code;
-    if (this.raw?.statusCode) {
+    if (this.raw && 'statusCode' in this.raw) {
       this.raw.statusCode = code;
     }
   }
@@ -262,8 +267,9 @@ export class Res implements Response {
   // ==================== Response Methods ====================
 
   redirect(url: string, statusCode = 302): this {
-    this._status = statusCode;
+    this.status = statusCode;
     this.setHeader('location', url);
+    this._isRedirect = true;
     return this;
   }
 

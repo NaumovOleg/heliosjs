@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.2.5
+
+### Patch Changes
+
+- redirect fixes
+
 ## 3.2.4
 
 ### Patch Changes
