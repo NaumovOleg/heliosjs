@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.2.4
+
+### Patch Changes
+
+- error handling fixes
+
 ## 3.2.3
 
 ### Patch Changes

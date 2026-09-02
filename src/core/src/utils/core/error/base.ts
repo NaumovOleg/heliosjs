@@ -1,10 +1,10 @@
-import {
-  ErrorCode,
+import type {
   ErrorDetails,
   ErrorObject,
   ErrorResponse,
   HeliosError,
 } from '../../../types/core/error';
+import { ErrorCode } from '../../../types/core/error';
 
 export class BaseError extends Error implements HeliosError {
   public readonly code: ErrorCode;
@@ -14,9 +14,10 @@ export class BaseError extends Error implements HeliosError {
   public readonly requestId?: string;
   public readonly path?: string;
   public readonly method?: string;
+  public readonly upstream?: unknown;
   cause?: ErrorObject;
   name: string;
-  message: string = '';
+  message = '';
   stack?: string | undefined;
   toResponse(): ErrorResponse {
     throw new Error('Method not implemented.');
@@ -31,7 +32,8 @@ export class BaseError extends Error implements HeliosError {
       path?: string;
       method?: string;
       cause?: Error;
-    },
+      upstream?: unknown;
+    }
   ) {
     super(message);
     this.name = 'HeliosError';
@@ -43,6 +45,7 @@ export class BaseError extends Error implements HeliosError {
     this.path = options?.path;
     this.method = options?.method;
     this.message = message;
+    this.upstream = options?.upstream;
 
     if (options?.cause) {
       this.cause = options.cause;
