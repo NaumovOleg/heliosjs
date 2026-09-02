@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.2.1
+
+### Patch Changes
+
+- yarn version-packages
+- route fixes
+
 ## 3.2.0
 
 ### Minor Changes

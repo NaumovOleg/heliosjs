@@ -5,9 +5,10 @@ import { MultipartProcessor } from './multipart';
 
 export const normalizePath = (path: string): string => {
   if (!path) return '/';
+  const withoutQuery = path.split('?')[0];
   return (
     '/' +
-    path
+    withoutQuery
       .split('/')
       .filter(p => p.length > 0)
       .join('/')
