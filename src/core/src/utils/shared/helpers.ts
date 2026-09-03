@@ -7,6 +7,9 @@ import type {
 } from '../../types/core/controller';
 
 export const generateUniqueId = () => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
 

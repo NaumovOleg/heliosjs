@@ -1,5 +1,5 @@
-import { Server } from 'node:http';
-import {
+import type { Server } from 'node:http';
+import type {
   CORSConfig,
   ControllerClass,
   ControllerType,
@@ -10,9 +10,9 @@ import {
   RBACConfig,
   SanitizerConfig,
 } from '@heliosjs/core/types';
-import { PubSub } from 'type-graphql';
-import { Plugin } from './plugin';
-import { StaticConfig } from './static';
+import type { PubSub } from 'type-graphql';
+import type { Plugin } from './plugin';
+import type { StaticConfig } from './static';
 
 export interface ServerConfig {
   /**

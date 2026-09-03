@@ -9,6 +9,6 @@ export class InternalServerError extends BaseError {
       requestId: options?.requestId,
       path: options?.path,
     });
-    this.name = 'NotFoundError';
+    this.name = 'InternalServerError';
   }
 }

@@ -25,7 +25,7 @@ export interface ResponseOptions {
 export type _Raw = Partial<{
   headersSent: boolean;
   statusCode: number;
-  headers: { [key: string]: string | string[] };
+  headers: Record<string, string | string[]>;
   cookies: string[];
   end(args: unknown): unknown;
   setHeader(name: string, value: string | string[]): void;

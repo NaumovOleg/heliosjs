@@ -1,4 +1,5 @@
-import { type GuardClass, GuardFunction, GuardInstance } from '@heliosjs/core/types';
+import type { GuardFunction, GuardInstance } from '@heliosjs/core/types';
+import { type GuardClass } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to register a guard.

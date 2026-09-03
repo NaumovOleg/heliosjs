@@ -1,4 +1,4 @@
-import { CORSConfig, Request, Response } from '../../types/core';
+import type { CORSConfig, Request, Response } from '../../types/core';
 import { getOrigin } from './headers';
 
 function setOriginHeader(res: Response, config: CORSConfig, origin: string) {

@@ -48,8 +48,6 @@ export class Helios extends Plugin implements ILambdaAdapter {
     this.controller = this.compileController(controller);
     this.handler = this.createHandler();
   }
-  controllers: ControllerClass[];
-
   private createHandler(): Handler {
     return async (event: LambdaEvent, context: Context) => {
       await this.callPluginHook('beforeRequest', event, context);
@@ -122,23 +120,14 @@ export class Helios extends Plugin implements ILambdaAdapter {
     return headers;
   }
 
-  private async toLambdaResponse(request: Request, response: Response, eventType: string) {
+  private async toLambdaResponse(request: Request, response: Response, eventType: 'rest' | 'http' | 'url') {
     const statusCode = response.data?.status ?? response?.status ?? 200;
 
     const corsHeaders = this.buildCorsHeaders(request, response);
     const headers = { ...this.toLambdaHeaders(request, response), ...corsHeaders };
 
-    const body = JSON.stringify({
-      success: statusCode < 400,
-      data: response?.data,
-      timestamp: new Date().toISOString(),
-    });
-
-    const commonResponse = { statusCode, headers };
-
-    if (response?.data) {
-      Object.assign(commonResponse, { body: response?.data && JSON.stringify(response?.data) });
-    }
+    const body = response?.data != null ? JSON.stringify(response.data) : undefined;
+    const commonResponse = { statusCode, headers, body };
 
     await this.callPluginHook('afterResponse', request, response);
     switch (eventType) {
@@ -160,13 +149,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
   private buildCorsHeaders(request: Request, response: Response): Record<string, string> {
     if (!this.corsConfig) {
-      const originHeader = request.headers.origin || request.headers.Origin;
-      const origin = Array.isArray(originHeader) ? originHeader[0] : (originHeader as string) || '*';
-      return {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      };
+      return {};
     }
 
     const corsResult = handleCORS(request, response, this.corsConfig);
@@ -176,7 +159,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
     }
 
     if (!corsResult.permitted) {
-      headers['Access-Control-Allow-Origin'] = headers['Access-Control-Allow-Origin'] || '*';
+      delete headers['Access-Control-Allow-Origin'];
     }
 
     return headers;

@@ -1,5 +1,5 @@
 import { ValidationError } from 'class-validator';
-import { SerializedError } from '../../../types/core/error';
+import type { SerializedError } from '../../../types/core/error';
 
 function formatValidationError(error: ValidationError): any {
   const result: any = {

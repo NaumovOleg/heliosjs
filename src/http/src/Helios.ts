@@ -14,7 +14,6 @@ import type {
 } from '@heliosjs/core/types';
 import {
   handleCORS,
-  NextFunction,
   SSEServer,
   SSEService,
   sanitizeRequest,
@@ -47,6 +46,7 @@ import {
 export class Helios extends Plugin implements IHttpServer {
   private readonly config: ServerConfig;
   private isRunning = false;
+  private listenPromise?: Promise<http.Server>;
   private readonly sse?: SSEServer;
   private websocket?: WebSocketServer;
   controllers: ControllerType[] = [];
@@ -88,7 +88,7 @@ export class Helios extends Plugin implements IHttpServer {
     }
 
     for (const st of this.config.statics ?? []) {
-      const staticMw = staticMiddleware(st.path, st.options);
+      const staticMw = staticMiddleware(st.root ?? st.path, { ...st.options, path: st.root ? st.path : undefined } as any);
       this.staticMiddlewares.push(staticMw);
     }
 
@@ -173,9 +173,10 @@ export class Helios extends Plugin implements IHttpServer {
       await this.setupGraphQL();
     }
 
-    return this.app.listen(listenPort, listenHost, async () => {
-      this.isRunning = true;
-      console.log(`
+    this.isRunning = true;
+    this.listenPromise = new Promise<http.Server>((resolve, reject) => {
+      const server = this.app.listen(listenPort, listenHost, async () => {
+        console.log(`
 ╔════════════════════════════════════════╗
 ║  🎉 Server started successfully!       
 ║  📍 http://${listenHost}:${listenPort}  
@@ -183,8 +184,12 @@ export class Helios extends Plugin implements IHttpServer {
 ╚════════════════════════════════════════╝
           `);
 
-      await this.callPluginMethod('onStart', this.app);
+        await this.callPluginMethod('onStart', this.app);
+        resolve(server);
+      });
+      server.on('error', reject);
     });
+    return this.listenPromise;
   }
 
   /**
@@ -202,15 +207,23 @@ export class Helios extends Plugin implements IHttpServer {
         return;
       }
 
-      this.app.close(async (err) => {
-        await this.callPluginMethod('onStop', this.app);
-        if (err) {
-          reject(err);
-        } else {
+      const doClose = () => {
+        this.app.close(async (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          await this.callPluginMethod('onStop', this.app);
           this.isRunning = false;
           resolve();
-        }
-      });
+        });
+      };
+
+      if (this.listenPromise) {
+        this.listenPromise.then(doClose).catch(() => doClose());
+      } else {
+        doClose();
+      }
     });
   }
 
@@ -252,13 +265,12 @@ export class Helios extends Plugin implements IHttpServer {
         return this.sendResponse(request, response, startTime);
       }
 
-      await this.beforeRequest(request, response);
-
-      if (response.headersSent) return;
-      await this.callPluginHook('beforeRoute', request, response);
-      if (response.headersSent) return;
-
-      await this.runController(request, response);
+      await this.beforeRequest(request, response, async () => {
+        if (response.headersSent) return;
+        await this.callPluginHook('beforeRoute', request, response);
+        if (response.headersSent) return;
+        await this.runController(request, response);
+      });
 
       return this.sendResponse(request, response, startTime);
     } catch (error: unknown) {
@@ -267,20 +279,44 @@ export class Helios extends Plugin implements IHttpServer {
     }
   }
 
-  private async beforeRequest(request: Request, response: Response) {
+  private async beforeRequest(request: Request, response: Response, restOfPipeline?: () => Promise<void>) {
     for (const sanitizer of this.config.sanitizers ?? []) {
       sanitizeRequest(request, sanitizer);
     }
 
-    for (const middleware of this.staticMiddlewares) {
-      await middleware(request, response, NextFunction);
-    }
-    if (response.raw.headersSent) {
-      return;
-    }
-    for (const middleware of this.globalMiddlewares) {
-      await middleware(request, response, NextFunction);
-    }
+    const runMiddlewares = async (
+      middlewares: ((...args: any[]) => any)[],
+      index: number,
+      rest: () => Promise<void>
+    ): Promise<void> => {
+      if (index >= middlewares.length) {
+        return rest();
+      }
+      const middleware = middlewares[index];
+      const nextFn = async (error?: Error) => {
+        if (error) throw error;
+        return runMiddlewares(middlewares, index + 1, rest);
+      };
+      await middleware(request, response, nextFn);
+    };
+
+    const afterStatic: () => Promise<void> = async () => {
+      const afterConfig: () => Promise<void> = async () => {
+        await runMiddlewares(this.globalMiddlewares, 0, async () => {
+          if (restOfPipeline) {
+            await restOfPipeline();
+          }
+        });
+      };
+      await runMiddlewares(this.middlewares, 0, afterConfig);
+    };
+
+    await runMiddlewares(this.staticMiddlewares, 0, async () => {
+      if (response.raw.headersSent) {
+        return;
+      }
+      await afterStatic();
+    });
   }
   private collectControllers(controllers: ControllerType[] = []): ControllerType[] {
     const result: ControllerType[] = [];
@@ -351,19 +387,29 @@ export class Helios extends Plugin implements IHttpServer {
   ): Promise<void> {
     if (response.headersSent) return;
 
-    if (!response.getHeader('Content-Type')) {
-      response.setHeader('Content-Type', 'application/json');
+    if (!response.getHeader('Content-Type') || response.getHeader('Content-Type') === 'application/json') {
+      const data = response.data;
+      if (typeof data === 'string') {
+        response.setHeader('Content-Type', 'text/plain');
+      } else {
+        response.setHeader('Content-Type', 'application/json');
+      }
     }
 
     response.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
 
     try {
       response.end(response.data);
+    } catch {
+      if (!response.headersSent) {
+        response.status = 500;
+      }
+      return;
+    }
+    try {
       await this.callPluginHook('afterResponse', request, response);
-    } catch (err) {
-      response.status = 500;
-      response.error(err);
-      response.end(err);
+    } catch {
+      // plugin hook error — response already sent, nothing to do
     }
   }
 
@@ -433,7 +479,7 @@ export class Helios extends Plugin implements IHttpServer {
    * ```
    */
   public use(middleware: MiddlewareCB): this {
-    this.globalMiddlewares.unshift(middleware);
+    this.globalMiddlewares.push(middleware);
     return this;
   }
 }

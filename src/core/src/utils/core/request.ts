@@ -1,8 +1,8 @@
 // core/Request.ts
 
-import { IncomingHttpHeaders } from 'node:http';
+import type { IncomingHttpHeaders } from 'node:http';
 import { URL } from 'node:url';
-import { Request, RequestOptions, RequestSource } from '../../types/core/request';
+import type { Request, RequestOptions, RequestSource } from '../../types/core/request';
 
 export class Req implements Request {
   method: string;
@@ -26,12 +26,12 @@ export class Req implements Request {
   isBase64Encoded: boolean;
   startTime: number;
 
-  private readonly _state: Map<string, any> = new Map();
+  private readonly _state = new Map<string, any>();
 
   constructor(options: RequestOptions) {
     this.method = options.method.toUpperCase();
     this.path = options.path;
-    this.url = options.path;
+    this.url = options.url ?? options.path;
     this.requestUrl = new URL(options.path, `http://${options.headers?.host || 'localhost'}`);
     this.headers = options.headers || {};
     this.query = options.query || {};
@@ -46,7 +46,6 @@ export class Req implements Request {
     this.source = options.source;
     this.raw = options.raw ?? options.event;
     this.context = options.context;
-    this.url = options.url;
     this.rawBody = options.rawBody;
     this.isBase64Encoded = options.isBase64Encoded ?? this.base64Encoded();
     this.startTime = Date.now();

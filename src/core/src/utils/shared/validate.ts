@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
-import { validate as Validate, ValidationError, ValidatorOptions } from 'class-validator';
-import { ErrorDetails } from '../../types';
+import type { ValidationError, ValidatorOptions } from 'class-validator';
+import { validate as Validate } from 'class-validator';
+import type { ErrorDetails } from '../../types';
 import { ValidationError as ValidationFailed } from '../core';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +27,7 @@ export async function validate(dtoClass: any, data: unknown, options?: Validator
       throw new ValidationFailed(formatValidationErrors(errors));
     }
 
-    return data;
+    return instance;
   }
 
   return data;

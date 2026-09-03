@@ -1,4 +1,4 @@
-import * as Joi from 'joi';
+import type * as Joi from 'joi';
 
 export interface SanitizerConfig {
   schema: Joi.Schema;

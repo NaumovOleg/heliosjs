@@ -1,7 +1,7 @@
 // core/ResponseFactory.ts
 
-import { ServerResponse } from 'node:http';
-import { Meta } from '@heliosjs/core/types';
+import type { ServerResponse } from 'node:http';
+import type { Meta } from '@heliosjs/core/types';
 import { Res } from '@heliosjs/core/utils';
 
 export class ResponseFactory {

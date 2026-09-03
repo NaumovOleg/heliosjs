@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/core",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "description": "Core functionality for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

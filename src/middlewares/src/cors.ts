@@ -1,4 +1,5 @@
-import { CORSConfig, HTTP_METHODS } from '@heliosjs/core/types';
+import type { CORSConfig} from '@heliosjs/core/types';
+import { HTTP_METHODS } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to configure Cross-Origin Resource Sharing (CORS) settings for HTTP controllers or methods.

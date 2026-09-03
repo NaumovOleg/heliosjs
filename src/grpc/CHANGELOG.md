@@ -1,5 +1,11 @@
 # @heliosjs/grpc
 
+## 2.1.11
+
+### Patch Changes
+
+- bug fixes + test coverage
+
 ## 2.1.10
 
 ### Patch Changes

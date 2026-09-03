@@ -1,4 +1,4 @@
-import { IncomingHttpHeaders } from 'http';
+import type { IncomingHttpHeaders } from 'http';
 export type RequestSource = 'http' | 'lambda' | 'unknown';
 
 export type EventType =

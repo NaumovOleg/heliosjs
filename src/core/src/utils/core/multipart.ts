@@ -1,6 +1,6 @@
 // utils/MultipartProcessor.ts
 import * as multipart from 'parse-multipart-data';
-import { MultipartFile, Request } from '../../types/core';
+import type { MultipartFile, Request } from '../../types/core';
 
 export class MultipartProcessor {
   static parse(request: Pick<Request, 'headers' | 'isBase64Encoded' | 'body'>): {

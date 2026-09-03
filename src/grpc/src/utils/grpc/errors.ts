@@ -11,7 +11,7 @@ export class GrpcError extends Error {
 
 export class GrpcInvalidProtoError extends GrpcError {
   constructor(protoPath: string) {
-    super(3, `Invalid proto definition: ${protoPath}`);
+    super(13, `Invalid proto definition: ${protoPath}`);
     this.name = 'GrpcInvalidProtoError';
   }
 }

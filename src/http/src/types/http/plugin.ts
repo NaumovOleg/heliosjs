@@ -1,5 +1,5 @@
-import { IncomingMessage, Server } from 'node:http';
-import { MiddlewareCB, Request, Response } from '@heliosjs/core/types';
+import type { IncomingMessage, Server } from 'node:http';
+import type { MiddlewareCB, Request, Response } from '@heliosjs/core/types';
 
 export interface HttpPluginHooks {
   beforeRequest?: (req: IncomingMessage) => void | Promise<void>;

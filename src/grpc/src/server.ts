@@ -187,8 +187,14 @@ export class GrpcServer {
    * @returns Promise resolved when shutdown completes.
    */
   async stop(): Promise<void> {
-    return new Promise((resolve) => {
-      this.server.tryShutdown(() => resolve());
+    return new Promise((resolve, reject) => {
+      this.server.tryShutdown((err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
   }
 
@@ -213,10 +219,12 @@ export class GrpcServer {
         if (methodMeta.isStream) {
           result.subscribe({
             next: (value) => call.write(value),
-            error: (err) => call.emit('error', err),
+            error: (err) => {
+              const normalized = normalizeError(err);
+              call.destroy({ code: normalized.code, message: normalized.message });
+            },
             complete: () => call.end(),
           });
-          callback(null, null);
         } else {
           const resolved = await firstValueFrom(result);
           callback(null, resolved);

@@ -2,6 +2,7 @@ import type fs from 'node:fs';
 import type { Response } from '@heliosjs/core/types';
 
 export interface StaticConfig {
+  root?: string;
   path: string;
   options?: StaticOptions;
 }

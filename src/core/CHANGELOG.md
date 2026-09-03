@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.2.6
+
+### Patch Changes
+
+- bug fixes + test coverage
+
 ## 3.2.5
 
 ### Patch Changes

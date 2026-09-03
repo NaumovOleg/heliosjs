@@ -22,7 +22,7 @@ import { enforceRateLimit } from './ratelimit';
 import { sanitizeRequest } from './sanitize';
 
 export const execute = async (route: Route, request: Request, response: Response) => {
-  request.params = getParams(route.route, request.url);
+  request.params = getParams(route.route, request.path);
 
   const corsConfigs = route.cors ?? route.functions.filter((fn) => fn.cors).map((fn) => fn.cors!);
 
@@ -154,6 +154,9 @@ export const execute = async (route: Route, request: Request, response: Response
     }
 
     if (caught instanceof Error) {
+      if (errorHandlers.length === 0) {
+        throw caught;
+      }
       if (typeof error === 'string') {
         const err = new Error(error);
         const errorData = {
@@ -186,7 +189,7 @@ export const getAllMethods = (obj: unknown): string[] => {
     current = Object.getPrototypeOf(current);
   }
 
-  return Array.from(methods).filter((name) => !['constructor'].includes(name));
+  return Array.from(methods);
 };
 
 export const NextFunction = (error?: Error) => {
@@ -278,7 +281,10 @@ export const beforeRequest = async (request: Request, response: Response, route:
       throw err;
     }
     const promises = handlers.map((handler) => handler(err, request, response));
-    if (promises.length) return Promise.all(promises);
+    if (promises.length) {
+      await Promise.all(promises);
+      return;
+    }
     throw err;
   }
 };

@@ -5,7 +5,7 @@ import type {
   ControllerMeta,
   IController,
   MiddlewareCB,
-  SeeControllerHandlers,
+  SSEControllerHandlers,
   WsControllerHandlers,
 } from './types/core';
 import {
@@ -66,7 +66,7 @@ export function Controller(config: string | ControllerConfig, middlewares: Middl
 
     const Wrapped = class extends constructor {
       websocket?: WsControllerHandlers;
-      sse?: SeeControllerHandlers;
+      sse?: SSEControllerHandlers;
       [CONTROLLER_PRECOMPILED]: ControllerMeta;
 
       constructor(...args: any[]) {

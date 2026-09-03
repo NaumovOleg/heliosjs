@@ -1,5 +1,5 @@
 import { type Options } from '@grpc/proto-loader';
-import { Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 export interface GrpcLoaderOptions {
   keepCase?: boolean;
   longs?: Function;
@@ -40,20 +40,18 @@ export interface ClientGrpc {
 /**
  * Service client proxy interface
  */
-export interface GrpcServiceClient {
-  [method: string]: (data: any, metadata?: any) => Observable<any> | Promise<any>;
-}
+export type GrpcServiceClient = Record<string, (data: any, metadata?: any) => Observable<any> | Promise<any>>;
 
-export type ServiceOptions = {
+export interface ServiceOptions {
   protoPath: string;
   package: string;
   loader?: Options;
-};
+}
 
-export type ServiceMeta = {
+export interface ServiceMeta {
   serviceName: string;
   options: ServiceOptions;
-};
+}
 
 export interface GrpcClientInjection {
   name: string;

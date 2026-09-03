@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { Request, SanitizerConfig } from '../../types/core';
+import type { Request, SanitizerConfig } from '../../types/core';
 
 export const SANITIZER = {
   string: {

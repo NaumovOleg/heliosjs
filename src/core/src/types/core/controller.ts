@@ -1,3 +1,5 @@
+import type {
+  CONTROLLER_PRECOMPILED} from '../../constants';
 import {
   CONTROLLER_GET_SSE_CONTROLLER,
   CONTROLLER_GET_SSE_HANDLERS,
@@ -6,7 +8,6 @@ import {
   CONTROLLER_LOOKUP_SSE,
   CONTROLLER_LOOKUP_WS,
   CONTROLLER_META,
-  CONTROLLER_PRECOMPILED,
   CONTROLLER_REQUEST,
   CONTROLLER_TYPED_HANDLERS,
 } from '../../constants';
@@ -25,7 +26,7 @@ export interface IController {
   [CONTROLLER_PRECOMPILED]: ControllerMeta;
   [CONTROLLER_META]: (parent: Omit<ControllerMeta, 'controllers'>) => ControllerMeta;
   websocket?: WsControllerHandlers;
-  sse?: SeeControllerHandlers;
+  sse?: SSEControllerHandlers;
   [CONTROLLER_REQUEST]: (request: Request, response: Response) => Promise<Response | null>;
   [CONTROLLER_LOOKUP_WS]: () => void;
   [CONTROLLER_LOOKUP_SSE]: () => void;
@@ -69,7 +70,7 @@ export interface ControllerType {
     };
   };
   websocket?: WsControllerHandlers;
-  sse?: SeeControllerHandlers;
+  sse?: SSEControllerHandlers;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new (...args: any[]): any;
 }
@@ -105,7 +106,7 @@ export interface WsControllerHandlers {
   topics: WsHandlerMeta[];
 }
 
-export interface SeeControllerHandlers {
+export interface SSEControllerHandlers {
   handlers: {
     connection: WsHandlerMeta[];
     close: WsHandlerMeta[];

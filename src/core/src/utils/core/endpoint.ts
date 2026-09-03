@@ -1,5 +1,5 @@
-import { ValidatorOptions } from 'class-validator';
-import { Dto, ParamDecoratorType } from '../../types/core';
+import type { ValidatorOptions } from 'class-validator';
+import type { Dto, ParamDecoratorType } from '../../types/core';
 import { defineRouteMeta } from '../shared/helpers';
 
 export function createParamDecorator(

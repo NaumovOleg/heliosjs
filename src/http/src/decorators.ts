@@ -1,5 +1,5 @@
 import { SERVER_CONFIG_KEY } from '@heliosjs/core/constants';
-import { ServerConfig } from './types/http';
+import type { ServerConfig } from './types/http';
 
 /**
  * Class decorator to configure the HTTP server with specified options.

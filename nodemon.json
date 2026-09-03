@@ -1,7 +1,6 @@
 {
   "watch": [
     "src/aws/src",
-    "src/lambda/src",
     "src/middlewares/src",
     "src/core/src",
     "src/http/src",

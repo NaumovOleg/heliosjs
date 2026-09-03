@@ -1,6 +1,6 @@
-import { Request, Response } from '@heliosjs/core/types';
-import { Context } from 'aws-lambda';
-import { ILambdaAdapter, LambdaEvent } from './lambda';
+import type { Request, Response } from '@heliosjs/core/types';
+import type { Context } from 'aws-lambda';
+import type { ILambdaAdapter, LambdaEvent } from './lambda';
 
 export interface Hooks {
   beforeRequest?: (req: LambdaEvent, context: Context) => void | Promise<void>;

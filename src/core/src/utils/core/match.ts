@@ -1,4 +1,4 @@
-import { ControllerMeta, Route } from '../../types/core';
+import type { ControllerMeta, Route } from '../../types/core';
 import { normalizePath } from './helper';
 
 function extractParamsAndWildcard(
@@ -100,10 +100,10 @@ export function matchRoutes(
 
   searchInController(controller);
 
-  return matches.sort((a: any, b: any) => {
-    const aWildcard = a.fullPath.includes('*') ? 1 : 0;
-    const bWildcard = b.fullPath.includes('*') ? 1 : 0;
+  return matches.sort((a: Route, b: Route) => {
+    const aWildcard = a.route.includes('*') ? 1 : 0;
+    const bWildcard = b.route.includes('*') ? 1 : 0;
     if (aWildcard !== bWildcard) return aWildcard - bWildcard;
-    return b.fullPath.length - a.fullPath.length;
+    return b.route.length - a.route.length;
   })[0];
 }

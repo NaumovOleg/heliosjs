@@ -202,35 +202,6 @@ export const normalizeCloudFrontEvent = (
 
 // parsers/lambda-function-url.ts
 
-export interface LambdaFunctionUrlEvent {
-  version: string;
-  rawPath: string;
-  rawQueryString: string;
-  headers: Record<string, string>;
-  queryStringParameters?: Record<string, string>;
-  requestContext: {
-    accountId: string;
-    apiId: string;
-    domainName: string;
-    domainPrefix: string;
-    http: {
-      method: string;
-      path: string;
-      protocol: string;
-      sourceIp: string;
-      userAgent: string;
-    };
-    requestId: string;
-    routeKey: string;
-    stage: string;
-    time: string;
-    timeEpoch: number;
-  };
-  body?: string;
-  isBase64Encoded?: boolean;
-  cookies?: string[];
-}
-
 export const normalizeLambdaFunctionUrlEvent = (
   event: LambdaFunctionURLEvent,
   context: Context
@@ -250,8 +221,10 @@ export const normalizeLambdaFunctionUrlEvent = (
   const cookies: Record<string, string> = {};
   if (event.cookies) {
     event.cookies.forEach((cookie) => {
-      const [name, value] = cookie.split('=');
-      if (name && value) {
+      const eqIndex = cookie.indexOf('=');
+      if (eqIndex > 0) {
+        const name = cookie.substring(0, eqIndex);
+        const value = cookie.substring(eqIndex + 1);
         cookies[name] = decodeURIComponent(value);
       }
     });
@@ -267,7 +240,7 @@ export const normalizeLambdaFunctionUrlEvent = (
   const fullUrl = `${protocol}://${host}${path}${queryString}`;
   const requestUrl = new URL(fullUrl);
 
-  let body: any = event.body || {};
+  let body: any = event.body ?? '';
   if (event.body && event.isBase64Encoded) {
     try {
       body = Buffer.from(event.body, 'base64').toString('utf-8');

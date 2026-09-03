@@ -68,7 +68,13 @@ export class GrpcClient implements ClientGrpc {
    * @param serviceName - Service name as defined in proto.
    * @returns Service proxy object with observable-returning methods.
    */
+  private readonly serviceClients = new Map<string, any>();
+
   getService<T extends object>(serviceName: string): T {
+    if (this.serviceClients.has(serviceName)) {
+      return this.serviceClients.get(serviceName) as T;
+    }
+
     const credentials = this.options.credentials || grpc.credentials.createInsecure();
 
     let current = this.protoDefinition;
@@ -108,6 +114,7 @@ export class GrpcClient implements ClientGrpc {
       };
     }
 
+    this.serviceClients.set(serviceName, wrapped);
     return wrapped as T;
   }
 
@@ -115,8 +122,11 @@ export class GrpcClient implements ClientGrpc {
    * Closes the active service client channel.
    */
   close(): void {
-    if (this.client && this.client.close) {
-      this.client.close();
+    for (const client of this.serviceClients.values()) {
+      if (client && typeof client.close === 'function') {
+        client.close();
+      }
     }
+    this.serviceClients.clear();
   }
 }

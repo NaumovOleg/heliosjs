@@ -1,4 +1,5 @@
-import { HTTP_METHODS, MiddlewareCB } from './types/core';
+import type { MiddlewareCB } from './types/core';
+import { HTTP_METHODS } from './types/core';
 import { defineRouteMeta } from './utils/shared';
 
 /**

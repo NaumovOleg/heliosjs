@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MiddleWareItemType, MiddlewaresMetadataItem, Request } from '../../types/core';
-import { InterceptorCB, MiddlewareCB } from '../../types/core/common';
+import type { MiddleWareItemType, MiddlewaresMetadataItem, Request } from '../../types/core';
+import type { InterceptorCB, MiddlewareCB } from '../../types/core/common';
 import { MultipartProcessor } from './multipart';
 
 export const normalizePath = (path: string): string => {
@@ -21,13 +21,19 @@ export const getParams = (fullRoutePattern: string, actualPath: string): Record<
   const patternSegments = normalizedPattern.split('/').filter(s => s.length > 0);
   const pathSegments = normalizedPath.split('/').filter(s => s.length > 0);
 
-  if (patternSegments.length !== pathSegments.length) {
+  const hasWildcard = patternSegments[patternSegments.length - 1] === '*';
+  const effectivePatternCount = hasWildcard ? patternSegments.length - 1 : patternSegments.length;
+
+  if (!hasWildcard && patternSegments.length !== pathSegments.length) {
+    return {};
+  }
+  if (hasWildcard && pathSegments.length < effectivePatternCount) {
     return {};
   }
 
   const params: Record<string, string> = {};
 
-  for (let i = 0; i < patternSegments.length; i++) {
+  for (let i = 0; i < effectivePatternCount; i++) {
     const patternSegment = patternSegments[i];
     const pathSegment = pathSegments[i];
 
@@ -37,6 +43,10 @@ export const getParams = (fullRoutePattern: string, actualPath: string): Record<
     } else if (patternSegment !== pathSegment) {
       return {};
     }
+  }
+
+  if (hasWildcard) {
+    params['*'] = pathSegments.slice(effectivePatternCount).join('/');
   }
 
   return params;

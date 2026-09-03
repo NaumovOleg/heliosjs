@@ -5,7 +5,7 @@ import {
   SERVER_CONFIG_KEY,
   USE_MIDDLEWARE,
 } from '@heliosjs/core/constants';
-import { ServerConfig } from '../../types/http';
+import type { ServerConfig } from '../../types/http';
 
 /**
  * Resolves the server configuration from a class or an object.
@@ -37,7 +37,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     errorHandler: decoratorConfig.errorHandler ?? errorHandler,
     interceptors: [interceptor].filter((el: unknown) => !!el),
     middlewares:
-      decoratorConfig.middlewares.concat(middlewares).filter((el: unknown) => !!el) ?? [],
+      (decoratorConfig.middlewares ?? []).concat(middlewares ?? []).filter((el: unknown) => !!el),
     cors: decoratorConfig.cors,
     controllers: (decoratorConfig.controllers ?? []).filter((el: unknown) => !!el),
     sanitizers,

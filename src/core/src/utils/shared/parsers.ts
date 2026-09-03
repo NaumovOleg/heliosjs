@@ -45,7 +45,7 @@ export const parseBody = (request: {
       str = String(data);
     }
 
-    str = str.replace(/[^\x20-\x7E\x0A\x0D\x09]/g, '');
+    str = str.replace(/[\0\x08\x0E-\x1F]/g, '');
     if (str.charCodeAt(0) === 0xfeff) {
       str = str.slice(1);
     }

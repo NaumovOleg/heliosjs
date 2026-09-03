@@ -1,5 +1,5 @@
 import { WS_HANDLER, WS_TOPIC_KEY } from '@heliosjs/core/constants';
-import { WebSocketHandlerType } from '@heliosjs/core/types';
+import type { WebSocketHandlerType } from '@heliosjs/core/types';
 import { createParamDecorator } from '@heliosjs/core/utils';
 
 /**

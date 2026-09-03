@@ -40,12 +40,27 @@ export function toPromise<T>(observable: any): Promise<T> {
   }
 
   return new Promise((resolve, reject) => {
+    let resolved = false;
     const subscription = observable.subscribe({
       next: (value: T) => {
-        resolve(value);
-        subscription.unsubscribe();
+        if (!resolved) {
+          resolved = true;
+          resolve(value);
+          subscription.unsubscribe();
+        }
       },
-      error: reject,
+      error: (err: any) => {
+        if (!resolved) {
+          resolved = true;
+          reject(err);
+        }
+      },
+      complete: () => {
+        if (!resolved) {
+          resolved = true;
+          reject(new Error('Observable completed without emitting a value'));
+        }
+      },
     });
   });
 }

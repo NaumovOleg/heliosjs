@@ -20,7 +20,18 @@ export class BaseError extends Error implements HeliosError {
   message = '';
   stack?: string | undefined;
   toResponse(): ErrorResponse {
-    throw new Error('Method not implemented.');
+    return {
+      success: false,
+      error: {
+        code: this.code,
+        status: this.status,
+        message: this.message,
+        details: this.details,
+        timestamp: this.timestamp.toISOString(),
+        requestId: this.requestId,
+        path: this.path,
+      },
+    };
   }
   constructor(
     code: ErrorCode,

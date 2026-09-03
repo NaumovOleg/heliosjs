@@ -1,4 +1,4 @@
-import WebSocket from 'ws';
+import type WebSocket from 'ws';
 
 export type WebSocketHandlerType = 'connection' | 'message' | 'close' | 'error';
 
@@ -27,17 +27,17 @@ export interface WebSocketMessage {
 
 export interface WebSocketStats {
   clients: number;
-  topics: Array<{
+  topics: {
     topic: string;
     subscribers: number;
-  }>;
+  }[];
 }
 
 export interface IWebSocketService {
   sendToClient(clientId: string, message: unknown): boolean;
   publishToTopic(topic: string, data: any, exclude?: string[]): void;
   broadcast(message: unknown, excludeClientId?: string): void;
-  getStats(): { clients: number; topics: Array<{ topic: string; subscribers: number }> };
+  getStats(): { clients: number; topics: { topic: string; subscribers: number }[] };
   isAvailable(): boolean;
 }
 

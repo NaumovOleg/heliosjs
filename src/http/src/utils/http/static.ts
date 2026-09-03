@@ -1,10 +1,10 @@
 import fs from 'node:fs';
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import path from 'node:path';
-import { Request, Response } from '@heliosjs/core/types';
-import { StaticOptions } from '../../types/http';
+import type { Request, Response } from '@heliosjs/core/types';
+import type { StaticOptions } from '../../types/http';
 
-export function staticMiddleware(root: string, options: StaticOptions = {}) {
+export function staticMiddleware(root: string | undefined, options: StaticOptions & { path?: string } = {}) {
   const opts = {
     index: 'index.html',
     extensions: ['html', 'htm'],
@@ -16,19 +16,38 @@ export function staticMiddleware(root: string, options: StaticOptions = {}) {
     ...options,
   };
 
-  const rootPath = path.resolve(root);
+  const rootPath = path.resolve(root || '.');
+  const mountPath = options.path || '';
 
   return async (req: Request, res: Response, next: (...args: unknown[]) => unknown) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return next();
     }
 
+    let realRootPath: string;
+    try {
+      realRootPath = await fs.promises.realpath(rootPath);
+    } catch {
+      return next();
+    }
+
     const url = req.url?.split('?')[0] || '';
     const safePath = decodeURIComponent(url).replace(/\\/g, '/');
-    const fullPath = path.join(rootPath, safePath);
+    const relativePath = mountPath && safePath.startsWith(mountPath)
+      ? safePath.slice(mountPath.length) || '/'
+      : safePath;
+    const fullPath = path.join(realRootPath, relativePath);
     const normalizedPath = path.normalize(fullPath);
 
-    if (!normalizedPath.startsWith(rootPath)) {
+    let realFullPath: string;
+    try {
+      realFullPath = await fs.promises.realpath(normalizedPath);
+    } catch {
+      // path doesn't exist yet — use normalized path for existence check below
+      realFullPath = normalizedPath;
+    }
+
+    if (!realFullPath.startsWith(realRootPath + path.sep) && realFullPath !== realRootPath) {
       res.status = 403;
       res.setHeader('Content-Type', 'text/plain');
       res.end('Forbidden');
@@ -175,35 +194,36 @@ export function staticMiddleware(root: string, options: StaticOptions = {}) {
   };
 }
 
+const MIME_MAP: Record<string, string> = {
+  '.html': 'text/html',
+  '.htm': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain',
+  '.pdf': 'application/pdf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.webp': 'image/webp',
+  '.mp4': 'video/mp4',
+  '.mp3': 'audio/mpeg',
+  '.xml': 'application/xml',
+  '.zip': 'application/zip',
+  '.gz': 'application/gzip',
+};
+
 function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  const mimes: Record<string, string> = {
-    '.html': 'text/html',
-    '.htm': 'text/html',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
-    '.mjs': 'application/javascript',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.txt': 'text/plain',
-    '.pdf': 'application/pdf',
-    '.woff': 'font/woff',
-    '.woff2': 'font/woff2',
-    '.ttf': 'font/ttf',
-    '.eot': 'application/vnd.ms-fontobject',
-    '.webp': 'image/webp',
-    '.mp4': 'video/mp4',
-    '.mp3': 'audio/mpeg',
-    '.xml': 'application/xml',
-    '.zip': 'application/zip',
-    '.gz': 'application/gzip',
-  };
-  return mimes[ext] || 'application/octet-stream';
+  return MIME_MAP[ext] || 'application/octet-stream';
 }
 
 function parseRange(rangeHeader: string, fileSize: number): { start: number; end: number } | null {

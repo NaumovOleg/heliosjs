@@ -1,4 +1,4 @@
-import { Request } from '../../types/core';
+import type { Request } from '../../types/core';
 
 export const getOrigin = (req: Request): string | undefined => {
   const originHeader = req.headers.origin || req.headers.Origin;

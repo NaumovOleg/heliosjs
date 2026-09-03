@@ -1,4 +1,4 @@
-import http from 'node:http';
+import type http from 'node:http';
 import { PayloadTooLargeError } from '@heliosjs/core/utils';
 
 /** Default maximum request body size: 1 MB. */

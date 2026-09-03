@@ -1,4 +1,4 @@
-import { SanitizerConfig } from '@heliosjs/core/types';
+import type { SanitizerConfig } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to apply sanitization configurations to a controller or method.

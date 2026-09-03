@@ -1,4 +1,4 @@
-import { ErrorHandler } from '@heliosjs/core/types';
+import type { ErrorHandler } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to register a global or controller-level error handler.

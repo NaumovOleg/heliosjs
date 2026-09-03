@@ -1,4 +1,5 @@
-import { ErrorCode, ErrorDetails, IValidationError } from '../../../types/core/error';
+import type { ErrorDetails, IValidationError } from '../../../types/core/error';
+import { ErrorCode } from '../../../types/core/error';
 import { BaseError } from './base';
 
 export class ValidationError extends BaseError implements IValidationError {

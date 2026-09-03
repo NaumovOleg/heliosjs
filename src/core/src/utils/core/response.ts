@@ -141,8 +141,9 @@ export class Res implements Response {
   // ==================== Cookie Methods ====================
 
   setCookie(name: string, value: string, options: CookieOptions = {}): this {
+    const cookieName = encodeURIComponent(name);
     const cookieValue = encodeURIComponent(value);
-    const parts = [`${name}=${cookieValue}`];
+    const parts = [`${cookieName}=${cookieValue}`];
 
     if (options.maxAge !== undefined) {
       parts.push(`Max-Age=${options.maxAge}`);

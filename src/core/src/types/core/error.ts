@@ -1,5 +1,5 @@
-import { Request } from './request';
-import { Response } from './response';
+import type { Request } from './request';
+import type { Response } from './response';
 
 export enum ErrorCode {
   BAD_REQUEST = 'BAD_REQUEST',
@@ -71,21 +71,14 @@ export interface SerializedError {
   details?: ErrorDetails[];
 }
 
-export interface ErrorHandlerConfig {
-  includeStack?: boolean;
-  logErrors?: boolean;
-  logStack?: boolean;
-  customHandlers?: Record<ErrorCode, (error: HeliosError) => unknown>;
-}
-
 export type ErrorHandler = (error: Error, req: Request, response: Response) => unknown;
 
-type ErrorChildren = {
+interface ErrorChildren {
   property?: string;
   value: unknown;
   constraints?: unknown[];
   children?: ErrorChildren[];
-};
+}
 export type ErrorObject = Partial<{
   name: string;
   status: number;

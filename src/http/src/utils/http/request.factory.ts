@@ -1,4 +1,4 @@
-import { IncomingMessage } from 'node:http';
+import type { IncomingMessage } from 'node:http';
 import {
   generateUniqueId,
   parseBody,
@@ -13,9 +13,11 @@ export class RequestFactory {
    * Create Request from HTTP IncomingMessage
    */
   static async create(req: IncomingMessage, maxBytes?: number): Promise<Req> {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const protocol = req.headers['x-forwarded-proto'];
+    const protoStr = Array.isArray(protocol) ? protocol[0] : protocol;
+    const protocolStr = protoStr && ['http', 'https'].includes(protoStr) ? protoStr : 'http';
     const host = req.headers.host || 'localhost';
-    const fullUrl = `${protocol}://${host}${req.url}`;
+    const fullUrl = `${protocolStr}://${host}${req.url}`;
     const requestUrl = new URL(fullUrl);
     const cookies = parseRequestCookie(req.headers?.cookie);
     const query = parseQuery(requestUrl);
@@ -23,7 +25,6 @@ export class RequestFactory {
     const forwardedFor = req.headers['x-forwarded-for'] as string;
     const sourceIp =
       forwardedFor?.split(',')[0]?.trim() ??
-      req.socket.remoteAddress ??
       req.socket.remoteAddress ??
       '0.0.0.0';
 
