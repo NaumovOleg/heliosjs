@@ -14,15 +14,15 @@ function extractParamsAndWildcard(
 
   for (const element of patternSegments) {
     const pattern = element;
+    if (pattern === '*') {
+      wildcardMatch = pathSegments.slice(pathIndex).join('/');
+      return { params, wildcardMatch };
+    }
     if (pathIndex >= pathSegments.length) {
       if (pattern.endsWith('?')) {
         continue;
       }
       return null;
-    }
-    if (pattern === '*') {
-      wildcardMatch = pathSegments.slice(pathIndex).join('/');
-      return { params, wildcardMatch };
     }
     const regexMatch = pattern.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\((.+)\)$/);
     if (regexMatch) {

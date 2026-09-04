@@ -49,7 +49,11 @@ export const execute = async (route: Route, request: Request, response: Response
   }
 
   try {
-    await beforeRequest(request, response, route);
+    const handled = await beforeRequest(request, response, route);
+
+    if (handled) {
+      return response;
+    }
 
     const { body, multipart } = getBodyAndMultipart(request);
 
@@ -113,10 +117,12 @@ export const execute = async (route: Route, request: Request, response: Response
       if (!response.isRedirect) {
         response.status = route.functions.find((fn) => fn.status)?.status ?? 200;
       }
-      const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
+      if (data !== undefined) {
+        const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
 
-      for (const interceptor of interceptors) {
-        data = await Promise.resolve(interceptor!(data, data.request, data.response));
+        for (const interceptor of interceptors) {
+          data = await Promise.resolve(interceptor!(data, request, response));
+        }
       }
     }
 
@@ -217,11 +223,21 @@ export async function runGuard(
   let message = 'Forbidden';
   if (isGuardInstance(guard)) {
     canActivate = await guard.canActivate(request, response);
-    message = guard.message ?? message;
+    if (typeof canActivate === 'string') {
+      message = canActivate;
+      canActivate = false;
+    } else {
+      message = guard.message ?? message;
+    }
   } else if (isGuardClass(guard)) {
     const guardInstance = new guard();
     canActivate = await guardInstance.canActivate(request, response);
-    message = guardInstance.message ?? message;
+    if (typeof canActivate === 'string') {
+      message = canActivate;
+      canActivate = false;
+    } else {
+      message = guardInstance.message ?? message;
+    }
   } else {
     const result = await guard(request, response);
     if (typeof result === 'string') {
@@ -236,7 +252,7 @@ export async function runGuard(
   }
 }
 
-export const beforeRequest = async (request: Request, response: Response, route: Route) => {
+export const beforeRequest = async (request: Request, response: Response, route: Route): Promise<boolean> => {
   await enforceRateLimit(request, response, route);
 
   const handlers: ErrorHandler[] = [];
@@ -283,10 +299,11 @@ export const beforeRequest = async (request: Request, response: Response, route:
     const promises = handlers.map((handler) => handler(err, request, response));
     if (promises.length) {
       await Promise.all(promises);
-      return;
+      return true;
     }
     throw err;
   }
+  return false;
 };
 
 export function collectRoutes(

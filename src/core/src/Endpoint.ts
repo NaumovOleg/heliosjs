@@ -140,5 +140,5 @@ export const Query = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
 //  * @returns Method decorator for middleware usage.
 //  */
 export function Any(middlewares?: MiddlewareCB[]) {
-  return Endpoint(HTTP_METHODS.ANY, '/', middlewares);
+  return Endpoint(HTTP_METHODS.ANY, '*', middlewares);
 }

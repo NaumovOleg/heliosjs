@@ -143,14 +143,14 @@ describe('HTTP method shortcut decorators', () => {
     expect(meta.method).toBe('QUERY');
   });
 
-  it('Any sets ANY method with / route', () => {
+  it('Any sets ANY method with * route', () => {
     class Ctrl {
       @Any()
       catchAll() {}
     }
     const meta = getRouteMeta(Ctrl.prototype, 'catchAll');
     expect(meta.method).toBe('ANY');
-    expect(meta.route).toBe('/');
+    expect(meta.route).toBe('*');
   });
 
   it('Any passes middlewares', () => {

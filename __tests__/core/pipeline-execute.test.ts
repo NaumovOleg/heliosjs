@@ -64,10 +64,7 @@ describe("execute", () => {
     expect(res.status).toBe(201);
   });
 
-  it("applies interceptors to the handler result (req/res args are undefined — FINDING)", async () => {
-    // FINDING: execute calls `interceptor(data, data.request, data.response)`. For a
-    // plain object result, data.request/data.response are undefined, so interceptors
-    // do NOT receive the real request/response objects. Encoded as actual behavior.
+  it("applies interceptors to the handler result with correct req/res args", async () => {
     let seenReq: unknown = "unset";
     let seenRes: unknown = "unset";
     const route = makeRoute({
@@ -84,10 +81,11 @@ describe("execute", () => {
       fn: () => ({ a: 1 }),
     });
     const res = makeResponse();
-    await execute(route, makeRequest({ url: "/" }), res);
+    const req = makeRequest({ url: "/" });
+    await execute(route, req, res);
     expect(res.data).toEqual({ a: 1, wrapped: true });
-    expect(seenReq).toBeUndefined();
-    expect(seenRes).toBeUndefined();
+    expect(seenReq).toBe(req);
+    expect(seenRes).toBe(res);
   });
 
   it("routes a handler that returns an Error to response.error and skips interceptors", async () => {
