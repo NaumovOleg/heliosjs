@@ -32,26 +32,24 @@ describe('E2E: Sub-controllers', () => {
   let app: Helios;
   afterEach(async () => { if (app) { await app.close(); app = undefined as any; } });
 
-  it('sub-controller routes are accessible', async () => {
+  it('sub-controller routes are accessible at the joined prefix', async () => {
     @Controller('/admin')
     class AdminCtrl {
       @Get('/dashboard')
       dashboard() { return { admin: true }; }
     }
 
-    @Controller('/api')
+    @Controller({ prefix: '/api', controllers: [AdminCtrl] })
     class ApiCtrl {
       @Get('/status')
       status() { return { ok: true }; }
-
-      static controllers = [AdminCtrl];
     }
 
     app = buildApp([ApiCtrl]);
     const base = await startApp(app);
 
-    const r1 = await (await fetch(`${base}/api/status`)).json();
-    expect(r1).toEqual({ ok: true });
+    expect(await (await fetch(`${base}/api/status`)).json()).toEqual({ ok: true });
+    expect(await (await fetch(`${base}/api/admin/dashboard`)).json()).toEqual({ admin: true });
   });
 
   it('controller with no sub-controllers compiles', async () => {
@@ -98,7 +96,7 @@ describe('E2E: Error handler chain', () => {
     expect(caught).toBe(true);
   });
 
-  it('handler that throws and returns non-Error recovery', async () => {
+  it('an uncaught handler throw responds 500', async () => {
     @Controller('/err')
     class ErrCtrl {
       @Get('/recover')
@@ -336,7 +334,7 @@ describe('E2E: Content negotiation and response headers', () => {
   let app: Helios;
   afterEach(async () => { if (app) { await app.close(); app = undefined as any; } });
 
-  it('returns 204 No Content for empty response', async () => {
+  it('a POST handler returning an object responds 200 with that object', async () => {
     @Controller('/nocontent')
     class NoContentCtrl {
       @Post('/create')
@@ -347,6 +345,7 @@ describe('E2E: Content negotiation and response headers', () => {
     const base = await startApp(app);
     const res = await fetch(`${base}/nocontent/create`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ created: true });
   });
 
   it('response with unicode characters', async () => {
