@@ -2,14 +2,23 @@
 import type { ServerResponse } from 'node:http';
 
 import type { CORSConfig, ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
+import { getGlobalLogger } from '../core/logger';
 import { generateUniqueId } from '../shared';
 
+/**
+ * @internal Low-level Server-Sent Events server: tracks connected clients and
+ * dispatches to `@OnSSE` handlers on registered controllers. Constructed by the
+ * `@heliosjs/http` `Helios` adapter when `sse.enabled` is configured. App code
+ * should use `SSEService.getInstance()` (or `@InjectSSE()`) instead of this
+ * class directly.
+ */
 export class SSEServer implements ISSEServer {
   private readonly clients = new Map<string, SSEClient>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controllers: any[] = [];
   private corsConfig?: CORSConfig;
 
+  /** Sets the CORS policy used to validate the `Origin` of new SSE connections. */
   setCorsConfig(config: CORSConfig) {
     this.corsConfig = config;
   }
@@ -111,7 +120,7 @@ export class SSEServer implements ISSEServer {
       client.response.write(sseMessage);
       return true;
     } catch (error) {
-      console.error(`SSE_HASH send error to ${clientId}:`, error);
+      getGlobalLogger().error(`sse: send to ${clientId} failed`, error);
       return false;
     }
   }
@@ -150,7 +159,7 @@ export class SSEServer implements ISSEServer {
     for (const controller of this.controllers) {
       if (controller.sse?.handlers?.[eventType]) {
         for (const handler of controller.sse.handlers[eventType]) {
-          await handler.fn(event).catch(console.error);
+          await handler.fn(event).catch((err: unknown) => getGlobalLogger().error('sse: handler failed', err));
         }
       }
     }

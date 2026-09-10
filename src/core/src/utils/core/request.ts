@@ -4,6 +4,11 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { URL } from 'node:url';
 import type { Request, RequestOptions, RequestSource } from '../../types/core/request';
 
+/**
+ * @internal Concrete implementation of {@link Request}, constructed by
+ * `RequestFactory` in each adapter. App code uses the `Request` interface
+ * (via `@Req()`) rather than this class directly.
+ */
 export class Req implements Request {
   method: string;
   path: string;
@@ -26,6 +31,8 @@ export class Req implements Request {
   rawBody: unknown;
   isBase64Encoded: boolean;
   startTime: number;
+  /** When false, `X-Forwarded-*` headers are ignored for client IP / protocol. */
+  trustProxy: boolean;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly _state = new Map<string, any>();
@@ -51,6 +58,7 @@ export class Req implements Request {
     this.context = options.context;
     this.rawBody = options.rawBody;
     this.isBase64Encoded = options.isBase64Encoded ?? this.base64Encoded();
+    this.trustProxy = options.trustProxy ?? false;
     this.startTime = Date.now();
   }
 
@@ -76,9 +84,15 @@ export class Req implements Request {
    * Get header value (case-insensitive)
    */
   getHeader(name: string): string | string[] | undefined {
-    const lowerName = name.toLowerCase();
-    const entry = Object.entries(this.headers).find(([key]) => key.toLowerCase() === lowerName);
-    return entry ? entry[1] : undefined;
+    const lower = name.toLowerCase();
+    // Fast path: Node already lower-cases header keys.
+    if (Object.hasOwn(this.headers, lower)) return this.headers[lower];
+    for (const key in this.headers) {
+      if (Object.hasOwn(this.headers, key) && key.toLowerCase() === lower) {
+        return this.headers[key];
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -165,18 +179,24 @@ export class Req implements Request {
    * Check if request is secure (HTTPS)
    */
   isSecure(): boolean {
-    const proto = this.getHeader('x-forwarded-proto') || this.requestUrl.protocol.replace(':', '');
-    return proto === 'https';
+    if (this.trustProxy) {
+      const fwd = this.getHeader('x-forwarded-proto');
+      if (fwd) return (Array.isArray(fwd) ? fwd[0] : fwd).split(',')[0].trim() === 'https';
+    }
+    return this.requestUrl.protocol.replace(':', '') === 'https';
   }
 
   /**
-   * Get client IP (considering proxies)
+   * Get client IP. Honours `X-Forwarded-For` only when `trustProxy` is set;
+   * otherwise returns the direct socket address.
    */
   getClientIp(): string {
-    const forwarded = this.getHeader('x-forwarded-for');
-    if (forwarded) {
-      const ips = Array.isArray(forwarded) ? forwarded : forwarded.split(',');
-      return ips[0].trim();
+    if (this.trustProxy) {
+      const forwarded = this.getHeader('x-forwarded-for');
+      if (forwarded) {
+        const ips = Array.isArray(forwarded) ? forwarded : forwarded.split(',');
+        return ips[0].trim();
+      }
     }
     return this.sourceIp;
   }
@@ -216,9 +236,11 @@ export class Req implements Request {
       source: this.source,
       raw: this.raw,
       context: this.context,
-      url: this.url,
-      isBase64Encoded: false,
-      requestUrl: this.requestUrl,
+      url: overrides?.url || this.url,
+      rawBody: overrides?.rawBody ?? this.rawBody,
+      isBase64Encoded: overrides?.isBase64Encoded ?? this.isBase64Encoded,
+      trustProxy: overrides?.trustProxy ?? this.trustProxy,
+      requestUrl: overrides?.requestUrl || this.requestUrl,
     });
   }
 

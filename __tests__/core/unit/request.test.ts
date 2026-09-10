@@ -168,8 +168,14 @@ describe('Req state management', () => {
 });
 
 describe('Req.isSecure', () => {
-  it('returns true for x-forwarded-proto: https', () => {
-    expect(makeReq({ headers: { 'x-forwarded-proto': 'https' } }).isSecure()).toBe(true);
+  it('returns true for x-forwarded-proto: https when trustProxy', () => {
+    expect(
+      makeReq({ headers: { 'x-forwarded-proto': 'https' }, trustProxy: true }).isSecure()
+    ).toBe(true);
+  });
+
+  it('ignores x-forwarded-proto when trustProxy is off (default)', () => {
+    expect(makeReq({ headers: { 'x-forwarded-proto': 'https' } }).isSecure()).toBe(false);
   });
 
   it('returns false for http', () => {
@@ -178,9 +184,17 @@ describe('Req.isSecure', () => {
 });
 
 describe('Req.getClientIp', () => {
-  it('returns first IP from x-forwarded-for', () => {
-    const req = makeReq({ headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' } });
+  it('returns first IP from x-forwarded-for when trustProxy', () => {
+    const req = makeReq({
+      headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
+      trustProxy: true,
+    });
     expect(req.getClientIp()).toBe('1.2.3.4');
+  });
+
+  it('ignores x-forwarded-for when trustProxy is off (default)', () => {
+    const req = makeReq({ headers: { 'x-forwarded-for': '1.2.3.4' } });
+    expect(req.getClientIp()).toBe('192.168.1.1');
   });
 
   it('falls back to sourceIp', () => {
@@ -204,10 +218,11 @@ describe('Req.getFullUrl', () => {
     expect(req.getFullUrl()).toBe('http://example.com/users');
   });
 
-  it('uses https when secure', () => {
+  it('uses https when secure (trusted proxy)', () => {
     const req = makeReq({
       path: '/users',
       headers: { host: 'example.com', 'x-forwarded-proto': 'https' },
+      trustProxy: true,
     });
     expect(req.getFullUrl()).toBe('https://example.com/users');
   });

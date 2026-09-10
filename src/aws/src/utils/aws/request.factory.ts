@@ -6,7 +6,7 @@ import type { LambdaEvent } from '../../types/aws';
 import { normalizeEvent } from './lambda.event.normalizers';
 
 export class RequestFactory {
-  static create(event: LambdaEvent, context: Context): Req {
-    return new Req(normalizeEvent(event, context));
+  static create(event: LambdaEvent, context: Context, trustProxy = true): Req {
+    return new Req({ ...normalizeEvent(event, context), trustProxy });
   }
 }

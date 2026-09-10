@@ -11,6 +11,19 @@ import { UnauthorizedError } from './authorizations';
 import { BaseError } from './base';
 import { NotFoundError } from './notfound';
 
+/**
+ * Adapter-level error normalizer. Takes any thrown value — a {@link BaseError},
+ * a plain `Error`, an Axios-style HTTP error, a string, or an arbitrary object —
+ * and produces a consistent `{ code, status, message, details?, timestamp,
+ * requestId, path, stack? }` structure (via {@link ApplicationError.toJSON}) plus
+ * logs it. The HTTP and Lambda adapters use this to build their final error
+ * response; application code normally throws `BaseError` subclasses instead.
+ *
+ * @example
+ * const err = new ApplicationError(caught, { meta: request, config: { logErrors: true } });
+ * res.status = err.status;
+ * res.data = err.toJSON();
+ */
 export class ApplicationError {
   private readonly config: ErrorHandlerConfig;
   code: ErrorCode;
@@ -23,6 +36,20 @@ export class ApplicationError {
   path?: string;
   stack?: unknown;
 
+  /**
+   * @param error - The thrown value to normalize. `BaseError` instances pass
+   *   through as-is; a 401/404-shaped object becomes the matching subclass; an
+   *   Axios/`{ response }` error keeps its upstream status and body; a bare
+   *   `Error`/string/object becomes a 500.
+   * @param data - Normalization context:
+   *   - `meta` - the {@link Request} (or a `{ requestId, requestUrl, method,
+   *     sourceIp, userAgent }` subset). Why: fills `requestId`/`path`/`method`
+   *     on the result and the log line.
+   *   - `config` - {@link ErrorHandlerConfig}: `includeStack` (default: non-prod),
+   *     `logErrors` (default `true`), `logStack`, `customHandlers`. Why:
+   *     per-environment control over what is logged and returned.
+   *   - `status` - explicit HTTP status override.
+   */
   constructor(
     error: ErrorObject | Error,
     data: { meta: Meta; config: ErrorHandlerConfig; status?: number }

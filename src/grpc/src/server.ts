@@ -21,11 +21,9 @@ import { normalizeError } from './utils/grpc';
  * registered against proto definitions at startup.
  *
  * @example
- * ```ts
  * const server = new GrpcServer({ url: '0.0.0.0:50051' });
  * server.registerService(UserService);
  * await server.start();
- * ```
  */
 export class GrpcServer {
   private readonly server: Server;

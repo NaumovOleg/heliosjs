@@ -2,39 +2,42 @@ import type { CORSConfig} from '@heliosjs/core/types';
 import { HTTP_METHODS } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
- * Decorator to configure Cross-Origin Resource Sharing (CORS) settings for HTTP controllers or methods.
+ * Configures Cross-Origin Resource Sharing for a controller class or a single
+ * route method. On a preflight (`OPTIONS`) request the response is answered
+ * directly with the negotiated CORS headers and `optionsSuccessStatus`; on a
+ * real request a disallowed origin is rejected with HTTP 403.
  *
- * This decorator allows you to specify CORS policies such as allowed origins, HTTP methods, and
- * the status code to return for successful OPTIONS requests. It can be applied at the class level
- * to affect all endpoints within a controller or at the method level to customize CORS for specific endpoints.
+ * Unspecified keys fall back to: `origin: '*'`, `optionsSuccessStatus: 204`,
+ * `methods:` every HTTP method Helios knows.
  *
- * When applied, the decorator defines metadata on the target (class prototype or method) which can be
- * later retrieved by the framework to enforce CORS policies during request handling.
+ * @param config - CORS options (all optional):
+ *   - `origin` — `string`, `string[]`, or `(origin) => boolean`. `'*'` allows
+ *     any origin; a list allows exact matches; a function decides per request.
+ *     Why: the allow-list is the core of the policy.
+ *   - `methods` — allowed methods for `Access-Control-Allow-Methods`, e.g.
+ *     `['GET', 'POST']`. Why: advertise only what the route group supports.
+ *   - `allowedHeaders` — value for `Access-Control-Allow-Headers` (request
+ *     headers the browser may send). Why: without this, custom headers like
+ *     `Authorization` are blocked on cross-origin calls.
+ *   - `exposedHeaders` — response headers JS may read
+ *     (`Access-Control-Expose-Headers`). Why: e.g. expose `X-Total-Count`.
+ *   - `credentials` — when `true`, sets `Access-Control-Allow-Credentials: true`
+ *     so cookies / `Authorization` are sent. Why: required for cookie auth;
+ *     cannot be combined with `origin: '*'` per the spec.
+ *   - `maxAge` — seconds a browser may cache the preflight result. Why: fewer
+ *     `OPTIONS` round-trips.
+ *   - `optionsSuccessStatus` — status for a successful preflight (default `204`;
+ *     use `200` for legacy browsers that choke on 204).
  *
- * @param {CORSConfig} [config={}] - Configuration object for CORS settings.
- * @param {string|string[]} [config.origin='*'] - Specifies the allowed origin(s) for CORS requests. Defaults to '*'.
- * @param {number} [config.optionsSuccessStatus=204] - HTTP status code to return for successful OPTIONS requests.
- * @param {string[]} [config.methods=Object.keys(HTTP_METHODS)] - Array of allowed HTTP methods for CORS.
- *
- * @returns {Function} A decorator function that applies the CORS configuration metadata.
+ * @returns A class or method decorator.
  *
  * @example
- * // Apply CORS with default settings to all endpoints in a controller
- * @Cors()
- * class MyController {
- *   // ...
- * }
- *
- * @example
- * // Apply CORS with custom settings to a specific method
- * @Cors({ origin: 'https://example.com', methods: ['GET', 'POST'] })
- * async myMethod() {
- *   // ...
- * }
- *
- * @remarks
- * The metadata key used for storing the CORS configuration is defined by `CORS_METADATA`.
- * This metadata is accessible via Reflect API and used internally by the framework to enforce CORS.
+ * @Cors({
+ *   origin: ['https://app.example.com'],
+ *   methods: ['GET', 'POST'],
+ *   credentials: true,
+ * })
+ * class ApiController {}
  */
 export function Cors(config: CORSConfig = {}) {
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {

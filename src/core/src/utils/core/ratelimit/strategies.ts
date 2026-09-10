@@ -76,6 +76,7 @@ export function slidingWindow(store: RateLimitStore = new MemoryStore()): RateLi
   };
 }
 
+/** Options for the {@link tokenBucket} rate-limit strategy. */
 export interface TokenBucketOptions {
   /** Tokens added per second. */
   refillRate: number;

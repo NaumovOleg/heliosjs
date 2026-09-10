@@ -2,8 +2,14 @@ import { GrpcClient } from './client';
 import { GrpcServer } from './server';
 import type { GrpcClientOptions, GrpcServerOptions } from './types/grpc';
 
+/** Configuration for {@link GrpcModule.forRoot}. */
 export interface GrpcModuleConfig {
+  /** Options for the module's gRPC server. Omit to run clients only. */
   server?: GrpcServerOptions;
+  /**
+   * Named gRPC clients to create and make injectable via `@InjectGrpcClient(name)`.
+   * Why: register once here, inject anywhere.
+   */
   clients?: { name: string; options: GrpcClientOptions }[];
 }
 
@@ -11,14 +17,12 @@ export interface GrpcModuleConfig {
  * Singleton module that groups gRPC server and named gRPC clients.
  *
  * @example
- * ```ts
  * const grpc = GrpcModule.forRoot({
  *   server: { url: '0.0.0.0:50051', protoPath: './app.proto', package: 'app.v1' },
  *   clients: [{ name: 'users', options: { protoPath: './user.proto', package: 'user.v1' } }],
  * });
  *
  * await grpc.start();
- * ```
  */
 export class GrpcModule {
   private static instance: GrpcModule;

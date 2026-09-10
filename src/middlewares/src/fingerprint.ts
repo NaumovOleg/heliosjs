@@ -4,7 +4,9 @@ import type {
 } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta, getOrComputeFingerprint } from '@heliosjs/core/utils';
 
+/** Options for `@UseFingerprint`. */
 export interface UseFingerprintOptions {
+  /** Component set to hash for this scope, overriding the configured/default set. See {@link FingerprintComponent}. */
   components?: FingerprintComponent[];
 }
 

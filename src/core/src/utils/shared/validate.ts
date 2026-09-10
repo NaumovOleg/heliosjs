@@ -4,6 +4,13 @@ import { validate as Validate } from 'class-validator';
 import type { ErrorDetails } from '../../types';
 import { ValidationError as ValidationFailed } from '../core';
 
+/**
+ * @internal DTO validation used by every `TO_VALIDATE` parameter decorator
+ * (`@Body`, `@Params`, `@QueryParam`, `@Headers`, `@Cookies`, `@Files`). Without
+ * a `dtoClass` it returns `data` unchanged. With one: calls its static `from()`
+ * if defined, otherwise builds an instance via `class-transformer` and runs
+ * `class-validator`; throws `ValidationError` on failure.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function validate(dtoClass: any, data: unknown, options?: ValidatorOptions) {
   if (!dtoClass) {

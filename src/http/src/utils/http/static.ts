@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import type { ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { Request, Response } from '@heliosjs/core/types';
+import { getGlobalLogger, mimeFromPath } from '@heliosjs/core/utils';
 import type { StaticOptions } from '../../types/http';
 
 export function staticMiddleware(root: string | undefined, options: StaticOptions & { path?: string } = {}) {
@@ -32,7 +33,14 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
     }
 
     const url = req.url?.split('?')[0] || '';
-    const safePath = decodeURIComponent(url).replace(/\\/g, '/');
+    let decodedUrl: string;
+    try {
+      decodedUrl = decodeURIComponent(url);
+    } catch {
+      // Malformed percent-encoding — not a file we can serve.
+      return next();
+    }
+    const safePath = decodedUrl.replace(/\\/g, '/');
     const relativePath = mountPath && safePath.startsWith(mountPath)
       ? safePath.slice(mountPath.length) || '/'
       : safePath;
@@ -142,7 +150,7 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
             const stream = fs.createReadStream(filePath, { start, end });
 
             stream.on('error', err => {
-              console.error('Stream error:', err);
+              getGlobalLogger().error('static: stream error', err);
               if (!res.headersSent) {
                 res.status = 500;
                 res.end('Internal Server Error');
@@ -162,7 +170,7 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
         const stream = fs.createReadStream(filePath);
 
         stream.on('error', err => {
-          console.error('Stream error:', err);
+          getGlobalLogger().error('static: stream error', err);
           if (!res.headersSent) {
             res.status = 500;
             res.end('Internal Server Error');
@@ -179,7 +187,7 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
         }
       });
     } catch (err) {
-      console.error('Static middleware error:', err);
+      getGlobalLogger().error('static: middleware error', err);
 
       if (opts.fallthrough) {
         next();
@@ -194,36 +202,8 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
   };
 }
 
-const MIME_MAP: Record<string, string> = {
-  '.html': 'text/html',
-  '.htm': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.mjs': 'application/javascript',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.txt': 'text/plain',
-  '.pdf': 'application/pdf',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.eot': 'application/vnd.ms-fontobject',
-  '.webp': 'image/webp',
-  '.mp4': 'video/mp4',
-  '.mp3': 'audio/mpeg',
-  '.xml': 'application/xml',
-  '.zip': 'application/zip',
-  '.gz': 'application/gzip',
-};
-
 function getMimeType(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
-  return MIME_MAP[ext] || 'application/octet-stream';
+  return mimeFromPath(filePath) || 'application/octet-stream';
 }
 
 function parseRange(rangeHeader: string, fileSize: number): { start: number; end: number } | null {

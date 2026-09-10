@@ -1,15 +1,23 @@
 import type { GuardFunction } from '@heliosjs/core/types';
 import { getRolesExtractor, InvalidStateError, defineMiddlewaresMeta } from '@heliosjs/core/utils';
 
+/** Role match policy for `@Roles`: `'any'` (at least one required role) or `'all'` (every required role). */
 export type RoleMode = 'any' | 'all';
 
+/** Trailing options object accepted by `@Roles`. */
 export interface RolesOptions {
+  /** Match policy. Default `'any'`. */
   mode?: RoleMode;
+  /** Denial message when the check fails. Default `'Insufficient role'`. */
   message?: string;
 }
 
 type RolesArg = string | string[];
 
+/**
+ * @internal `true` when `userRoles` satisfies `required` under `mode` (`'all'`:
+ * every required role present; otherwise: at least one).
+ */
 export function matchRoles(
   required: string[],
   userRoles: string[],
@@ -20,6 +28,7 @@ export function matchRoles(
     : required.some((role) => userRoles.includes(role));
 }
 
+/** @internal Splits `@Roles(...)`'s variadic arguments into a flat role list plus the trailing options object, if any. */
 export function normalizeArgs(
   args: (RolesArg | RolesOptions)[],
 ): { roles: string[]; options: RolesOptions } {
@@ -44,6 +53,7 @@ export function normalizeArgs(
   return { roles, options };
 }
 
+/** @internal Builds the `GuardFunction` `@Roles` registers via `@Guard`, using the configured `RolesExtractor`. */
 export function createRolesGuard(
   required: string[],
   options: RolesOptions,

@@ -7,7 +7,6 @@ import type { ClientGrpc, GrpcClientOptions } from './types/grpc';
  * gRPC client wrapper that exposes service methods as RxJS observables.
  *
  * @example
- * ```ts
  * const client = new GrpcClient({
  *   protoPath: './user.proto',
  *   package: 'user.v1',
@@ -16,7 +15,6 @@ import type { ClientGrpc, GrpcClientOptions } from './types/grpc';
  *
  * const service = client.getService<UserServiceClient>('UserService');
  * service.findById({ id: '42' }).subscribe(console.log);
- * ```
  */
 export class GrpcClient implements ClientGrpc {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

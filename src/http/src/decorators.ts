@@ -2,37 +2,33 @@ import { SERVER_CONFIG_KEY } from '@heliosjs/core/constants';
 import type { ServerConfig } from './types/http';
 
 /**
- * Class decorator to configure the HTTP server with specified options.
+ * Class decorator that declares the HTTP server configuration on the app/root
+ * class passed to `new Helios(AppClass)`. Can be applied together with `@Port` /
+ * `@Host` and even repeated — each application **merges** into the previous
+ * config, with `controllers` and `middlewares` **concatenated** (not replaced) so
+ * setup can be split across modules.
  *
- * This decorator allows you to define and merge server configuration metadata
- * such as port, host, controllers, middlewares, CORS settings, and interceptors
- * on the target class. It merges the provided configuration with any existing
- * metadata to enable incremental and modular server setup.
+ * @param config - Any subset of {@link ServerConfig} except the internal
+ *   `interceptors` field. Common keys: `port`, `host`, `controllers`,
+ *   `middlewares`, `cors`, `errorHandler`, `sanitizers`, `statics`, `log`,
+ *   `rbac`, `fingerprint`, `bodyLimit`, `trustProxy`, `websocket`, `sse`,
+ *   `graphql`. Why: one decorator wires the whole application; see each field's
+ *   own doc for semantics.
  *
- * @param {Omit<ServerConfig, 'interceptors'>} config - Partial server configuration object excluding interceptors.
- *   - port: The port number the server will listen on.
- *   - host: The hostname or IP address the server will bind to.
- *   - controllers: Array of controller classes to handle routes.
- *   - middlewares: Array of middleware functions to apply.
- *   - interceptor: Interceptor to apply.
- *   - cors: CORS configuration options.
- *
- * @returns {ClassDecorator} A class decorator function that applies the merged server configuration metadata.
+ * @returns A class decorator.
  *
  * @example
- * ```ts
  * @Server({
  *   port: 3000,
  *   controllers: [UserController, ProductController],
- *   middlewares: [AuthMiddleware],
- *   cors: { origin: '*' },
+ *   middlewares: [requestIdMiddleware],
+ *   cors: { origin: ['https://app.example.com'], credentials: true },
+ *   trustProxy: true,
  * })
- * class MyServer {}
- * ```
+ * class AppModule {}
  *
- * @remarks
- * The decorator uses Reflect Metadata API to store and merge configuration under the key `SERVER_CONFIG_KEY`.
- * Controllers and middlewares arrays are concatenated with existing metadata to support multiple decorators or incremental additions.
+ * const app = new Helios(AppModule);
+ * await app.listen();
  */
 export function Server(config: Omit<ServerConfig, 'interceptors'> = {}) {
   return function (target: any) {
@@ -64,10 +60,8 @@ export function Server(config: Omit<ServerConfig, 'interceptors'> = {}) {
  * @returns {ClassDecorator} A class decorator function that sets the port metadata.
  *
  * @example
- * ```ts
  * @Port(8080)
  * class MyServer {}
- * ```
  *
  * @remarks
  * Uses Reflect Metadata API to store the port under the `SERVER_CONFIG_KEY` metadata key.
@@ -100,10 +94,8 @@ export function Port(port: number) {
  * @returns {ClassDecorator} A class decorator function that sets the host metadata.
  *
  * @example
- * ```ts
  * @Host('localhost')
  * class MyServer {}
- * ```
  *
  * @remarks
  * Uses Reflect Metadata API to store the host under the `SERVER_CONFIG_KEY` metadata key.

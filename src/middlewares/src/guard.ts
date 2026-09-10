@@ -2,46 +2,41 @@ import type { GuardFunction, GuardInstance } from '@heliosjs/core/types';
 import { type GuardClass } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
- * Decorator to register a guard.
+ * Registers a guard on a controller class or a single route method. Guards run
+ * before pipes, middlewares, and the handler; use them for authentication and
+ * authorization checks.
  *
- * Guards are used to control access to a controller by validating
- * incoming requests before they reach route handlers. If a guard
- * returns `false`, the request is blocked.
+ * A guard grants access by returning `true` and denies by returning `false` or a
+ * `string`. On denial the request is rejected with `ForbiddenError` (HTTP 403);
+ * a returned string becomes the error message (falling back to
+ * `guard.message`, then `"Forbidden"`). Guards may be async.
  *
- * @param guard - A guard class or function used to determine whether
- * the request is allowed to proceed.
+ * @param guard - One of:
+ *   - a **function** `(req, res) => boolean | string | Promise<boolean | string>`;
+ *   - a **class** with a `canActivate(req, res)` method (instantiated per request,
+ *     may expose a `message` property for the denial text);
+ *   - an already-constructed **instance** with `canActivate` (and optional
+ *     `message`).
+ *   Why: pick the lightest form — a closure for simple checks, a class when the
+ *   guard needs its own dependencies.
  *
- * @returns A class decorator that attaches guard metadata to the target.
+ * @returns A class or method decorator.
  *
  * @example
- * // Using function guard
- * @GuardClass((req, res) => {
- *   return !!req.headers.authorization;
- * })
- * class MyController {}
+ * @Guard((req) => !!req.getHeader('authorization') || 'Missing token')
+ * class SecureController {}
  *
- * @example
- * // Using class-based guard
- * class AuthGuard {
- *   canActivate(req: Request, res: Response) {
- *     return !!req.headers.authorization;
+ * class RoleGuard {
+ *   message = 'Admins only';
+ *   canActivate(req: Request) {
+ *     return req.getState('role') === 'admin';
  *   }
  * }
  *
- * @GuardClass(AuthGuard)
- * class MyController {}
- *
- * @remarks
- * Guards are executed before controller methods.
- * They can be used for:
- * - authentication
- * - authorization
- * - request validation
- *
- * If any guard returns `false`, the request handling is stopped.
- *
- * Metadata is stored under the CONTROLLER_CONFIGURATION key and used
- * internally by the framework during request processing.
+ * class AdminController {
+ *   @Guard(RoleGuard)
+ *   deleteEverything() {}
+ * }
  */
 export function Guard(guard: GuardClass | GuardFunction | GuardInstance) {
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {

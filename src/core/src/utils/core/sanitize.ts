@@ -1,6 +1,23 @@
 import * as Joi from 'joi';
 import type { Request, SanitizerConfig } from '../../types/core';
 
+/**
+ * Ready-made Joi schema builders for use inside `@Sanitize` configs and DTO
+ * validation. Grouped by category:
+ * - `string` — `trim()`, `email()` (trim + lowercase), `name()` (2–50 chars,
+ *   letters/spaces/hyphens), `slug()` (lowercase `a-z0-9-`), `phone()`.
+ * - `number` — `integer()`, `positive()`, `range(min, max)`.
+ * - `object` — `stripUnknown(schema)`, `withDefaults(schema)`.
+ * - `date` — `iso()`, `timestamp()`.
+ * - `xss()` — strips `javascript:` / `data:` URIs, inline `on*=` handlers, and
+ *   `<script>` blocks from a string.
+ *
+ * @example
+ * @Sanitize({
+ *   type: 'body',
+ *   schema: Joi.object({ email: SANITIZER.string.email(), bio: SANITIZER.xss() }),
+ * })
+ */
 export const SANITIZER = {
   string: {
     trim: () => Joi.string().trim(),
@@ -50,6 +67,12 @@ export const SANITIZER = {
     }, 'XSS sanitization'),
 };
 
+/**
+ * @internal Runs one {@link SanitizerConfig} against `value` with Joi, honoring
+ * `action` (`'validate'` disables coercion/defaults, `'sanitize'` coerces without
+ * failing on required-field absence, `'both'` does a normal validate+convert).
+ * Never throws — validation failures come back as `error`.
+ */
 export function applyJoiSanitization(
   value: unknown,
   config: SanitizerConfig,
@@ -104,6 +127,12 @@ export function applyJoiSanitization(
   }
 }
 
+/**
+ * @internal Applies one {@link SanitizerConfig} to the matching part of
+ * `request` (`request[config.type]`), writing the sanitized value back and
+ * throwing the Joi `ValidationError` on failure. Used by the `@Sanitize`
+ * decorator's compiled middleware and the global `sanitizers` config.
+ */
 export const sanitizeRequest = (request: Request, config: SanitizerConfig) => {
   const { value, error } = applyJoiSanitization(request[config.type], config);
 

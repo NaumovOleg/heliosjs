@@ -4,6 +4,11 @@ import type { Meta } from '../../types/core/common';
 import type { ResponseSource } from '../../types/core/response';
 import { ApplicationError } from './error';
 
+/**
+ * @internal Concrete implementation of {@link Response}, constructed by
+ * `ResponseFactory` in each adapter. App code uses the `Response` interface
+ * (via `@Res()`) rather than this class directly.
+ */
 export class Res implements Response {
   private _status = 200;
   private _headers: Record<string, string | string[]> = {};
@@ -80,7 +85,7 @@ export class Res implements Response {
   }
 
   get headersSent(): boolean {
-    return this.raw?.headersSent ?? this._headersSent;
+    return !!this.raw?.headersSent || this._headersSent;
   }
 
   get isRedirect(): boolean {
@@ -184,9 +189,8 @@ export class Res implements Response {
     }
 
     this._cookies.push(parts.join('; '));
-    if (this.raw?.cookies) {
-      this.raw.cookies = this._cookies;
-    }
+    // Adapters read `response.cookies`; never mirror onto `raw` (on Lambda `raw`
+    // is the Request and this would clobber the inbound cookie map).
     return this;
   }
 
@@ -255,14 +259,27 @@ export class Res implements Response {
   }
 
   end(data: unknown) {
-    const serialized = typeof data === 'object' ? JSON.stringify(data) : data;
     this._headersSent = true;
-    if (typeof this.raw?.end !== 'function') {
-      console.error('Method not implemented');
-    }
     this.setHeader('X-Response-Time', `${Date.now() - this.meta.startTime}ms`);
 
-    return this.raw?.end?.(serialized);
+    // Lambda/unknown sources have no socket to write to — the adapter reads
+    // `response.data` directly, so ending here is a silent no-op.
+    if (typeof this.raw?.end !== 'function') {
+      return;
+    }
+
+    // Pipe readable streams straight to the socket instead of serializing them.
+    if (data != null && typeof (data as NodeJS.ReadableStream).pipe === 'function') {
+      return (data as NodeJS.ReadableStream).pipe(this.raw as unknown as NodeJS.WritableStream);
+    }
+
+    // Buffers and primitives pass through untouched; only plain objects are JSON-encoded.
+    const serialized =
+      data == null || Buffer.isBuffer(data) || typeof data !== 'object'
+        ? (data as string | Buffer | undefined)
+        : JSON.stringify(data);
+
+    return this.raw.end(serialized);
   }
 
   // ==================== Response Methods ====================
@@ -287,6 +304,7 @@ export class Res implements Response {
     this._cookies = [];
     this._isBase64Encoded = false;
     this._headersSent = false;
+    this._isRedirect = false;
     return this;
   }
 

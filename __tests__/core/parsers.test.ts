@@ -35,13 +35,13 @@ describe("parseBody", () => {
       }),
     ).toEqual({ a: 1 });
   });
-  it("returns the raw string on malformed JSON", () => {
-    expect(
+  it("throws 400 on malformed JSON", () => {
+    expect(() =>
       parseBody({
         body: Buffer.from("{bad"),
         headers: { "content-type": "application/json" },
       }),
-    ).toBe("{bad");
+    ).toThrow(/Invalid JSON body/);
   });
   it("returns text bodies as a string", () => {
     expect(

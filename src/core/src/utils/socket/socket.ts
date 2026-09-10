@@ -1,3 +1,4 @@
+import { getGlobalLogger } from '../core/logger';
 import type { WebSocketServer } from './server';
 import { WebSocketService } from './service';
 
@@ -18,13 +19,13 @@ export class Socket {
    */
   public registerWebSocketControllers(controllers: any[]) {
     if (!this.wss) {
-      console.warn(
-        '⚠️ WebSocket is disabled. Enable it in config: { websocket: { enabled: true } }'
+      getGlobalLogger().warn(
+        'WebSocket is disabled. Enable it in config: { websocket: { enabled: true } }'
       );
       return this;
     }
     this.wss.registerControllers(controllers);
-    console.log(`📝 Registered ${controllers.length} WebSocket controllers`);
+    getGlobalLogger().log(`Registered ${controllers.length} WebSocket controllers`);
     return this;
   }
 

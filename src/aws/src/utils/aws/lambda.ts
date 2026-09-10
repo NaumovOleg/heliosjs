@@ -93,7 +93,7 @@ export const isAPIGatewayV2Event = (event: LambdaEvent): event is APIGatewayProx
     'requestContext' in event &&
     event.requestContext?.apiId !== undefined &&
     event.requestContext?.http !== undefined &&
-    !event.requestContext?.domainName?.includes('lambda-url') // не lambda-url
+    !event.requestContext?.domainName?.includes('lambda-url') // not a Function URL
   );
 };
 
@@ -169,4 +169,24 @@ export const getMultiValueQueryStringParameters = (event: APIGatewayProxyEvent |
   });
 
   return query;
+};
+
+/**
+ * Merge single- and multi-value query maps (API Gateway REST / ALB send both).
+ * A repeated key keeps all its values as an array; everything else stays scalar.
+ */
+export const getMergedQueryParameters = (
+  event: APIGatewayProxyEvent | ALBEvent
+): Record<string, string | string[]> => {
+  const merged: Record<string, string | string[]> = { ...getQueryStringParameters(event) };
+
+  for (const [key, values] of Object.entries(getMultiValueQueryStringParameters(event))) {
+    if (Array.isArray(values) && values.length > 1) {
+      merged[key] = values;
+    } else if (merged[key] === undefined && values?.length) {
+      merged[key] = values[0];
+    }
+  }
+
+  return merged;
 };

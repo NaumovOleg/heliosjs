@@ -13,6 +13,11 @@ import type {
 } from 'aws-lambda';
 import type { Plugin } from './plugin';
 
+/**
+ * Shape of a Lambda **Function URL** invocation event (a stripped-down variant of
+ * the API Gateway HTTP API v2 payload). Helios normalizes this into the core
+ * {@link Request}.
+ */
 export interface LambdaFunctionUrlEvent {
   version: string;
   routeKey: string;
@@ -41,12 +46,23 @@ export interface LambdaFunctionUrlEvent {
   };
 }
 
+/** Union of the `requestContext` shapes across the supported event sources. */
 export type RequestContext =
   | ALBEventRequestContext
   | APIGatewayEventRequestContext
   | CloudFrontEvent['config']
   | APIGatewayEventRequestContextV2;
 
+/**
+ * Every Lambda invocation event `app.handler` accepts. Helios detects which one
+ * it received (`getEventType`) and normalizes all of them to the core
+ * {@link Request}:
+ * - `APIGatewayProxyEvent` — API Gateway **REST API** (v1);
+ * - `APIGatewayProxyEventV2` — API Gateway **HTTP API** (v2);
+ * - `LambdaFunctionUrlEvent` / `LambdaFunctionURLEvent` — **Lambda Function URL**;
+ * - `ALBEvent` — **Application Load Balancer** target;
+ * - `CloudFrontRequestEvent` — **CloudFront** Lambda@Edge request.
+ */
 export type LambdaEvent =
   | ALBEvent
   | LambdaFunctionURLEvent
@@ -55,6 +71,7 @@ export type LambdaEvent =
   | APIGatewayProxyEventV2 // HTTP API (v2)
   | LambdaFunctionUrlEvent; // Lambda Function URL
 
+/** Internal: the common shape every {@link LambdaEvent} is flattened to before building a `Request`. */
 export interface NormalizedEvent {
   httpMethod: string;
   path: string;
@@ -77,12 +94,17 @@ export interface Lambda {
   request(request: Request): Promise<unknown>;
 }
 
+/** Public surface of the Lambda adapter ({@link Helios} in `@heliosjs/aws`). */
 export interface ILambdaAdapter {
+  /** The AWS Lambda `Handler` to export from your entry module. */
   handler: Handler;
+  /** The compiled root controller instance. */
   controller: ControllerType;
+  /** Registered plugins. */
   plugins: Plugin[];
 }
 
+/** Second argument to the `@heliosjs/aws` `Helios` constructor. */
 export interface LambdaOptions {
   /** Role-based access control configuration consumed by the `@Roles` guard. */
   rbac?: RBACConfig;
@@ -90,4 +112,10 @@ export interface LambdaOptions {
   fingerprint?: FingerprintConfig;
   /** CORS configuration. If not provided, no origin validation is performed. */
   cors?: CORSConfig;
+  /**
+   * Trust `X-Forwarded-For` / `X-Forwarded-Proto` for `req.getClientIp()` /
+   * `req.isSecure()`. Defaults to `true` — API Gateway / ALB / CloudFront set
+   * these; disable only if you terminate untrusted traffic directly.
+   */
+  trustProxy?: boolean;
 }

@@ -182,10 +182,9 @@ describe('E2E routing: param extraction per pattern kind', () => {
     expect(await fetch(`${ctx.base}/m/x/end`).then((r) => r.json())).toEqual({ w: null });
   });
 
-  // BUG B1: buildParamExtractor stores the key as `id(\d+)` (whole segment minus
-  // the leading `:`), so @Params('id') resolves to undefined even though the
-  // route matched. match.ts extracts the name correctly; the two disagree.
-  it.fails('regex-constrained :param(\\d+) is readable by its name', async () => {
+  // Fixed: param extraction now shares match.ts's regex/segment logic, so
+  // `:id(\d+)` resolves by name.
+  it('regex-constrained :param(\\d+) is readable by its name', async () => {
     @Controller('/u')
     class C {
       @Get('/:id(\\d+)') h(@Params('id') id: string) { return { id }; }

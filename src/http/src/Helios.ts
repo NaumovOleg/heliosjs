@@ -39,10 +39,8 @@ import {
  * lifecycle methods to start/stop the underlying Node.js HTTP server.
  *
  * @example
- * ```ts
  * const app = new Helios(AppModule);
  * await app.listen(3000, '0.0.0.0');
- * ```
  */
 export class Helios extends Plugin implements IHttpServer {
   private readonly config: ServerConfig;
@@ -166,10 +164,8 @@ export class Helios extends Plugin implements IHttpServer {
    * @returns Promise resolving with the underlying Node.js server instance.
    *
    * @example
-   * ```ts
    * await app.listen();
    * await app.listen(8080, '127.0.0.1');
-   * ```
    */
   public async listen(port?: number, host?: string) {
     if (this.isRunning) {
@@ -240,9 +236,21 @@ export class Helios extends Plugin implements IHttpServer {
   }
 
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
-    const startTime = Date.now();
-
-    const request = await RequestFactory.create(req, this.config.bodyLimit);
+    let request: Request;
+    try {
+      request = await RequestFactory.create(req, this.config.bodyLimit, this.config.trustProxy);
+    } catch (error) {
+      // Body too large / malformed JSON / bad URL — reply before we have a Request.
+      const status = (error as { status?: number })?.status ?? 400;
+      const code = (error as { code?: string })?.code ?? 'BAD_REQUEST';
+      const message = (error as Error)?.message ?? 'Bad Request';
+      if (!res.headersSent) {
+        res.statusCode = status;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ code, status, message }));
+      }
+      return;
+    }
     const response = ResponseFactory.create(res, request);
 
     try {
@@ -250,7 +258,7 @@ export class Helios extends Plugin implements IHttpServer {
     } catch (error: unknown) {
       response.status = 500;
       response.data = error;
-      return this.sendResponse(request, response, startTime);
+      return this.sendResponse(request, response);
     }
     if (response.headersSent) return;
 
@@ -262,10 +270,10 @@ export class Helios extends Plugin implements IHttpServer {
       if (!handledCors.permitted) {
         response.status = 403;
         response.data = 'CORS: Origin not allowed';
-        return this.sendResponse(request, response, startTime);
+        return this.sendResponse(request, response);
       }
       if (!handledCors.continue && handledCors.permitted) {
-        return this.sendResponse(request, response, startTime);
+        return this.sendResponse(request, response);
       }
 
       await this.beforeRequest(request, response, async () => {
@@ -275,10 +283,10 @@ export class Helios extends Plugin implements IHttpServer {
         await this.runController(request, response);
       });
 
-      return this.sendResponse(request, response, startTime);
+      return this.sendResponse(request, response);
     } catch (error: unknown) {
       response.error(error);
-      return this.sendResponse(request, response, startTime);
+      return this.sendResponse(request, response);
     }
   }
 
@@ -388,11 +396,7 @@ export class Helios extends Plugin implements IHttpServer {
     return controllers;
   }
 
-  private async sendResponse(
-    request: Request,
-    response: Response,
-    startTime: number
-  ): Promise<void> {
+  private async sendResponse(request: Request, response: Response): Promise<void> {
     if (response.headersSent) return;
 
     if (
@@ -407,10 +411,10 @@ export class Helios extends Plugin implements IHttpServer {
       }
     }
 
-    response.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
-
     try {
-      response.end(response.data);
+      // `X-Response-Time` is set inside response.end(). HEAD carries the same
+      // headers as GET but no body.
+      response.end(request.method === 'HEAD' ? undefined : response.data);
     } catch {
       if (!response.headersSent) {
         response.status = 500;
@@ -482,12 +486,10 @@ export class Helios extends Plugin implements IHttpServer {
    * @returns Current Helios instance for chaining.
    *
    * @example
-   * ```ts
    * app.use(async (req, res, next) => {
    *   req.headers['x-request-source'] = 'runtime';
    *   await next();
    * });
-   * ```
    */
   public use(middleware: MiddlewareCB): this {
     this.globalMiddlewares.push(middleware);

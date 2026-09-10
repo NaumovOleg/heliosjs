@@ -76,14 +76,14 @@ describe('E2E multipart / @Files', () => {
     }
     ctx = await startE2E([C]);
     const form = new FormData();
-    form.append('num', '1'); // JSON-parsed -> number 1
-    form.append('word', 'hello'); // JSON.parse throws -> stays string
+    form.append('num', '1'); // scalar -> stays string
+    form.append('word', 'hello'); // scalar -> stays string
+    form.append('json', '{"k":1}'); // object -> decoded
 
     const res = await fetch(`${ctx.base}/up`, { method: 'POST', body: form });
     const data = await res.json();
     expect(data.fileKeys).toEqual([]);
-    // NOTE: multipart text fields are run through JSON.parse, so numeric-looking
-    // values come back typed. Documented here, not asserted as a defect.
-    expect(data.body).toMatchObject({ num: 1, word: 'hello' });
+    // Only JSON objects/arrays are decoded; scalars stay strings.
+    expect(data.body).toMatchObject({ num: '1', word: 'hello', json: { k: 1 } });
   });
 });

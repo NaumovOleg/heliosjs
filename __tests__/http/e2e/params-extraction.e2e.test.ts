@@ -63,10 +63,8 @@ describe('E2E param decorators: extraction', () => {
     ).toEqual({ t: 'abc' });
   });
 
-  // SPEC: header names are case-insensitive, so @Headers('X-Token') must resolve
-  // the same value as the wire header 'x-token'. Helios looks the name up
-  // verbatim in the lower-cased header map -> undefined. Bug B13.
-  it.fails('@Headers(name) is case-insensitive', async () => {
+  // Fixed (was B13): @Headers(name) resolves case-insensitively.
+  it('@Headers(name) is case-insensitive', async () => {
     @Controller('/h')
     class C {
       @Get('/') h(@Headers('X-Token') t: string | undefined) { return { t: t ?? null }; }

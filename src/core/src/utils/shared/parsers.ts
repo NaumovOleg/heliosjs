@@ -1,3 +1,7 @@
+import { ErrorCode } from '../../types/core/error';
+import { BaseError } from '../core/error/base';
+
+/** @internal Parses a URL's query string into `Record<string, string | string[]>` (repeated keys become arrays). */
 export const parseQuery = (url: URL) => {
   const params = url.searchParams;
   const query: Record<string, string | string[]> = {};
@@ -11,6 +15,14 @@ export const parseQuery = (url: URL) => {
   return query;
 };
 
+/**
+ * @internal Decodes a raw request body per its `Content-Type`: JSON parsed to an
+ * object (throws `BaseError`/400 on malformed JSON), `text/*` and XML to a
+ * string, form-urlencoded to a key/value map, multipart left as a marker object
+ * for `MultipartProcessor`, everything else returned as-is (Buffer decoded to
+ * utf8 string as a last resort). A no-op when `body` is already a non-Buffer
+ * object.
+ */
 export const parseBody = (request: {
   body: unknown;
   headers: Record<string, string | string[]>;
@@ -53,11 +65,12 @@ export const parseBody = (request: {
   };
 
   if (cleanContentType === 'application/json') {
+    const str = getString(processedBody);
+    if (str === '') return undefined;
     try {
-      const str = getString(processedBody);
       return JSON.parse(str);
-    } catch (_: unknown) {
-      return getString(processedBody);
+    } catch {
+      throw new BaseError(ErrorCode.BAD_REQUEST, 'Invalid JSON body', { status: 400 });
     }
   }
   if (cleanContentType.startsWith('text/')) {
@@ -81,7 +94,7 @@ export const parseBody = (request: {
         }
       }
       return result;
-    } catch (_: unknown) {
+    } catch {
       return { raw: getString(processedBody) };
     }
   }
@@ -118,6 +131,7 @@ const parseCookie = (cookies: string) => {
   );
 };
 
+/** @internal Parses one or more `Cookie` header values into a `name -> value` map. */
 export const parseRequestCookie = (cookies?: string | string[]): Record<string, string> => {
   if (!cookies) return {};
 
@@ -131,7 +145,8 @@ export const parseRequestCookie = (cookies?: string | string[]): Record<string, 
 };
 
 /**
- * Safely convert headers to Record<string, string | string[]>
+ * @internal Safely converts a headers object (values possibly `undefined`) to
+ * `Record<string, string | string[]>`, dropping `undefined` entries.
  */
 export const parseHeaders = (
   headers?: Record<string, string | undefined>,

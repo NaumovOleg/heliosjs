@@ -1,42 +1,36 @@
 import type { SanitizerConfig } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
- * Decorator to apply sanitization configurations to a controller or method.
+ * Runs a Joi schema over one part of the request on a controller class or a
+ * single route method. Sanitizers run first in the pipeline (before guards), so
+ * every later stage sees the cleaned/validated data.
  *
- * This decorator accepts one or more sanitization configuration objects which define
- * how incoming request data should be sanitized before processing. It can be applied
- * at the class level to apply sanitization globally to all methods or at the method level
- * for fine-grained control.
+ * Depending on `action` a config either validates (throws on mismatch),
+ * sanitizes (coerces/strips and writes the result back onto the request), or
+ * both. The `SANITIZER` helper from `@heliosjs/core` provides ready-made Joi
+ * builders (`SANITIZER.string.email()`, `SANITIZER.xss()`, …).
  *
- * The sanitization configurations are stored as metadata on the target or method,
- * which can be retrieved by the framework to perform the actual sanitization during
- * request handling.
+ * @param config - One `SanitizerConfig`, or an array applied in order. Each has:
+ *   - `schema` (**required**) — a `Joi.Schema` to run.
+ *   - `type` (**required**) — which request part to target, one of
+ *     `'body'`, `'query'`, `'params'`, `'headers'`.
+ *   - `action` — `'validate'` (reject on error), `'sanitize'` (transform in
+ *     place), or `'both'`. Default `'both'`.
+ *   - `options` — Joi `ValidationOptions` passed through.
+ *   - `stripUnknown` — drop keys not in the schema.
+ *   Why an array: apply different schemas to different request parts on the same
+ *   route.
  *
- * @param {SanitizerConfig | SanitizerConfig[]} sanitizeConfig - A single or array of sanitization configuration objects.
- *
- * @returns {Function} A decorator function that applies the sanitization metadata.
+ * @returns A class or method decorator.
  *
  * @example
- * // Apply sanitization to all methods in a controller
- * @Sanitize({ trim: true, escape: true })
- * class MyController {
- *   // ...
- * }
- *
- * @example
- * // Apply multiple sanitization rules to a specific method
- * @Sanitize([
- *   { trim: true },
- *   { escape: true }
- * ])
- * async myMethod() {
- *   // ...
- * }
- *
- * @remarks
- * The metadata key used for storing the sanitization configurations is defined by `SANITIZE`.
- * This metadata is accessible via Reflect API and used internally by the framework
- * to apply sanitization logic.
+ * @Sanitize({
+ *   type: 'body',
+ *   action: 'both',
+ *   schema: Joi.object({ email: SANITIZER.string.email(), bio: SANITIZER.xss() }),
+ *   stripUnknown: true,
+ * })
+ * class ProfileController {}
  */
 export function Sanitize(config: SanitizerConfig | SanitizerConfig[]) {
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {

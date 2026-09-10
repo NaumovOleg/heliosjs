@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { MiddlewareCB } from '@heliosjs/core/types';
+import { getGlobalLogger } from '@heliosjs/core/utils';
 import type {
   Plugin as HttpPlugin,
   HttpPluginHooks,
@@ -20,7 +21,7 @@ export class Plugin {
         try {
           await (hook as any)(...args);
         } catch (error) {
-          console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
+          getGlobalLogger().error(`plugin ${plugin.name}: hook ${hookName} failed`, error);
         }
       }
     }
@@ -32,7 +33,7 @@ export class Plugin {
         try {
           await (hook as any)(...args);
         } catch (error) {
-          console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
+          getGlobalLogger().error(`plugin ${plugin.name}: hook ${hookName} failed`, error);
         }
       }
     }
@@ -45,14 +46,12 @@ export class Plugin {
    * @returns Current host instance for fluent chaining.
    *
    * @example
-   * ```ts
    * app.usePlugin({
    *   name: 'logger',
    *   hooks: {
    *     beforeRoute: async (req) => console.log(req.path),
    *   },
    * });
-   * ```
    */
   usePlugin(plugin: any) {
     this.plugins.push(plugin);

@@ -15,35 +15,47 @@ import type { PubSub } from 'type-graphql';
 import type { Plugin } from './plugin';
 import type { StaticConfig } from './static';
 
+/**
+ * Effective HTTP server configuration. Assembled from the `@Server` / `@Port` /
+ * `@Host` class decorators (and their merge order) plus runtime defaults, then
+ * consumed by {@link Helios}. Every field is optional at the decorator boundary.
+ */
 export interface ServerConfig {
   /**
-   * Port number the server listens on
-   * @type {number}
+   * TCP port to listen on. Falls back to `listen()`'s argument, then `3000`.
+   * Why: where clients reach the server.
    */
   port?: number;
 
   /**
-   * Hostname or IP address
-   * @type {string}
+   * Hostname / IP to bind. Falls back to `listen()`'s argument, then
+   * `'localhost'`. Use `'0.0.0.0'` to accept external connections (containers).
    */
   host?: string;
 
   /**
-   * Array of middleware callback functions
-   * @type {MiddlewareCB[]}
+   * Global middlewares run for every request before route dispatch, in order,
+   * after plugin middlewares. Why: app-wide concerns (request id, logging).
    */
   middlewares?: MiddlewareCB[];
 
   /**
-   * Interceptor callback function
-   * @type {InterceptorCB}
+   * Single global interceptor applied to every handler's return value. Merged
+   * into `interceptors` during config resolution. Why: uniform response
+   * envelope. Prefer this over `interceptors` in user code.
    */
   interceptor?: InterceptorCB;
+
+  /**
+   * Resolved list of global interceptors (internal — populated from
+   * `interceptor`). Run innermost-last, like route interceptors.
+   */
   interceptors: InterceptorCB[];
 
   /**
-   * Error handling callback
-   * @type {ErrorHandler}
+   * Global fallback error handler `(error, req, res) => unknown`. Runs when no
+   * route-level `@Catch` resolves a thrown error. Return a value to shape the
+   * error response. Why: one place to format every unhandled error.
    */
   errorHandler?: ErrorHandler;
 
@@ -51,6 +63,13 @@ export interface ServerConfig {
    * Maximum request body size in bytes. Defaults to 1 MB. `0` disables the limit.
    */
   bodyLimit?: number;
+
+  /**
+   * Trust `X-Forwarded-For` / `X-Forwarded-Proto` for `req.getClientIp()` and
+   * `req.isSecure()`. Default `false` — only enable behind a proxy you control,
+   * since these headers are client-spoofable and feed rate-limiting/fingerprint.
+   */
+  trustProxy?: boolean;
 
   /**
    * Node HTTP server `requestTimeout` in milliseconds. When unset, Node's default applies.
@@ -73,51 +92,58 @@ export interface ServerConfig {
   fingerprint?: FingerprintConfig;
 
   /**
-   * Array of controller types
-   * @type {ControllerType[]}
+   * Root controller classes (decorated with `@Controller`). Their sub-controllers
+   * are discovered automatically. Why: this is the route tree.
    */
   controllers?: ControllerType[];
 
   /**
-   * CORS configuration object
-   * @type {CORSConfig}
+   * Global CORS policy applied before route dispatch. A route-level `@Cors`
+   * overrides it for that route. See {@link CORSConfig}.
    */
   cors?: CORSConfig;
 
   /**
-   * Array of sanitizer configurations
-   * @type {SanitizerConfig[]}
+   * Global Joi sanitizers applied to every request before handlers. See
+   * `SanitizerConfig`. Why: baseline input hardening across the app.
    */
   sanitizers?: SanitizerConfig[];
 
   /**
-   * Array of static file serving configurations
-   * @type {StaticConfig[]}
+   * Static file mounts. Each entry serves files from `root` (or `path`) under the
+   * URL `path`, with caching / index / dotfile `options`. Why: ship assets from
+   * the same server.
    */
   statics?: StaticConfig[];
 
   /**
-   * Logging configuration. Set to `false` to disable all logs,
-   * or provide config to customize log level, prefix, and output.
-   * @type {LoggerConfig | false}
+   * Logger configuration ({@link LoggerConfig}), or `false` to silence all
+   * framework logging. Why: control startup/errors noise and log format.
    */
   log?: LoggerConfig | false;
 
   /**
-   * WebSocket enablement and lazy loading
-   * @type {{ path: string; lazy?: boolean }}
+   * Enables the built-in WebSocket server. `path` is the upgrade path (default
+   * `'/ws'` when the block is present but `path` omitted at runtime),
+   * `controllers` are the classes carrying `@OnWS` / `@Subscribe` handlers,
+   * `lazy` defers server creation. Cannot be combined with `graphql`. Why:
+   * opt-in real-time transport.
    */
   websocket?: { path: string; lazy?: boolean; controllers: ControllerType[] };
 
   /**
-   * Server-Sent Events enablement
-   * @type {{ enabled: boolean }}
+   * Enables the built-in Server-Sent Events server when `enabled` is `true`.
+   * SSE lifecycle handlers are declared with `@OnSSE`. Why: opt-in one-way
+   * streaming without WebSockets.
    */
   sse?: { enabled: boolean };
 
   /**
-   * GraphQL configuration including playground, pubSub, and resolvers
-   * @type {{ playground?: boolean; pubSub?: PubSub; resolvers?: Function[] }}
+   * Enables a GraphQL endpoint (type-graphql + graphql-yoga). `path` is the
+   * mount point (default `'/graphql'`), `resolvers` are the type-graphql
+   * resolver classes, `playground` serves GraphiQL, `pubSub` wires
+   * subscriptions over WebSocket. Cannot be combined with `websocket`. Why:
+   * opt-in GraphQL alongside the REST routes.
    */
   graphql?: {
     path: string;

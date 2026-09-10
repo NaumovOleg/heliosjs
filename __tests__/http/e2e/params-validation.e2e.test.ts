@@ -89,11 +89,9 @@ describe('E2E param validation (class-validator DTOs)', () => {
     expect((await fetch(`${ctx.base}/p/abc`)).status).toBe(400);
   });
 
-  // BUG B14: CLAUDE.md and the request pipeline (TO_VALIDATE) claim DTO validation
-  // for headers/cookies/multipart, but @Headers/@Cookies/@Files are typed as
-  // `(name?: string)` only — a class passed in lands in `param.options`, never
-  // `param.dto`, so it is silently ignored and nothing validates.
-  it.fails('@Headers(Dto): headers are validated', async () => {
+  // Fixed (was B14): @Headers/@Cookies/@Files now accept a DTO class (first arg),
+  // routed to `param.dto` and validated like @Body/@Params.
+  it('@Headers(Dto): headers are validated', async () => {
     class AuthDto {
       @IsString()
       @MinLength(8)
@@ -109,7 +107,7 @@ describe('E2E param validation (class-validator DTOs)', () => {
     ).toBe(400);
   });
 
-  it.fails('@Cookies(Dto): cookies are validated', async () => {
+  it('@Cookies(Dto): cookies are validated', async () => {
     class SessionDto {
       @IsString()
       @MinLength(3)

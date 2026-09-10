@@ -1,7 +1,13 @@
 // parsers/event-normalizers.ts
 
 import type { HTTP_METHODS, RequestOptions } from '@heliosjs/core/types';
-import { parseBody, parseHeaders, parseQuery, parseRequestCookie } from '@heliosjs/core/utils';
+import {
+  getGlobalLogger,
+  parseBody,
+  parseHeaders,
+  parseQuery,
+  parseRequestCookie,
+} from '@heliosjs/core/utils';
 import type {
   ALBEvent,
   APIGatewayProxyEvent,
@@ -13,7 +19,7 @@ import type {
 } from 'aws-lambda';
 import type { LambdaEvent } from '../../types/aws';
 import {
-  getMultiValueQueryStringParameters,
+  getMergedQueryParameters,
   getQueryStringParameters,
   isALBEvent,
   isAPIGatewayV1Event,
@@ -74,7 +80,7 @@ export const normalizeAPIGatewayEvent = (
     path: event.path,
     cookies,
     headers,
-    query: getQueryStringParameters(event) ?? getMultiValueQueryStringParameters(event),
+    query: getMergedQueryParameters(event),
     params: normalizePathParams(event.pathParameters),
     rawBody,
     body,
@@ -143,7 +149,7 @@ export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOpt
     path: event.path,
     cookies,
     headers,
-    query: getQueryStringParameters(event) ?? getMultiValueQueryStringParameters(event),
+    query: getMergedQueryParameters(event),
     params: {},
     rawBody,
     body,
@@ -245,7 +251,7 @@ export const normalizeLambdaFunctionUrlEvent = (
     try {
       body = Buffer.from(event.body, 'base64').toString('utf-8');
     } catch (error) {
-      console.error('Failed to decode base64 body:', error);
+      getGlobalLogger().error('lambda: failed to decode base64 body', error);
     }
   }
   if (typeof body === 'string') {

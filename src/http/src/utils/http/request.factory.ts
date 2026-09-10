@@ -12,9 +12,13 @@ export class RequestFactory {
   /**
    * Create Request from HTTP IncomingMessage
    */
-  static async create(req: IncomingMessage, maxBytes?: number): Promise<Req> {
-    const protocol = req.headers['x-forwarded-proto'];
-    const protoStr = Array.isArray(protocol) ? protocol[0] : protocol;
+  static async create(
+    req: IncomingMessage,
+    maxBytes?: number,
+    trustProxy = false
+  ): Promise<Req> {
+    const fwdProto = trustProxy ? req.headers['x-forwarded-proto'] : undefined;
+    const protoStr = Array.isArray(fwdProto) ? fwdProto[0] : fwdProto;
     const protocolStr = protoStr && ['http', 'https'].includes(protoStr) ? protoStr : 'http';
     const host = req.headers.host || 'localhost';
     const fullUrl = `${protocolStr}://${host}${req.url}`;
@@ -22,8 +26,9 @@ export class RequestFactory {
     const cookies = parseRequestCookie(req.headers?.cookie);
     const query = parseQuery(requestUrl);
 
-    const forwardedFor = req.headers['x-forwarded-for'] as string;
-    const sourceIp = forwardedFor?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? '0.0.0.0';
+    // Direct socket address; `req.getClientIp()` applies X-Forwarded-For itself
+    // when `trustProxy` is on.
+    const sourceIp = req.socket.remoteAddress ?? '0.0.0.0';
 
     const method = req.method || 'GET';
     let rawBody: Buffer | undefined;
@@ -58,6 +63,7 @@ export class RequestFactory {
       raw: req,
       context: req.socket,
       rawBody,
+      trustProxy,
       isBase64Encoded: false,
     });
   }

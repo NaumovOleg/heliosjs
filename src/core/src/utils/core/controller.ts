@@ -19,9 +19,10 @@ import { SSEService } from '../sse';
 import { handleCORS } from './cors';
 import { getOrComputeFingerprint } from './fingerprint';
 import { ForbiddenError } from './error';
-import { getBodyAndMultipart, getParams, buildParamExtractor, extractMiddlewares } from './helper';
+import { getHeaderCI } from './headers';
+import { getBodyAndMultipart } from './helper';
 import { enforceRateLimit } from './ratelimit';
-import { routeSpecificity } from './match';
+import { extractRouteParams, routeSpecificity } from './match';
 import { sanitizeRequest } from './sanitize';
 
 /**
@@ -60,12 +61,21 @@ async function runErrorHandlers(
   return false;
 }
 
+/**
+ * @internal Runs the full per-route pipeline for an already-matched route: CORS,
+ * `beforeRequest` (rate limit, sanitizers, guards, pipes, middlewares), param
+ * resolution + validation, the handler, interceptors (reverse order), and error
+ * handling (`@Catch`, or the self-resolving 401/403/404/429 codes). Mutates and
+ * returns `response`. This is the request pipeline itself — adapters call it per
+ * matched route; app code never calls it directly.
+ */
 export const execute = async (route: Route, request: Request, response: Response) => {
-  request.params = route.compiledParamExtractor
-    ? route.compiledParamExtractor(request.path)
-    : getParams(route.route, request.path);
+  request.params = extractRouteParams(route, request.path);
 
-  const corsConfigs = route.compiled?.cors ?? route.cors ?? [];
+  // `route.compiled` is set for every real route; derive it for hand-built ones.
+  const compiled = route.compiled ?? buildCompiledMiddleware(route.functions);
+
+  const corsConfigs = compiled.cors.length ? compiled.cors : route.cors ?? [];
 
   const handledCors = corsConfigs.reduce(
     (acc, conf) => {
@@ -96,16 +106,25 @@ export const execute = async (route: Route, request: Request, response: Response
       return response;
     }
 
-    const { body, multipart } = getBodyAndMultipart(request);
+    // Only parse multipart / re-derive body when a param actually needs it.
+    const wantsBody = route.parameters.some(
+      (p) => p.type === 'body' || p.type === 'multipart'
+    );
+    const { body, multipart } = wantsBody
+      ? getBodyAndMultipart(request)
+      : { body: request.body, multipart: undefined };
 
     const args: unknown[] = [];
 
-    const totalParams = Math.max(
-      route.parameters.length ? Math.max(...route.parameters.map((p) => p.index)) + 1 : 0
-    );
+    const byIndex: (Route['parameters'][number] | undefined)[] = [];
+    let totalParams = 0;
+    for (const p of route.parameters) {
+      byIndex[p.index] = p;
+      if (p.index + 1 > totalParams) totalParams = p.index + 1;
+    }
 
     for (let i = 0; i < totalParams; i++) {
-      const param = route.parameters.find((p) => p.index === i);
+      const param = byIndex[i];
 
       if (!param) {
         args[i] = undefined;
@@ -139,7 +158,14 @@ export const execute = async (route: Route, request: Request, response: Response
       if (TO_VALIDATE.includes(param.type)) {
         const validated = await validate(param.dto, value, param.options);
 
-        value = param.name ? validated?.[param.name] : validated;
+        if (!param.name) {
+          value = validated;
+        } else if (param.type === 'headers') {
+          // Header names are case-insensitive.
+          value = getHeaderCI(validated as Record<string, string | string[]>, param.name);
+        } else {
+          value = (validated as Record<string, unknown> | undefined)?.[param.name];
+        }
       }
 
       args[i] = value;
@@ -153,23 +179,17 @@ export const execute = async (route: Route, request: Request, response: Response
     const isError = data instanceof Error;
 
     if (isError) {
+      // `error()` already serialised and stored the payload — don't re-wrap it.
       response.error(data);
-    } else {
-      if (!response.isRedirect) {
-        response.status =
-          route.compiled?.status ?? route.functions.find((fn) => fn.status)?.status ?? 200;
-      }
-      if (route.compiled?.interceptors) {
-        const interceptors = route.compiled.interceptors;
-        for (let i = interceptors.length - 1; i >= 0; i--) {
-          data = await Promise.resolve(interceptors[i](data, request, response));
-        }
-      } else {
-        const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
-        for (const interceptor of interceptors) {
-          data = await Promise.resolve(interceptor?.(data, request, response));
-        }
-      }
+      return response;
+    }
+
+    if (!response.isRedirect) {
+      response.status = compiled.status ?? 200;
+    }
+    const { interceptors } = compiled;
+    for (let i = interceptors.length - 1; i >= 0; i--) {
+      data = await Promise.resolve(interceptors[i](data, request, response));
     }
 
     response.data = data;
@@ -177,66 +197,30 @@ export const execute = async (route: Route, request: Request, response: Response
     return response;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    let caught = error;
-
-    const compiledEH = route.compiled?.errorHandlers;
-    const fallbackEH = compiledEH
-      ? null
-      : extractMiddlewares(route.functions, 'errorHandler').reverse();
-    const handlerCount = compiledEH?.length ?? fallbackEH?.length ?? 0;
+    const handlers = [...compiled.errorHandlers].reverse();
 
     // Errors with these codes carry their own HTTP semantics; skip @Catch only
     // when the route has no explicit error handler to override them.
-    if (handlerCount === 0 && SKIP_ERROR_HANDLER_CODES.includes(error?.code)) {
+    if (handlers.length === 0 && SKIP_ERROR_HANDLER_CODES.includes(error?.code)) {
       response.error(error);
       return response;
     }
 
-    if (compiledEH) {
-      for (let i = compiledEH.length - 1; i >= 0; i--) {
-        const resp = await Promise.resolve(
-          compiledEH[i]?.(caught as Error, request, response)
-        ).catch((err) => err);
-        caught = resp;
-        if (resp instanceof Error) continue;
-        response.data = caught;
-        break;
-      }
-    } else if (fallbackEH) {
-      for (const handler of fallbackEH) {
-        const resp = await Promise.resolve(handler?.(caught as Error, request, response)).catch(
-          (err) => err
-        );
-        caught = resp;
-        if (resp instanceof Error) continue;
-        response.data = caught;
-        break;
-      }
+    if (handlers.length > 0) {
+      if (await runErrorHandlers(handlers, error, request, response)) return response;
+      // handlers ran but every one re-threw / returned an Error
+      response.error(error);
+      return response;
     }
 
-    if (caught instanceof Error) {
-      if (handlerCount === 0) {
-        throw caught;
-      }
-      if (typeof error === 'string') {
-        const err = new Error(error);
-        const errorData = {
-          stack: `${err.name}: ${err.message}\n    at ${route.name}\n${err.stack}`,
-          original: error,
-          controller: route,
-          method: route.name,
-          status: 500,
-        };
-        Object.assign(err, errorData);
-        response.error(err);
-      } else {
-        response.error(caught);
-      }
-    }
+    // No handler and not a self-resolving code: an Error propagates, a raw
+    // non-Error throw is swallowed (historical behaviour).
+    if (error instanceof Error) throw error;
     return response;
   }
 };
 
+/** @internal Returns every method name (own + inherited, excluding `constructor`) walking `obj`'s prototype chain. */
 export const getAllMethods = (obj: unknown): string[] => {
   const methods = new Set<string>();
   let current = Object.getPrototypeOf(obj);
@@ -253,6 +237,7 @@ export const getAllMethods = (obj: unknown): string[] => {
   return Array.from(methods);
 };
 
+/** @internal Default middleware `next()` implementation: re-throws when called with an error. */
 export const NextFunction = (error?: Error) => {
   if (error) throw error;
 };
@@ -271,6 +256,11 @@ function isGuardClass(guard: any): guard is GuardClass {
   );
 }
 
+/**
+ * @internal Runs one guard (instance, class, or function) against the request
+ * and throws `ForbiddenError` when it denies. Used by `beforeRequest` for every
+ * compiled guard; the `@Guard`/`@Roles` decorators are the app-facing surface.
+ */
 export async function runGuard(
   guard: GuardInstance | GuardClass | GuardFunction,
   request: Request,
@@ -309,6 +299,12 @@ export async function runGuard(
   }
 }
 
+/**
+ * @internal Runs the pre-handler stages for one route in order: rate limit,
+ * sanitizers, guards, pipes, middlewares. Errors are routed through the route's
+ * `@Catch` handlers when present. Returns `true` when an error handler already
+ * produced a response (caller should stop), `false` to continue to the handler.
+ */
 export const beforeRequest = async (
   request: Request,
   response: Response,
@@ -316,31 +312,7 @@ export const beforeRequest = async (
 ): Promise<boolean> => {
   await enforceRateLimit(request, response, route);
 
-  const compiled = route.compiled;
-
-  if (!compiled) {
-    const handlers: ErrorHandler[] = [];
-    try {
-      for (const fn of route.functions) {
-        if (fn.sanitizer) sanitizeRequest(request, fn.sanitizer);
-        if (fn.guard) await runGuard(fn.guard, request, response);
-        if (fn.pipe) {
-          if (fn.pipe.body) request.body = fn.pipe.body(request.body, request);
-          if (fn.pipe.query) request.query = fn.pipe.query(request.query, request);
-          if (fn.pipe.params) request.params = fn.pipe.params(request.params, request);
-          if (fn.pipe.headers) request.headers = fn.pipe.headers(request.headers, request);
-        }
-        if (fn.middleware) await fn.middleware(request, response, NextFunction);
-        if (fn.errorHandler) handlers.unshift(fn.errorHandler);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      if (handlers.length === 0) throw err;
-      if (await runErrorHandlers(handlers, err, request, response)) return true;
-      throw err;
-    }
-    return false;
-  }
+  const compiled = route.compiled ?? buildCompiledMiddleware(route.functions);
 
   try {
     for (const sanitizer of compiled.sanitizers) {
@@ -379,6 +351,13 @@ export const beforeRequest = async (
   return false;
 };
 
+/**
+ * @internal Builds the {@link Route}s for one controller instance: reads each
+ * method's decorator metadata, joins the prefix, merges inherited (`meta`)
+ * middlewares ahead of the controller's own, and precompiles the regex, param
+ * extractor, and middleware chain. Called by `CONTROLLER_META` while
+ * constructing a `@Controller`-wrapped class; not called directly by app code.
+ */
 export function collectRoutes(
   instance: ControllerInstance,
   meta: Omit<ControllerMeta, 'controllers'>,
@@ -395,7 +374,9 @@ export function collectRoutes(
     const current = [prefix, routeMeta.route].join('/').replace(/\/+/g, '/');
     const routeMiddlewares = routeMeta.middlewares?.map?.((middleware) => ({ middleware })) ?? [];
 
-    functions.unshift(...routeMiddlewares.reverse());
+    // Route-array middlewares (`@Get('/', [a, b])`) run before method-level
+    // decorators, in the order given.
+    functions.unshift(...routeMiddlewares);
 
     const allFunctions = [...meta.functions, ...functions];
     const corsConfigs = allFunctions
@@ -412,9 +393,9 @@ export function collectRoutes(
       functions: allFunctions,
       fn: instance[name].bind(instance),
       compiledRegex,
+      compiledSegments: current.split('/').filter((s) => s.length > 0),
       specificity: routeSpecificity(current),
       compiled: buildCompiledMiddleware(allFunctions),
-      compiledParamExtractor: buildParamExtractor(current),
     });
   }
 
@@ -424,10 +405,12 @@ export function collectRoutes(
 function compileRouteRegex(route: string): RegExp | undefined {
   const segments = route.split('/').filter((s) => s.length > 0);
   let pattern = '^';
-  for (const seg of segments) {
+  segments.forEach((seg, i) => {
     if (seg === '*') {
-      pattern += '.*';
-      continue;
+      // A trailing `*` captures the remaining path (exposed as @Params('*'));
+      // a mid-route `*` only matches, it captures nothing.
+      pattern += i === segments.length - 1 ? '(?:/(.*))?' : '.*';
+      return;
     }
     const regexMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\((.+)\)$/);
     if (regexMatch) {
@@ -439,7 +422,7 @@ function compileRouteRegex(route: string): RegExp | undefined {
     } else {
       pattern += '/' + seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
-  }
+  });
   pattern += '/?$';
   return new RegExp(pattern);
 }

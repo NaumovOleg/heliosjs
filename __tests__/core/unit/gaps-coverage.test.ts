@@ -326,8 +326,8 @@ describe('request coverage', () => {
     expect(json.path).toBe('/');
   });
 
-  it('Req isSecure with https', () => {
-    const req = makeReq({ headers: { 'x-forwarded-proto': 'https' } });
+  it('Req isSecure with https (trusted proxy)', () => {
+    const req = makeReq({ headers: { 'x-forwarded-proto': 'https' }, trustProxy: true });
     expect(req.isSecure()).toBe(true);
   });
 
@@ -336,8 +336,8 @@ describe('request coverage', () => {
     expect(req.getHeader('content-type')).toBe('text/html');
   });
 
-  it('Req getClientIp from x-forwarded-for', () => {
-    const req = makeReq({ headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' } });
+  it('Req getClientIp from x-forwarded-for (trusted proxy)', () => {
+    const req = makeReq({ headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' }, trustProxy: true });
     expect(req.getClientIp()).toBe('1.1.1.1');
   });
 

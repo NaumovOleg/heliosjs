@@ -80,8 +80,8 @@ describe('MultipartProcessor.parse', () => {
     });
 
     expect(result.fields.name).toBe('John Doe');
-    // age is auto-parsed as JSON number
-    expect(result.fields.age).toBe(30);
+    // scalar fields stay strings (only JSON objects/arrays are decoded)
+    expect(result.fields.age).toBe('30');
   });
 
   it('parses JSON fields', () => {

@@ -1,6 +1,14 @@
 import type { ControllerMeta, Route } from '../../types/core';
 import { normalizePath } from './helper';
 
+/**
+ * Extract path params for an already-matched route, using the same regex/segment
+ * logic as the matcher (so `:id(\d+)`, `:id?` and `*` all resolve by name).
+ */
+export function extractRouteParams(route: Route, requestPath: string): Record<string, string> {
+  return matchCompiledRegex(route, normalizePath(requestPath)) ?? {};
+}
+
 function matchCompiledRegex(route: Route, normalizedPath: string): Record<string, string> | null {
   if (!route.compiledRegex) {
     return extractParamsAndWildcard(route.route, normalizedPath);
@@ -9,15 +17,21 @@ function matchCompiledRegex(route: Route, normalizedPath: string): Record<string
   const match = route.compiledRegex.exec(normalizedPath);
   if (!match) return null;
 
-  const segments = route.route.split('/').filter((s) => s.length > 0);
+  const segments =
+    route.compiledSegments ?? route.route.split('/').filter((s) => s.length > 0);
   const params: Record<string, string> = {};
   let groupIndex = 1;
 
-  for (const seg of segments) {
+  segments.forEach((seg, i) => {
     if (seg === '*') {
-      params['*'] = match[groupIndex] ?? '';
-      groupIndex++;
-    } else if (seg.match(/^:[a-zA-Z_][a-zA-Z0-9_]*\(.+\)$/)) {
+      // Only a trailing `*` carries a capture group (see compileRouteRegex).
+      if (i === segments.length - 1) {
+        params['*'] = match[groupIndex] ?? '';
+        groupIndex++;
+      }
+      return;
+    }
+    if (seg.match(/^:[a-zA-Z_][a-zA-Z0-9_]*\(.+\)$/)) {
       const nameMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\(/);
       const name = nameMatch?.[1] ?? seg.slice(1);
       params[name] = match[groupIndex] ?? '';
@@ -33,7 +47,7 @@ function matchCompiledRegex(route: Route, normalizedPath: string): Record<string
       params[name] = match[groupIndex] ?? '';
       groupIndex++;
     }
-  }
+  });
 
   return params;
 }
@@ -123,6 +137,18 @@ export function routeSpecificity(route: string): string {
   return key + '5';
 }
 
+/**
+ * @internal Walks a controller's route tree depth-first and returns the
+ * highest-specificity route matching `requestMethod`/`requestPath` (see
+ * {@link routeSpecificity} for the ranking). Falls back from `HEAD` to a
+ * matching `GET` route when no explicit `HEAD` route exists. This is the router
+ * itself; app code declares routes via `@Get`/`@Post`/… instead of calling it.
+ *
+ * @param controller - Root of the compiled controller tree to search.
+ * @param requestPath - The incoming request path.
+ * @param requestMethod - The incoming request method.
+ * @returns The best-matching {@link Route}, or `undefined` if none match.
+ */
 export function matchRoutes(
   controller: ControllerMeta,
   requestPath: string,
@@ -131,10 +157,11 @@ export function matchRoutes(
   const normalizedRequestPath = normalizePath(requestPath);
   let best: Route | undefined;
   let bestKey = '';
+  let method = requestMethod;
 
   function searchInController(controller: ControllerMeta) {
     for (const route of controller.routes) {
-      if (!isMethodMatch(route.method, requestMethod)) continue;
+      if (!isMethodMatch(route.method, method)) continue;
 
       const key = route.specificity ?? routeSpecificity(route.route);
       // Ties keep the first declared route; lower-ranked routes can't win, skip the regex.
@@ -152,5 +179,13 @@ export function matchRoutes(
   }
 
   searchInController(controller);
+
+  // HEAD falls back to the matching GET handler (Express/Fastify parity); an
+  // explicit HEAD route above still wins because this only runs on a miss.
+  if (!best && requestMethod === 'HEAD') {
+    method = 'GET';
+    searchInController(controller);
+  }
+
   return best;
 }

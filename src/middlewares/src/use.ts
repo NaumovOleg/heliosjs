@@ -2,48 +2,27 @@ import type { MiddlewareCB } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 
 /**
- * Decorator to register middleware(s) at the controller or method level.
+ * Registers one or more middlewares on a controller class or a single route
+ * method. Middlewares run before the handler, in declaration order, after guards
+ * and pipes in the request pipeline. Calling `next(err)` with an error aborts the
+ * request; not calling `next` still proceeds (the pipeline advances once the
+ * middleware resolves).
  *
- * Middlewares are functions executed before the route handler.
- * They can be used to:
- * - modify request/response
- * - perform logging
- * - handle authentication/authorization
- * - short-circuit request handling
+ * Applied to a class, the middleware covers every route in it (and its child
+ * controllers); applied to a method, only that route.
  *
- * @param middleware - A single middleware function or an array of middleware functions.
+ * @param middleware - A middleware callback `(req, res, next) => void | Promise<void>`,
+ *   or an array of them applied in order. Why: attach auth, logging, request
+ *   shaping, or short-circuit logic without hand-wiring it into each handler.
  *
- * @returns A decorator that attaches middleware metadata to the target
- * (either a class or a method).
- *
- * @example
- * // Single middleware
- * @Use((req, res, next) => {
- *   console.log('Request received');
- *   next();
- * })
- * class MyController {}
+ * @returns A class or method decorator.
  *
  * @example
- * // Multiple middlewares
- * @Use([
- *   authMiddleware,
- *   loggingMiddleware,
- * ])
- * class MyController {}
- *
- * @example
- * // Method-level middleware
+ * @Use([authMiddleware, loggingMiddleware])
  * class MyController {
- *   @Use(authMiddleware)
+ *   @Use(rateLimitMiddleware)
  *   getData() {}
  * }
- *
- * @remarks
- * - Middlewares are executed in the order they are defined.
- * - Can be applied at both class and method levels.
- * - Metadata is stored using the MIDDLEWARES_CONFIG key and used
- *   internally by the framework during request handling.
  */
 export function Use(middleware: MiddlewareCB | MiddlewareCB[]) {
   return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {

@@ -385,17 +385,20 @@ describe('beforeRequest', () => {
     expect(errorHandler).toHaveBeenCalled();
   });
 
-  it('BUG: error handler after throwing middleware is never reached in beforeRequest', async () => {
+  it('error handler is reached regardless of declaration order in beforeRequest', async () => {
     const middleware = vi.fn().mockRejectedValue(new Error('middleware fail'));
-    const errorHandler = vi.fn();
+    const errorHandler = vi.fn().mockReturnValue({ handled: true });
     const route = makeRoute({
       functions: [{ middleware }, { errorHandler }] as any,
     });
     const req = makeRequest();
     const res = makeResponse();
-    // BUG: errorHandler is defined AFTER middleware, so it's never collected before the throw
-    await expect(beforeRequest(req, res, route)).rejects.toThrow('middleware fail');
-    expect(errorHandler).not.toHaveBeenCalled();
+    // All @Catch handlers are collected upfront (compiled pipeline), so one
+    // declared after the throwing middleware still runs.
+    const handled = await beforeRequest(req, res, route);
+    expect(handled).toBe(true);
+    expect(errorHandler).toHaveBeenCalled();
+    expect(res.data).toEqual({ handled: true });
   });
 
   it('re-throws when no error handlers and non-forbidden error', async () => {

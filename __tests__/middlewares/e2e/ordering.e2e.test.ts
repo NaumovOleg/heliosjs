@@ -115,9 +115,8 @@ describe('E2E middleware: execution order', () => {
     expect(log).toEqual(['arr', 'use', 'handler']);
   });
 
-  // BUG B12: collectRoutes does `functions.unshift(...routeMiddlewares.reverse())`,
-  // so `@Get('/', [a, b])` executes b before a.
-  it.fails('route-array middlewares run in the array order given', async () => {
+  // Fixed (was B12): `@Get('/', [a, b])` now runs a before b.
+  it('route-array middlewares run in the array order given', async () => {
     log = [];
     @Controller('/x')
     class C {

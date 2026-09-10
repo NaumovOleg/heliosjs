@@ -2,6 +2,28 @@ import type { ValidatorOptions } from 'class-validator';
 import type { Dto, ParamDecoratorType } from '../../types/core';
 import { defineRouteMeta } from '../shared/helpers';
 
+/**
+ * Builds a parameter decorator that records what to inject at one handler
+ * argument position. This is what `@Body`, `@Params`, `@QueryParam`, `@Headers`,
+ * `@Cookies`, `@Files`, `@Req`, `@Res`, `@Fingerprint`, `@InjectWS`, and
+ * `@InjectSSE` are implemented with — use it directly to build your own
+ * parameter decorator with the same `(nameOrDto?, nameOrOptions?, options?)`
+ * calling convention.
+ *
+ * @param type - What to inject; see {@link ParamDecoratorType}.
+ * @param nameOrDto - A field name (`string`) to extract from the resolved value,
+ *   or a DTO class to validate/transform the whole value against. Ignored for
+ *   types that don't go through validation (`'request'`, `'response'`, `'ws'`,
+ *   `'sse'`, `'fingerprint'`).
+ * @param nameOrOptions - A field name (`string`), or class-validator
+ *   `ValidatorOptions` when `nameOrDto` was a DTO.
+ * @param options - class-validator `ValidatorOptions`.
+ * @returns A parameter decorator (`(target, propertyKey, index) => void`) that
+ *   records a {@link ParamMetadata} entry for the route.
+ *
+ * @example
+ * export const UserId = () => createParamDecorator('headers', 'x-user-id');
+ */
 export function createParamDecorator(
   type: ParamDecoratorType,
   nameOrDto?: Dto | string,
@@ -31,6 +53,7 @@ export function createParamDecorator(
   };
 }
 
+/** @internal `true` when `path`'s segments start with `prefix`'s segments. */
 export const pathStartsWithPrefix = (path: string, prefix: string): boolean => {
   const pathSegments = path.split('/').filter(Boolean);
   const prefixSegments = prefix.split('/').filter(Boolean);

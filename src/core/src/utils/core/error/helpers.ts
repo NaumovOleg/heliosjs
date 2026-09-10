@@ -22,6 +22,16 @@ function formatValidationErrors(errors: ValidationError[]): any[] {
   return errors.map((error) => formatValidationError(error));
 }
 
+/**
+ * Normalizes any thrown/returned error-like value into a flat
+ * {@link SerializedError} for logging or a custom `@Catch` handler: a Helios
+ * error (has `code` + `toResponse()`), a class-validator error/array, an
+ * Axios-style HTTP error, an object with `status`/`statusCode`, a plain `Error`,
+ * or anything else (`type: 'Unknown'`).
+ *
+ * @param error - The value to classify and flatten.
+ * @returns A `SerializedError` with `original` kept for full-fidelity logging.
+ */
 export function serializeError(error: any): SerializedError {
   if (error?.code && typeof error.toResponse === 'function') {
     const response = error.toResponse();
@@ -96,6 +106,15 @@ export function serializeError(error: any): SerializedError {
   };
 }
 
+/**
+ * Heuristically decides whether `value` represents an error rather than normal
+ * response data — a Helios error, an `Error` instance, an object carrying
+ * `status`/`statusCode`/`code`/`response`/a message, or a non-empty string or
+ * number. `null`/`undefined` are never errors. Used to detect a handler/response
+ * that ended up holding an error-shaped payload.
+ *
+ * @param value - The value to test.
+ */
 export function isError(value: any): boolean {
   if (value === null || value === undefined) return false;
   if (value?.code && typeof value.toResponse === 'function') return true;
@@ -117,6 +136,16 @@ export function isError(value: any): boolean {
   return false;
 }
 
+/**
+ * Classifies a value (or its `.data`/`.error`/`.err` payload) as an error and, if
+ * so, which kind: `'HeliosError'`, `'ValidationError'`, `'Error'`, or
+ * `'AxiosError'`. Used by the AWS adapter to detect an error that ended up on
+ * `response.data` after a controller returned normally.
+ *
+ * @param error - The value (or wrapper) to classify.
+ * @returns `isError`, the detected `type` (`null` when not an error), and a
+ *   `confidence` level (currently always `'high'` when set).
+ */
 export function getErrorType(error: any): {
   isError: boolean;
   type:

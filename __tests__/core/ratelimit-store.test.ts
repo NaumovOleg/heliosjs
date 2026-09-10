@@ -32,4 +32,24 @@ describe('MemoryStore', () => {
     await store.reset('k');
     expect(await store.get('k')).toBeUndefined();
   });
+
+  it('caps entries and evicts the oldest-written on overflow', async () => {
+    const store = new MemoryStore(2);
+    await store.set('a', { count: 1, resetAt: Date.now() + 1000 }, 1000);
+    await store.set('b', { count: 1, resetAt: Date.now() + 1000 }, 1000);
+    await store.set('c', { count: 1, resetAt: Date.now() + 1000 }, 1000); // evicts 'a'
+    expect(await store.get('a')).toBeUndefined();
+    expect(await store.get('b')).toBeDefined();
+    expect(await store.get('c')).toBeDefined();
+  });
+
+  it('re-writing a key refreshes its recency', async () => {
+    const store = new MemoryStore(2);
+    await store.set('a', { count: 1, resetAt: Date.now() + 1000 }, 1000);
+    await store.set('b', { count: 1, resetAt: Date.now() + 1000 }, 1000);
+    await store.set('a', { count: 2, resetAt: Date.now() + 1000 }, 1000); // 'a' now newest
+    await store.set('c', { count: 1, resetAt: Date.now() + 1000 }, 1000); // evicts 'b'
+    expect(await store.get('b')).toBeUndefined();
+    expect((await store.get('a'))?.count).toBe(2);
+  });
 });

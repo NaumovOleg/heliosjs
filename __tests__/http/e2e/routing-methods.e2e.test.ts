@@ -115,9 +115,8 @@ describe('E2E routing: HTTP method dispatch', () => {
     expect(res.status).toBe(404);
   });
 
-  // BUG B3: HEAD is not served by the matching GET route (only exact-verb match).
-  // Express/Fastify auto-map HEAD -> GET. Un-`.fails` this when Helios does too.
-  it.fails('HEAD falls back to a GET handler (Express/Fastify parity)', async () => {
+  // Fixed (was B3): HEAD now falls back to the matching GET handler, no body.
+  it('HEAD falls back to a GET handler (Express/Fastify parity)', async () => {
     @Controller('/hf')
     class HF {
       @Get('/x') g() { return { ok: true }; }
@@ -125,6 +124,7 @@ describe('E2E routing: HTTP method dispatch', () => {
     ctx = await startE2E([HF]);
     const res = await fetch(`${ctx.base}/hf/x`, { method: 'HEAD' });
     expect(res.status).toBe(200);
+    expect(await res.text()).toBe('');
   });
 
   it('@Query reads its payload from the request body (Endpoint.ts contract)', async () => {

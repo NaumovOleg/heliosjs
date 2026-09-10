@@ -18,7 +18,11 @@ export function makeRequest(overrides: Record<string, any> = {}): Request {
     headers,
     query,
     params,
-    getHeader: (n: string) => headers[n.toLowerCase()] ?? headers[n],
+    getHeader: (n: string) => {
+      const lower = n.toLowerCase();
+      const key = Object.keys(headers).find((k) => k.toLowerCase() === lower);
+      return key !== undefined ? headers[key] : undefined;
+    },
     getParam: (n: string) => params[n],
     getQuery: (n: string) => query[n],
     getClientIp: () => overrides.ip ?? "127.0.0.1",

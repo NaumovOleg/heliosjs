@@ -8,8 +8,17 @@ import type {
   WebSocketEvent,
   WebSocketMessage,
 } from '../../types/ws';
+import { getGlobalLogger } from '../core/logger';
 import { generateUniqueId } from '../shared';
 
+/**
+ * @internal Low-level WebSocket server bound to a Node HTTP server; handles the
+ * upgrade handshake, client tracking, topic pub-sub, and dispatch to
+ * `@OnWS`/`@Subscribe` handlers on registered controllers. Constructed by the
+ * `@heliosjs/http` `Helios` adapter when `websocket` is configured. App code
+ * should use `WebSocketService.getInstance()` (or `@InjectWS()`) instead of this
+ * class directly.
+ */
 export class WebSocketServer implements IWebSocketServer {
   wss: Server;
   private readonly clients = new Map<string, WebSocketClient>();
@@ -162,7 +171,7 @@ export class WebSocketServer implements IWebSocketServer {
         try {
           await handler.fn(event);
         } catch (error) {
-          console.error(`Error in WebSocket handler ${handler.method}:`, error);
+          getGlobalLogger().error(`ws: handler ${handler.method} failed`, error);
         }
       }
 
@@ -173,7 +182,7 @@ export class WebSocketServer implements IWebSocketServer {
           try {
             await sub.fn(event);
           } catch (error) {
-            console.error(`Error in subscription ${sub.method}:`, error);
+            getGlobalLogger().error(`ws: subscription ${sub.method} failed`, error);
           }
         }
       }

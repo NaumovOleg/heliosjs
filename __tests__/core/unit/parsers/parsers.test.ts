@@ -37,12 +37,13 @@ describe('parseBody', () => {
     expect(result).toEqual({ name: 'John' });
   });
 
-  it('returns string on invalid JSON', () => {
-    const result = parseBody({
-      body: 'not-json',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    expect(result).toBe('not-json');
+  it('throws 400 on invalid JSON', () => {
+    expect(() =>
+      parseBody({
+        body: 'not-json',
+        headers: { 'Content-Type': 'application/json' },
+      })
+    ).toThrow(/Invalid JSON body/);
   });
 
   it('parses text body', () => {

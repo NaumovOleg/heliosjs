@@ -18,25 +18,42 @@ import { defineControllerMeta, defineMiddlewaresMeta } from './utils/shared';
 import descriptors from './descriptors';
 
 /**
- * Class decorator to define a controller with optional configuration.
+ * Class decorator that turns a plain class into a Helios controller: it fixes the
+ * route prefix, attaches controller-level middlewares, and mounts nested
+ * controllers. Routes themselves come from the method decorators
+ * ({@link Get}, {@link Post}, …).
  *
- * This decorator can be used with a string prefix or a configuration object.
- * It sets up metadata for route prefix, middlewares, sub-controllers, and interceptors.
+ * Two call forms:
+ * - `@Controller('/users')` or `@Controller('/users', [authMw])` — prefix, plus
+ *   an optional middleware array.
+ * - `@Controller({ prefix: '/users', middlewares: [authMw], controllers: [ProfileController] })`
+ *   — the object form, the only way to declare child controllers.
  *
- * It wraps all controller methods to handle errors gracefully by catching exceptions
- * and returning a standardized error response.
+ * At construction the decorated class is subclassed and given the internal
+ * request-handling methods; a child controller inherits its parent's prefix and
+ * middleware chain (parent middlewares run first). Invalid input (non-string
+ * prefix, a non-class in `controllers`, a non-function in `middlewares`) throws
+ * `TypeError` naming the offending class.
  *
- * The decorated controller class is extended with methods to:
- * - execute controller methods with proper context and error handling
- * - retrieve controller methods metadata
- * - handle incoming requests by matching routes, applying middlewares and interceptors,
- *   and returning appropriate responses
+ * @param path - Route prefix for every route in the class, e.g. `'/users'`.
+ *   Joined with the parent controller's prefix when nested. Why: one place to
+ *   version or namespace a whole group of routes.
+ * @param middlewares - Controller-scoped middlewares (`(req, res, next) => …`),
+ *   run in order before every route in this controller and its children. Why:
+ *   cross-cutting concerns (auth, logging) without repeating `@Use` per method.
  *
- * @param config - Either a string representing the route prefix or a configuration object
- *                 containing prefix, middlewares, sub-controllers, and interceptors.
- * @param middlewares - Additional interceptors to apply at the controller level.
+ * @returns A class decorator that returns the enhanced controller subclass.
  *
- * @returns A class decorator function that enhances the controller class.
+ * @example
+ * @Controller({
+ *   prefix: '/users',
+ *   middlewares: [authMiddleware],
+ *   controllers: [UserSettingsController],
+ * })
+ * class UserController {
+ *   @Get('/:id')
+ *   getOne(@Params('id') id: string) {}
+ * }
  */
 export function Controller(
   path: string,
@@ -60,7 +77,7 @@ export function Controller(config: string | ControllerConfig, middlewares: Middl
     if (controllers.some((c) => typeof c !== 'function')) {
       throw new TypeError(`Error in ${constructor.name}. Invalid sub-controllers`);
     }
-    if (middlewares.some((c) => typeof c !== 'function')) {
+    if (controllerMiddlewares.some((c) => typeof c !== 'function')) {
       throw new TypeError(`Error in ${constructor.name}. Invalid middlewares`);
     }
 
@@ -88,15 +105,6 @@ export function Controller(config: string | ControllerConfig, middlewares: Middl
       controllerMiddlewares.map((middleware) => ({ middleware })),
       constructor
     );
-
-    for (const key of Object.getOwnPropertyNames(proto)) {
-      if (key === 'constructor') continue;
-
-      const descriptor = Object.getOwnPropertyDescriptor(proto, key);
-      if (!descriptor || typeof descriptor.value !== 'function') continue;
-
-      Object.defineProperty(proto, key, descriptor);
-    }
 
     return Wrapped;
   };

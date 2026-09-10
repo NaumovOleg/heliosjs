@@ -1,36 +1,24 @@
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
- * Decorator to set the HTTP status code for the response.
+ * Sets the HTTP status code for successful responses from a controller class or a
+ * single route method. Method-level wins over class-level. Without it a
+ * successful handler responds `200` (or the code you set via `res.status`).
  *
- * This decorator can be applied at the method level to specify the HTTP status code
- * that should be returned when the method's response is sent. It can also be applied
- * at the class level to set a default status code for all methods within the class.
+ * This only affects the success path — errors still carry the status of the
+ * thrown `HeliosError`, and an explicit `res.redirect()` keeps its own code.
  *
- * The status code is stored as metadata on the target or method, which can be retrieved
- * by the framework to set the HTTP response status accordingly.
+ * @param status - The HTTP status code to send, e.g. `201` for a create, `202`
+ *   for an accepted async job, `204` for an empty body. Why: express REST
+ *   semantics without touching the `Response` object.
  *
- * @param {number} status - The HTTP status code to set for the response.
- *
- * @returns {Function} A decorator function that applies the status code metadata.
- *
- * @example
- * // Set status code 201 for a specific method
- * @Status(201)
- * async createResource() {
- *   // ...
- * }
+ * @returns A class or method decorator.
  *
  * @example
- * // Set default status code 204 for all methods in a controller
- * @Status(204)
- * class MyController {
- *   // ...
+ * class UserController {
+ *   @Post('/')
+ *   @Status(201)
+ *   create(@Body() dto: CreateUserDto) {}
  * }
- *
- * @remarks
- * The metadata key used for storing the status code is defined by `OK_METADATA_KEY`.
- * This metadata is accessible via Reflect API and used internally by the framework
- * to set the HTTP response status.
  */
 export function Status(status: number) {
   return function (target: any, propertyKey?: string): void {

@@ -1,5 +1,6 @@
 import type { MiddlewareCB } from '@heliosjs/core/types';
 import type { Hooks, PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/aws';
+import { getGlobalLogger } from '@heliosjs/core/utils';
 
 export class Plugin {
   plugins: TPlugin[] = [];
@@ -15,7 +16,7 @@ export class Plugin {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (hook as any)(...args);
         } catch (error) {
-          console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
+          getGlobalLogger().error(`plugin ${plugin.name}: hook ${hookName} failed`, error);
         }
       }
     }
@@ -28,7 +29,7 @@ export class Plugin {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (hook as any)(...args);
         } catch (error) {
-          console.error(`Plugin ${plugin.name} hook ${hookName} error:`, error);
+          getGlobalLogger().error(`plugin ${plugin.name}: hook ${hookName} failed`, error);
         }
       }
     }
@@ -41,14 +42,12 @@ export class Plugin {
    * @returns Current adapter instance for fluent chaining.
    *
    * @example
-   * ```ts
    * app.usePlugin({
    *   name: 'metrics',
    *   hooks: {
    *     beforeRequest: async (event) => console.log(event.requestContext),
    *   },
    * });
-   * ```
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   usePlugin(plugin: any) {

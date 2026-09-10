@@ -21,16 +21,15 @@ import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/a
  * API Gateway REST/HTTP events and Lambda Function URLs.
  *
  * @example
- * ```ts
  * const app = new Helios(AppController);
  * export const handler = app.handler;
- * ```
  */
 export class Helios extends Plugin implements ILambdaAdapter {
   handler: Handler;
   controller: ControllerType;
   plugins: LambdaPlugin[] = [];
   private readonly corsConfig?: CORSConfig;
+  private readonly trustProxy: boolean;
   /**
    * Creates a Lambda adapter with a root Helios controller.
    *
@@ -45,6 +44,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
       setFingerprintConfig(options.fingerprint);
     }
     this.corsConfig = options?.cors;
+    this.trustProxy = options?.trustProxy ?? true;
     this.controller = this.compileController(controller);
     this.handler = this.createHandler();
   }
@@ -53,7 +53,24 @@ export class Helios extends Plugin implements ILambdaAdapter {
       await this.callPluginHook('beforeRequest', event, context);
 
       const eventType = getEventType(event);
-      const request = RequestFactory.create(event, context);
+
+      let request: Request;
+      try {
+        request = RequestFactory.create(event, context, this.trustProxy);
+      } catch (error) {
+        // Malformed JSON / bad event — reply before we have a Request.
+        const status = (error as { status?: number })?.status ?? 400;
+        return {
+          statusCode: status,
+          headers: { 'Content-Type': 'application/json', 'X-Request-Id': context.awsRequestId },
+          body: JSON.stringify({
+            code: (error as { code?: string })?.code ?? 'BAD_REQUEST',
+            status,
+            message: (error as Error)?.message ?? 'Bad Request',
+          }),
+          isBase64Encoded: false,
+        };
+      }
       const response = ResponseFactory.create(request);
 
       return this.runControllers({
@@ -120,30 +137,47 @@ export class Helios extends Plugin implements ILambdaAdapter {
     return headers;
   }
 
+  private encodeBody(response: Response): { body: string | undefined; isBase64Encoded: boolean } {
+    const data = response.data;
+    if (data == null) return { body: undefined, isBase64Encoded: false };
+    if (Buffer.isBuffer(data)) return { body: data.toString('base64'), isBase64Encoded: true };
+    if (typeof data === 'string') return { body: data, isBase64Encoded: !!response.isBase64Encoded };
+    return { body: JSON.stringify(data), isBase64Encoded: false };
+  }
+
   private async toLambdaResponse(request: Request, response: Response, eventType: 'rest' | 'http' | 'url') {
-    const statusCode = response.data?.status ?? response?.status ?? 200;
+    const statusCode =
+      (response.data as { status?: number })?.status ?? response?.status ?? 200;
 
     const corsHeaders = this.buildCorsHeaders(request, response);
     const headers = { ...this.toLambdaHeaders(request, response), ...corsHeaders };
 
-    const body = response?.data != null ? JSON.stringify(response.data) : undefined;
-    const commonResponse = { statusCode, headers, body };
+    const { body, isBase64Encoded } = this.encodeBody(response);
+    // Response cookies set via res.setCookie() — NOT the inbound request cookies.
+    const cookies = response.cookies ?? [];
 
     await this.callPluginHook('afterResponse', request, response);
     switch (eventType) {
       case 'rest':
-        return { ...commonResponse, isBase64Encoded: false };
-
-      case 'http':
+        // API Gateway REST has no `cookies` field — Set-Cookie rides multiValueHeaders.
         return {
-          ...commonResponse,
-          cookies: request.cookies
-            ? Object.entries(request.cookies).map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-            : undefined,
+          statusCode,
+          headers,
+          multiValueHeaders: cookies.length ? { 'Set-Cookie': cookies } : undefined,
+          body,
+          isBase64Encoded,
         };
 
+      case 'http':
+      case 'url':
       default:
-        return { statusCode, headers, body };
+        return {
+          statusCode,
+          headers,
+          cookies: cookies.length ? cookies : undefined,
+          body,
+          isBase64Encoded,
+        };
     }
   }
 

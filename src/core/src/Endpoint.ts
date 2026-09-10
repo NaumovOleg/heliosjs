@@ -1,26 +1,32 @@
 import type { MiddlewareCB } from './types/core';
 import { HTTP_METHODS } from './types/core';
+import { getGlobalLogger } from './utils/core/logger';
 import { defineRouteMeta } from './utils/shared';
 
 /**
- * Method decorator to define HTTP method and route pattern metadata on controller methods.
+ * Method decorator that binds a controller method to an HTTP endpoint. Prefer the
+ * verb shortcuts ({@link Get}, {@link Post}, …) — use `Endpoint` directly only
+ * when the method is dynamic.
  *
- * This decorator maps a controller method to an HTTP endpoint by specifying the HTTP method
- * (e.g., GET, POST) and an optional route pattern.
+ * @param method - Member of the `HTTP_METHODS` enum, one of: `GET`, `POST`,
+ *   `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`, `QUERY` (body-carrying read), or
+ *   `ANY` (matches every method). The value is upper-cased before use. Why: this
+ *   is the method the router matches the incoming request against.
+ * @param pathPattern - Route pattern relative to the controller prefix, defaults
+ *   to `'/'`. Supports static segments, `:param`, `:param(regex)`, optional
+ *   `:param?`, and trailing `*` wildcard. Why: defines which paths reach this
+ *   handler and what `@Params()` can extract.
+ * @param middlewares - Middlewares run before this route's handler, in array
+ *   order, ahead of any method-level `@Use`/guard decorators. Why: per-route
+ *   pre-processing without a separate decorator.
  *
- * It also allows attaching middlewares that will be applied when the endpoint is accessed.
- *
- * @param method - The HTTP method (e.g., 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'QUERY', 'ANY').
- * @param pathPattern - Optional route pattern string to match the endpoint path.
- * @param middlewares - Optional array of middlewares to apply to this endpoint.
- *
- * @returns A method decorator function.
+ * @returns A method decorator.
  */
 export function Endpoint(method: HTTP_METHODS, pathPattern?: string, middlewares?: MiddlewareCB[]) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = target[propertyKey];
     if (!originalMethod) {
-      console.warn('❌ originalMethod is undefined!', method, pathPattern);
+      getGlobalLogger().warn(`@Endpoint on a missing method (${method} ${pathPattern ?? '/'})`);
       return descriptor;
     }
 
@@ -123,22 +129,18 @@ export const Head = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
  * @returns Method decorator for QUERY endpoint.
  *
  * @example
- * ```ts
  * @Query('/search')
  * search(@Body() filter: SearchDto) {}
- * ```
  */
 export const Query = (pathPattern?: string, middlewares?: MiddlewareCB[]) => {
   return Endpoint(HTTP_METHODS.QUERY, pathPattern, middlewares);
 };
 
-// /**
-//  * Shortcut decorator for middleware usage on routes.
-//  *
-//  * @param pathPattern - Optional route pattern string.
-//  * @param middlewares - Optional array of middlewares.
-//  * @returns Method decorator for middleware usage.
-//  */
+/**
+ * Catch-all decorator: matches any method on any sub-path (`*`).
+ *
+ * @param middlewares - Optional array of middlewares.
+ */
 export function Any(middlewares?: MiddlewareCB[]) {
   return Endpoint(HTTP_METHODS.ANY, '*', middlewares);
 }
