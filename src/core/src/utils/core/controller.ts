@@ -1,30 +1,34 @@
 import { TO_VALIDATE } from '../../constants';
+import { ErrorCode } from '../../types/core';
 import type {
+  Route,
+  MiddlewaresMetadataItem,
+  CompiledMiddleware,
   ControllerInstance,
   ControllerMeta,
-  ErrorHandler,
   GuardClass,
   GuardFunction,
   GuardInstance,
   Request,
   Response,
-  Route,
 } from '../../types/core';
-import { ErrorCode } from '../../types/core';
+import type { ErrorHandler } from '../../types/core/error';
 import { reflectMiddlewaresMetadata, reflectRouteMetadata, validate } from '../shared';
 import { WebSocketService } from '../socket';
 import { SSEService } from '../sse';
 import { handleCORS } from './cors';
 import { getOrComputeFingerprint } from './fingerprint';
 import { ForbiddenError } from './error';
-import { extractMiddlewares, getBodyAndMultipart, getParams } from './helper';
+import { getBodyAndMultipart, getParams, buildParamExtractor, extractMiddlewares } from './helper';
 import { enforceRateLimit } from './ratelimit';
 import { sanitizeRequest } from './sanitize';
 
 export const execute = async (route: Route, request: Request, response: Response) => {
-  request.params = getParams(route.route, request.path);
+  request.params = route.compiledParamExtractor
+    ? route.compiledParamExtractor(request.path)
+    : getParams(route.route, request.path);
 
-  const corsConfigs = route.cors ?? route.functions.filter((fn) => fn.cors).map((fn) => fn.cors!);
+  const corsConfigs = route.compiled?.cors ?? route.cors ?? [];
 
   const handledCors = corsConfigs.reduce(
     (acc, conf) => {
@@ -115,13 +119,20 @@ export const execute = async (route: Route, request: Request, response: Response
       response.error(data);
     } else {
       if (!response.isRedirect) {
-        response.status = route.functions.find((fn) => fn.status)?.status ?? 200;
+        response.status =
+          route.compiled?.status ?? route.functions.find((fn) => fn.status)?.status ?? 200;
       }
       if (data !== undefined) {
-        const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
-
-        for (const interceptor of interceptors) {
-          data = await Promise.resolve(interceptor!(data, request, response));
+        if (route.compiled?.interceptors) {
+          const interceptors = route.compiled.interceptors;
+          for (let i = interceptors.length - 1; i >= 0; i--) {
+            data = await Promise.resolve(interceptors[i](data, request, response));
+          }
+        } else {
+          const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
+          for (const interceptor of interceptors) {
+            data = await Promise.resolve(interceptor?.(data, request, response));
+          }
         }
       }
     }
@@ -129,6 +140,7 @@ export const execute = async (route: Route, request: Request, response: Response
     response.data = data;
 
     return response;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     if (
       [
@@ -144,23 +156,36 @@ export const execute = async (route: Route, request: Request, response: Response
 
     let caught = error;
 
-    const errorHandlers = extractMiddlewares(route.functions, 'errorHandler').reverse();
+    const compiledEH = route.compiled?.errorHandlers;
+    const fallbackEH = compiledEH
+      ? null
+      : extractMiddlewares(route.functions, 'errorHandler').reverse();
 
-    for (const handler of errorHandlers) {
-      const resp = await Promise.resolve(handler!(caught as Error, request, response)).catch(
-        (err) => err
-      );
-      caught = resp;
-      if (resp instanceof Error) {
-        continue;
+    if (compiledEH) {
+      for (let i = compiledEH.length - 1; i >= 0; i--) {
+        const resp = await Promise.resolve(
+          compiledEH[i]?.(caught as Error, request, response)
+        ).catch((err) => err);
+        caught = resp;
+        if (resp instanceof Error) continue;
+        response.data = caught;
+        break;
       }
-
-      response.data = caught;
-      break;
+    } else if (fallbackEH) {
+      for (const handler of fallbackEH) {
+        const resp = await Promise.resolve(handler?.(caught as Error, request, response)).catch(
+          (err) => err
+        );
+        caught = resp;
+        if (resp instanceof Error) continue;
+        response.data = caught;
+        break;
+      }
     }
 
     if (caught instanceof Error) {
-      if (errorHandlers.length === 0) {
+      const handlerCount = compiledEH?.length ?? fallbackEH?.length ?? 0;
+      if (handlerCount === 0) {
         throw caught;
       }
       if (typeof error === 'string') {
@@ -202,10 +227,12 @@ export const NextFunction = (error?: Error) => {
   if (error) throw error;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isGuardInstance(guard: any): guard is GuardInstance {
   return typeof guard === 'object' && guard !== null && typeof guard.canActivate === 'function';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isGuardClass(guard: any): guard is GuardClass {
   return (
     typeof guard === 'function' &&
@@ -252,52 +279,77 @@ export async function runGuard(
   }
 }
 
-export const beforeRequest = async (request: Request, response: Response, route: Route): Promise<boolean> => {
+export const beforeRequest = async (
+  request: Request,
+  response: Response,
+  route: Route
+): Promise<boolean> => {
   await enforceRateLimit(request, response, route);
 
-  const handlers: ErrorHandler[] = [];
+  const compiled = route.compiled;
+
+  if (!compiled) {
+    const handlers: ErrorHandler[] = [];
+    try {
+      for (const fn of route.functions) {
+        if (fn.sanitizer) sanitizeRequest(request, fn.sanitizer);
+        if (fn.guard) await runGuard(fn.guard, request, response);
+        if (fn.pipe) {
+          if (fn.pipe.body) request.body = fn.pipe.body(request.body, request);
+          if (fn.pipe.query) request.query = fn.pipe.query(request.query, request);
+          if (fn.pipe.params) request.params = fn.pipe.params(request.params, request);
+          if (fn.pipe.headers) request.headers = fn.pipe.headers(request.headers, request);
+        }
+        if (fn.middleware) await fn.middleware(request, response, NextFunction);
+        if (fn.errorHandler) handlers.unshift(fn.errorHandler);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      if ([ErrorCode.FORBIDDEN, ErrorCode.RATE_LIMIT_EXCEEDED].includes(err.code)) throw err;
+      const promises = handlers.map((handler) => handler(err, request, response));
+      if (promises.length) {
+        await Promise.all(promises);
+        return true;
+      }
+      throw err;
+    }
+    return false;
+  }
+
   try {
-    for (const fn of route.functions) {
-      if (fn.sanitizer) {
-        sanitizeRequest(request, fn.sanitizer);
+    for (const sanitizer of compiled.sanitizers) {
+      sanitizeRequest(request, sanitizer);
+    }
+
+    for (const guard of compiled.guards) {
+      await runGuard(guard, request, response);
+    }
+
+    for (const pipe of compiled.pipes) {
+      if (pipe.body) {
+        request.body = pipe.body(request.body, request);
       }
-      if (fn.guard) {
-        await runGuard(fn.guard, request, response);
+      if (pipe.query) {
+        request.query = pipe.query(request.query, request);
       }
-
-      if (fn.pipe) {
-        const pipe = fn.pipe;
-        if (pipe.body) {
-          request.body = pipe.body(request.body, request);
-        }
-
-        if (pipe.query) {
-          request.query = pipe.query(request.query, request);
-        }
-
-        if (pipe.params) {
-          request.params = pipe.params(request.params, request);
-        }
-
-        if (pipe.headers) {
-          request.headers = pipe.headers(request.headers, request);
-        }
+      if (pipe.params) {
+        request.params = pipe.params(request.params, request);
       }
-
-      if (fn.middleware) {
-        await fn.middleware(request, response, NextFunction);
-      }
-
-      if (fn.errorHandler) {
-        handlers.unshift(fn.errorHandler);
+      if (pipe.headers) {
+        request.headers = pipe.headers(request.headers, request);
       }
     }
+
+    for (const mw of compiled.middlewares) {
+      await mw(request, response, NextFunction);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     if ([ErrorCode.FORBIDDEN, ErrorCode.RATE_LIMIT_EXCEEDED].includes(err.code)) {
       throw err;
     }
-    const promises = handlers.map((handler) => handler(err, request, response));
-    if (promises.length) {
+    if (compiled.errorHandlers.length > 0) {
+      const promises = compiled.errorHandlers.map((handler) => handler(err, request, response));
       await Promise.all(promises);
       return true;
     }
@@ -325,7 +377,11 @@ export function collectRoutes(
     functions.unshift(...routeMiddlewares.reverse());
 
     const allFunctions = [...meta.functions, ...functions];
-    const corsConfigs = allFunctions.filter((fn) => fn.cors).map((fn) => fn.cors!);
+    const corsConfigs = allFunctions
+      .filter((fn) => fn.cors)
+      .map((fn) => fn.cors as NonNullable<typeof fn.cors>);
+
+    const compiledRegex = compileRouteRegex(current);
 
     routes.push({
       ...routeMeta,
@@ -334,8 +390,61 @@ export function collectRoutes(
       cors: corsConfigs.length > 0 ? corsConfigs : undefined,
       functions: allFunctions,
       fn: instance[name].bind(instance),
+      compiledRegex,
+      compiled: buildCompiledMiddleware(allFunctions),
+      compiledParamExtractor: buildParamExtractor(current),
     });
   }
 
   return routes;
+}
+
+function compileRouteRegex(route: string): RegExp | undefined {
+  const segments = route.split('/').filter((s) => s.length > 0);
+  let pattern = '^';
+  for (const seg of segments) {
+    if (seg === '*') {
+      pattern += '.*';
+      continue;
+    }
+    const regexMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\((.+)\)$/);
+    if (regexMatch) {
+      pattern += '/(' + regexMatch[2] + ')';
+    } else if (seg.endsWith('?')) {
+      pattern += '(?:/([^/]+))?';
+    } else if (seg.startsWith(':')) {
+      pattern += '/([^/]+)';
+    } else {
+      pattern += '/' + seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  }
+  pattern += '/?$';
+  return new RegExp(pattern);
+}
+
+function buildCompiledMiddleware(fns: MiddlewaresMetadataItem[]): CompiledMiddleware {
+  const compiled: CompiledMiddleware = {
+    sanitizers: [],
+    guards: [],
+    pipes: [],
+    middlewares: [],
+    interceptors: [],
+    errorHandlers: [],
+    cors: [],
+    rateLimits: [],
+  };
+
+  for (const fn of fns) {
+    if (fn.sanitizer) compiled.sanitizers.push(fn.sanitizer);
+    if (fn.guard) compiled.guards.push(fn.guard);
+    if (fn.pipe) compiled.pipes.push(fn.pipe);
+    if (fn.middleware) compiled.middlewares.push(fn.middleware);
+    if (fn.interceptor) compiled.interceptors.push(fn.interceptor);
+    if (fn.errorHandler) compiled.errorHandlers.push(fn.errorHandler);
+    if (fn.cors) compiled.cors.push(fn.cors);
+    if (fn.rateLimit) compiled.rateLimits.push(fn.rateLimit);
+    if (fn.status !== undefined) compiled.status = fn.status;
+  }
+
+  return compiled;
 }

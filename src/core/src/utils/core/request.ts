@@ -20,19 +20,22 @@ export class Req implements Request {
   stage: string;
   timestamp: Date;
   source: RequestSource;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any;
   context: unknown;
   rawBody: unknown;
   isBase64Encoded: boolean;
   startTime: number;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly _state = new Map<string, any>();
 
   constructor(options: RequestOptions) {
     this.method = options.method.toUpperCase();
     this.path = options.path;
     this.url = options.url ?? options.path;
-    this.requestUrl = new URL(options.path, `http://${options.headers?.host || 'localhost'}`);
+    this.requestUrl =
+      options.requestUrl ?? new URL(options.path, `http://${options.headers?.host || 'localhost'}`);
     this.headers = options.headers || {};
     this.query = options.query || {};
     this.body = options.body;
@@ -137,6 +140,7 @@ export class Req implements Request {
   /**
    * Store arbitrary data in request state
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setState(key: string, value: any): void {
     this._state.set(key, value);
   }
@@ -144,6 +148,7 @@ export class Req implements Request {
   /**
    * Get stored state data
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getState<T = any>(key: string): T | undefined {
     return this._state.get(key);
   }
@@ -151,6 +156,7 @@ export class Req implements Request {
   /**
    * Get all stored state
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getAllState(): Map<string, any> {
     return new Map(this._state);
   }
@@ -219,6 +225,7 @@ export class Req implements Request {
   /**
    * Convert to plain object
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toJSON(): Record<string, any> {
     return {
       method: this.method,

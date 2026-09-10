@@ -1,5 +1,4 @@
-import type {
-  CONTROLLER_PRECOMPILED} from '../../constants';
+import type { CONTROLLER_PRECOMPILED } from '../../constants';
 import {
   CONTROLLER_GET_SSE_CONTROLLER,
   CONTROLLER_GET_SSE_HANDLERS,
@@ -54,6 +53,7 @@ export type ControllerMethods = {
 export interface ControllerType {
   [CONTROLLER_PRECOMPILED]?: ControllerMeta;
   [CONTROLLER_META]?(parent: Omit<ControllerMeta, 'controllers'>): ControllerMeta;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [CONTROLLER_REQUEST]?(request: Request, response: Response): Promise<any>;
   [CONTROLLER_LOOKUP_WS]?(): void;
   [CONTROLLER_LOOKUP_SSE]?(): void;
@@ -124,6 +124,18 @@ export interface FunctionsMeta {
   interceptors: InterceptorCB[];
   status?: number;
 }
+export interface CompiledMiddleware {
+  sanitizers: SanitizerConfig[];
+  guards: (GuardClass | GuardFunction | GuardInstance)[];
+  pipes: Pipe[];
+  middlewares: MiddlewareCB[];
+  interceptors: InterceptorCB[];
+  errorHandlers: ErrorHandler[];
+  cors: CORSConfig[];
+  rateLimits: RateLimitOptions[];
+  status?: number;
+}
+
 export interface Route {
   name: string;
   route: string;
@@ -133,6 +145,9 @@ export interface Route {
   functions: MiddlewaresMetadataItem[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => any;
+  compiledRegex?: RegExp;
+  compiled?: CompiledMiddleware;
+  compiledParamExtractor?: (path: string) => Record<string, string>;
 }
 export type NextFunction = (error?: unknown) => void;
 export interface ControllerMeta {

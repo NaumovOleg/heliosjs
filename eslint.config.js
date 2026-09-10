@@ -48,6 +48,12 @@ export default defineConfig([
     },
   },
   {
+    files: ['benchmarks/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     ignores: [
       'node_modules',
       'dist',

@@ -88,7 +88,11 @@ export class Helios extends Plugin implements IHttpServer {
     }
 
     for (const st of this.config.statics ?? []) {
-      const staticMw = staticMiddleware(st.root ?? st.path, { ...st.options, path: st.root ? st.path : undefined } as any);
+      const staticMw = staticMiddleware(st.root ?? st.path, {
+        ...st.options,
+        path: st.root ? st.path : undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
       this.staticMiddlewares.push(staticMw);
     }
 
@@ -279,12 +283,17 @@ export class Helios extends Plugin implements IHttpServer {
     }
   }
 
-  private async beforeRequest(request: Request, response: Response, restOfPipeline?: () => Promise<void>) {
+  private async beforeRequest(
+    request: Request,
+    response: Response,
+    restOfPipeline?: () => Promise<void>
+  ) {
     for (const sanitizer of this.config.sanitizers ?? []) {
       sanitizeRequest(request, sanitizer);
     }
 
     const runMiddlewares = async (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       middlewares: ((...args: any[]) => any)[],
       index: number,
       rest: () => Promise<void>
@@ -387,7 +396,10 @@ export class Helios extends Plugin implements IHttpServer {
   ): Promise<void> {
     if (response.headersSent) return;
 
-    if (!response.getHeader('Content-Type') || response.getHeader('Content-Type') === 'application/json') {
+    if (
+      !response.getHeader('Content-Type') ||
+      response.getHeader('Content-Type') === 'application/json'
+    ) {
       const data = response.data;
       if (typeof data === 'string') {
         response.setHeader('Content-Type', 'text/plain');

@@ -23,20 +23,21 @@ export class RequestFactory {
     const query = parseQuery(requestUrl);
 
     const forwardedFor = req.headers['x-forwarded-for'] as string;
-    const sourceIp =
-      forwardedFor?.split(',')[0]?.trim() ??
-      req.socket.remoteAddress ??
-      '0.0.0.0';
+    const sourceIp = forwardedFor?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? '0.0.0.0';
 
-    const rawBody = await collectRawBody(req, maxBytes);
+    const method = req.method || 'GET';
+    let rawBody: Buffer | undefined;
+    let body: unknown;
 
-    const body = parseBody({
-      body: rawBody,
-      headers: req.headers as Record<string, string | string[]>,
-      isBase64Encoded: false,
-    });
-
-    Object.assign(req, { body });
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      rawBody = await collectRawBody(req, maxBytes);
+      body = parseBody({
+        body: rawBody,
+        headers: req.headers as Record<string, string | string[]>,
+        isBase64Encoded: false,
+      });
+      Object.assign(req, { body });
+    }
 
     return new Req({
       url: req.url ?? '/',

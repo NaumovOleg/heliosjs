@@ -1,22 +1,58 @@
 import type { ControllerMeta, Route } from '../../types/core';
 import { normalizePath } from './helper';
 
+function matchCompiledRegex(route: Route, normalizedPath: string): Record<string, string> | null {
+  if (!route.compiledRegex) {
+    return extractParamsAndWildcard(route.route, normalizedPath);
+  }
+
+  const match = route.compiledRegex.exec(normalizedPath);
+  if (!match) return null;
+
+  const segments = route.route.split('/').filter((s) => s.length > 0);
+  const params: Record<string, string> = {};
+  let groupIndex = 1;
+
+  for (const seg of segments) {
+    if (seg === '*') {
+      params['*'] = match[groupIndex] ?? '';
+      groupIndex++;
+    } else if (seg.match(/^:[a-zA-Z_][a-zA-Z0-9_]*\(.+\)$/)) {
+      const nameMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\(/);
+      const name = nameMatch?.[1] ?? seg.slice(1);
+      params[name] = match[groupIndex] ?? '';
+      groupIndex++;
+    } else if (seg.endsWith('?')) {
+      const paramName = seg.startsWith(':') ? seg.slice(1, -1) : null;
+      if (paramName && match[groupIndex]) {
+        params[paramName] = match[groupIndex];
+      }
+      groupIndex++;
+    } else if (seg.startsWith(':')) {
+      const name = seg.slice(1);
+      params[name] = match[groupIndex] ?? '';
+      groupIndex++;
+    }
+  }
+
+  return params;
+}
+
 function extractParamsAndWildcard(
   routePattern: string,
-  actualPath: string,
-): { params: Record<string, string>; wildcardMatch?: string } | null {
-  const patternSegments = routePattern.split('/').filter(s => s.length > 0);
-  const pathSegments = actualPath.split('/').filter(s => s.length > 0);
+  actualPath: string
+): Record<string, string> | null {
+  const patternSegments = routePattern.split('/').filter((s) => s.length > 0);
+  const pathSegments = actualPath.split('/').filter((s) => s.length > 0);
 
   const params: Record<string, string> = {};
-  let wildcardMatch: string | undefined;
   let pathIndex = 0;
 
   for (const element of patternSegments) {
     const pattern = element;
     if (pattern === '*') {
-      wildcardMatch = pathSegments.slice(pathIndex).join('/');
-      return { params, wildcardMatch };
+      params['*'] = pathSegments.slice(pathIndex).join('/');
+      return params;
     }
     if (pathIndex >= pathSegments.length) {
       if (pattern.endsWith('?')) {
@@ -62,7 +98,7 @@ function extractParamsAndWildcard(
     return null;
   }
 
-  return { params };
+  return params;
 }
 
 function isMethodMatch(routeMethod: string, requestMethod: string): boolean {
@@ -72,38 +108,29 @@ function isMethodMatch(routeMethod: string, requestMethod: string): boolean {
 export function matchRoutes(
   controller: ControllerMeta,
   requestPath: string,
-  requestMethod: string,
+  requestMethod: string
 ) {
   const normalizedRequestPath = normalizePath(requestPath);
-  const matches: Route[] = [];
 
-  function searchInController(controller: ControllerMeta): void {
+  function searchInController(controller: ControllerMeta): Route | undefined {
     for (const route of controller.routes) {
       if (!isMethodMatch(route.method, requestMethod)) {
         continue;
       }
 
-      const fullRoutePath = route.route;
-      const extracted = extractParamsAndWildcard(fullRoutePath, normalizedRequestPath);
-
-      if (extracted) {
-        matches.push(route);
-
-        return;
+      const extracted = matchCompiledRegex(route, normalizedRequestPath);
+      if (extracted !== null) {
+        return route;
       }
     }
 
     for (const child of controller.children ?? []) {
-      searchInController(child);
+      const found = searchInController(child);
+      if (found) return found;
     }
+
+    return undefined;
   }
 
-  searchInController(controller);
-
-  return matches.sort((a: Route, b: Route) => {
-    const aWildcard = a.route.includes('*') ? 1 : 0;
-    const bWildcard = b.route.includes('*') ? 1 : 0;
-    if (aWildcard !== bWildcard) return aWildcard - bWildcard;
-    return b.route.length - a.route.length;
-  })[0];
+  return searchInController(controller);
 }

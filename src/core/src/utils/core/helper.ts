@@ -10,7 +10,7 @@ export const normalizePath = (path: string): string => {
     '/' +
     withoutQuery
       .split('/')
-      .filter(p => p.length > 0)
+      .filter((p) => p.length > 0)
       .join('/')
   );
 };
@@ -18,8 +18,8 @@ export const normalizePath = (path: string): string => {
 export const getParams = (fullRoutePattern: string, actualPath: string): Record<string, string> => {
   const normalizedPattern = normalizePath(fullRoutePattern);
   const normalizedPath = normalizePath(actualPath);
-  const patternSegments = normalizedPattern.split('/').filter(s => s.length > 0);
-  const pathSegments = normalizedPath.split('/').filter(s => s.length > 0);
+  const patternSegments = normalizedPattern.split('/').filter((s) => s.length > 0);
+  const pathSegments = normalizedPath.split('/').filter((s) => s.length > 0);
 
   const hasWildcard = patternSegments[patternSegments.length - 1] === '*';
   const effectivePatternCount = hasWildcard ? patternSegments.length - 1 : patternSegments.length;
@@ -51,6 +51,58 @@ export const getParams = (fullRoutePattern: string, actualPath: string): Record<
 
   return params;
 };
+
+export function buildParamExtractor(
+  fullRoutePattern: string
+): (path: string) => Record<string, string> {
+  const normalizedPattern = normalizePath(fullRoutePattern);
+  const patternSegments = normalizedPattern.split('/').filter((s) => s.length > 0);
+  const hasWildcard = patternSegments[patternSegments.length - 1] === '*';
+  const effectiveCount = hasWildcard ? patternSegments.length - 1 : patternSegments.length;
+
+  const paramIndices: { index: number; name: string }[] = [];
+  const staticSegments: { index: number; value: string }[] = [];
+
+  for (let i = 0; i < effectiveCount; i++) {
+    const seg = patternSegments[i];
+    if (seg.startsWith(':')) {
+      paramIndices.push({ index: i, name: seg.slice(1) });
+    } else {
+      staticSegments.push({ index: i, value: seg });
+    }
+  }
+
+  const requiredCount = hasWildcard ? effectiveCount : effectiveCount;
+
+  return (actualPath: string): Record<string, string> => {
+    const normalizedPath = normalizePath(actualPath);
+    const pathSegments = normalizedPath.split('/').filter((s) => s.length > 0);
+
+    if (!hasWildcard && pathSegments.length !== requiredCount) {
+      return {};
+    }
+    if (hasWildcard && pathSegments.length < effectiveCount) {
+      return {};
+    }
+
+    for (const { index, value } of staticSegments) {
+      if (pathSegments[index] !== value) {
+        return {};
+      }
+    }
+
+    const params: Record<string, string> = {};
+    for (const { index, name } of paramIndices) {
+      params[name] = pathSegments[index];
+    }
+
+    if (hasWildcard) {
+      params['*'] = pathSegments.slice(effectiveCount).join('/');
+    }
+
+    return params;
+  };
+}
 
 export function buildRoutePattern(parts: string[]): string {
   return parts.filter(Boolean).join('/').replace(/\/+/g, '/');
@@ -86,12 +138,12 @@ export const getBodyAndMultipart = (request: Request) => {
 
 export const extractMiddlewares = <T extends MiddleWareItemType>(
   fns: MiddlewaresMetadataItem[],
-  fnType: T,
+  fnType: T
 ) => {
   return (
     fns
-      .filter(fn => !!fn[fnType])
-      .map(fn => fn[fnType])
+      .filter((fn) => !!fn[fnType])
+      .map((fn) => fn[fnType])
       .filter(Boolean) ?? []
   );
 };
