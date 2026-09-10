@@ -1,161 +1,194 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-09-03
+**Analysis Date:** 2026-09-10
 
 ## Directory Layout
 
 ```
 packages/
 ├── src/
-│   ├── core/              # Core framework: decorators, types, utilities
-│   │   ├── src/
-│   │   │   ├── Controller.ts        # @Controller decorator
-│   │   │   ├── Endpoint.ts          # Endpoint abstraction
-│   │   │   ├── decorators.ts        # @Body, @Params, @RateLimit, etc.
-│   │   │   ├── constants.ts         # Metadata keys
-│   │   │   ├── descriptors/         # Property descriptors
-│   │   │   ├── types/               # Type definitions
-│   │   │   └── utils/               # Utilities (core, socket, sse, shared)
-│   │   └── package.json
-│   ├── http/              # HTTP server runtime
-│   │   ├── src/
-│   │   │   ├── Helios.ts            # Main HTTP server class
-│   │   │   ├── decorators.ts        # @Server, @Port, @Host
-│   │   │   ├── types/               # HTTP types
-│   │   │   └── utils/               # Request/response factories
-│   │   └── package.json
-│   ├── aws/               # AWS Lambda adapter
-│   │   ├── src/
-│   │   │   ├── lambda.ts            # Lambda Helios class
-│   │   │   ├── types/               # Lambda types
-│   │   │   └── utils/               # Event normalizers, factories
-│   │   └── package.json
-│   ├── grpc/              # gRPC server/client
-│   │   ├── src/
-│   │   │   ├── server.ts            # GrpcServer class
-│   │   │   ├── client.ts            # GrpcClient class
-│   │   │   ├── decorators.ts        # @GrpcService, @GrpcMethod
-│   │   │   ├── types/               # gRPC types
-│   │   │   └── utils/               # Helpers, error normalization
-│   │   └── package.json
-│   └── middlewares/       # Reusable middleware
-│       ├── src/
-│       │   ├── cors.ts, guard.ts, pipe.ts, roles.ts, etc.
-│       │   └── index.ts
-│       └── package.json
-├── __tests__/             # Test files
-│   ├── core/              # Core tests (23 files)
-│   ├── middlewares/       # Middleware tests (6 files)
-│   └── http/              # HTTP tests (1 file)
-├── package.json           # Root workspace config
-├── tsconfig.json          # Root TypeScript config
-├── vitest.config.ts       # Test config
-├── eslint.config.js       # Linting config
-└── .prettierrc            # Formatting config
+│   ├── core/src/            # @heliosjs/core — decorators, metadata, pipeline
+│   │   ├── Controller.ts        # @Controller decorator (returns compiling subclass)
+│   │   ├── Endpoint.ts          # Endpoint helper abstraction
+│   │   ├── decorators.ts        # @Body, @Query, @Params, @Headers, @Cookies,
+│   │   │                        #   @Multipart, @Req, @Res, @Fingerprint, @RateLimit, ...
+│   │   ├── constants.ts         # metadata keys + CONTROLLER_* symbols + DECORATOR enum
+│   │   ├── index.ts             # public barrel (@heliosjs/core)
+│   │   ├── descriptors/         # symbol-keyed controller methods
+│   │   │   ├── meta.ts              #   CONTROLLER_META — compile parent+self meta
+│   │   │   ├── request.ts           #   CONTROLLER_REQUEST — match + execute
+│   │   │   ├── ws.ts / sse.ts       #   WS/SSE handler lookup
+│   │   │   └── index.ts             #   default export bag
+│   │   ├── types/core/          # Request, Response, Route, ControllerMeta, logger, ...
+│   │   ├── types/ws/
+│   │   └── utils/
+│   │       ├── core/                # request pipeline + cross-cutting logic
+│   │       │   ├── controller.ts        # execute, beforeRequest, collectRoutes,
+│   │       │   │                        #   buildCompiledMiddleware, compileRouteRegex
+│   │       │   ├── match.ts             # matchRoutes, routeSpecificity, param extraction
+│   │       │   ├── logger.ts            # Logger class + global singleton  (NEW)
+│   │       │   ├── helper.ts            # normalizePath, getParams, buildParamExtractor,
+│   │       │   │                        #   getBodyAndMultipart, extractMiddlewares
+│   │       │   ├── cors.ts, rbac.ts, fingerprint.ts, sanitize.ts, headers.ts
+│   │       │   ├── request.ts, response.ts, multipart.ts, endpoint.ts
+│   │       │   ├── ratelimit/           # config.ts, enforce.ts, store.ts, strategies.ts
+│   │       │   └── error/               # apperror.ts, base.ts + typed error classes
+│   │       ├── shared/              # helpers.ts, parsers.ts, validate.ts (reflect + DTO)
+│   │       ├── socket/              # WebSocketServer / WebSocketService (excluded from cov)
+│   │       └── sse/                 # SSEServer / SSEService (excluded from cov)
+│   ├── http/src/            # @heliosjs/http — node:http runtime
+│   │   ├── Helios.ts            # HTTP server class (entry)
+│   │   ├── decorators.ts        # @Server, @Port, @Host
+│   │   ├── socket/ , sse/       # @Socket / @SSE decorator surfaces
+│   │   ├── types/http/          # ServerConfig, Plugin, static config
+│   │   └── utils/http/          # request.factory, response.factory, body, static,
+│   │                            #   plugin, server, resolveConfig
+│   ├── aws/src/             # @heliosjs/aws — Lambda adapter
+│   │   ├── lambda.ts            # Lambda Helios class, app.handler (entry)
+│   │   ├── types/aws/
+│   │   └── utils/aws/           # lambda.event.normalizers, parsers, request/response
+│   │                            #   factory, plugin, getEventType
+│   ├── grpc/src/            # @heliosjs/grpc — @grpc/grpc-js server/client
+│   │   ├── server.ts, client.ts, module.ts, decorators.ts, constants.ts
+│   │   ├── types/grpc/
+│   │   └── utils/grpc/          # server.ts, helpers.ts, errors.ts
+│   └── middlewares/src/     # @heliosjs/middlewares — metadata-only decorators
+│       ├── use.ts, guard.ts, pipe.ts, interceptor.ts, catch.ts, cors.ts,
+│       ├── status.ts, roles.ts, sanitize.ts, fingerprint.ts
+│       └── index.ts
+├── __tests__/              # ALL tests live here, never inside packages
+│   ├── helpers/http.ts         # makeRequest, makeResponse, makeRoute, makeControllerMeta
+│   ├── core/{unit,integration,e2e}/
+│   ├── http/{unit,integration,e2e}/
+│   ├── aws/{unit,e2e}/
+│   ├── grpc/{unit,e2e}/
+│   └── middlewares/{unit,integration,e2e}/
+├── benchmarks/            # autocannon: Helios vs Express vs Fastify (run.ts)
+├── helios-docs/          # Docusaurus site (helios-docs/docs/ is gitignored)
+├── .planning/codebase/   # these analysis docs
+├── .changeset/           # Changesets
+├── package.json          # root Yarn 1 workspace
+├── tsconfig.json         # editor/typecheck base (has pre-existing errors — not a gate)
+├── tsconfig.build.json   # per-package build base
+├── vitest.config.ts      # test runner + @heliosjs/* -> source aliases + exclude lists
+├── vitest.setup.ts       # imports reflect-metadata
+├── eslint.config.js      # type-aware, projectService
+└── .prettierrc           # 100 cols, single quotes, trailingComma es5
 ```
 
 ## Directory Purposes
 
-**`src/core/src/`:**
-- Purpose: Framework core - decorators, metadata, types, utilities
-- Contains: TypeScript source files
-- Key files: `Controller.ts`, `decorators.ts`, `constants.ts`
+**`src/<pkg>/src/`:**
+- Every package has the same shape: `index.ts` barrel, `types/<pkg>/`, `utils/<pkg>/`.
+- `dist/` next to `src/` is compiled output (committed to the working tree here but
+  git-ignored for changes; regenerated by `yarn build:<pkg>`).
 
 **`src/core/src/utils/core/`:**
-- Purpose: Core utility functions
-- Contains: Route matching, CORS, RBAC, fingerprinting, rate limiting, error handling
-- Key files: `match.ts`, `controller.ts`, `response.ts`, `request.ts`
+- The request pipeline and all cross-cutting logic. Highest-churn area.
+- Key files: `controller.ts` (pipeline + precompilation), `match.ts` (specificity-ranked
+  matching), `logger.ts`, `helper.ts`, `ratelimit/`, `error/`.
 
-**`src/core/src/types/core/`:**
-- Purpose: Core type definitions
-- Contains: Interfaces for Request, Response, Controller, Middleware, etc.
-- Key files: `controller.ts`, `request.ts`, `response.ts`
+**`src/core/src/descriptors/`:**
+- The symbol-keyed methods `@Controller` grafts onto every controller subclass. Start
+  here to trace how a controller compiles and dispatches.
 
 **`__tests__/`:**
-- Purpose: Unit and integration tests
-- Contains: Vitest test files mirroring `src/` structure
-- Key files: `core/match.test.ts`, `core/ratelimit-*.test.ts`
+- Mirrors package names, not paths. Files sit in `unit/`, `integration/`, `e2e/`, or
+  flat. Tests import `@heliosjs/*` from source via `vitest.config.ts` aliases — no build
+  needed. `vitest.config.ts` excludes some suites from running
+  (`grpc/unit/server-extended`, `http/unit/factories`, `core/unit/socket/server`,
+  `middlewares/e2e/**`) and some files from coverage (socket/sse servers, most of grpc) —
+  check both lists before concluding something is covered.
 
 ## Key File Locations
 
 **Entry Points:**
-- `src/http/src/Helios.ts`: HTTP server entry
-- `src/aws/src/lambda.ts`: Lambda handler entry
-- `src/grpc/src/server.ts`: gRPC server entry
+- `src/http/src/Helios.ts`: HTTP server (`new Helios(App)` + `app.listen()`).
+- `src/aws/src/lambda.ts`: Lambda (`app.handler`).
+- `src/grpc/src/server.ts` / `client.ts`: gRPC.
 
 **Configuration:**
-- `package.json`: Workspace and dependency config
-- `tsconfig.json`: TypeScript compiler options
-- `vitest.config.ts`: Test runner config
-- `eslint.config.js`: Linting rules
+- `src/core/package.json` `exports`: the `@heliosjs/core` subpath map (keep in sync with
+  `vitest.config.ts` aliases when adding a subpath).
+- `vitest.config.ts`: aliases + run/coverage exclude lists + coverage thresholds.
+- `eslint.config.js`, `.prettierrc`, `tsconfig*.json`.
 
 **Core Logic:**
-- `src/core/src/Controller.ts`: Controller decorator implementation
-- `src/core/src/decorators.ts`: Parameter/method decorators
-- `src/core/src/utils/core/controller.ts`: Controller compilation
-- `src/core/src/utils/core/match.ts`: Route matching
+- `src/core/src/Controller.ts` + `src/core/src/descriptors/meta.ts`: controller compile.
+- `src/core/src/utils/core/controller.ts`: `execute`, `beforeRequest`, `collectRoutes`,
+  `buildCompiledMiddleware`.
+- `src/core/src/utils/core/match.ts`: `matchRoutes`, `routeSpecificity`.
+- `src/core/src/utils/core/logger.ts`: `Logger`, `setGlobalLogger`, `getGlobalLogger`.
+- `src/core/src/utils/shared/validate.ts`: class-validator / joi dispatch.
 
 **Testing:**
-- `__tests__/core/match.test.ts`: Route matching tests
-- `__tests__/core/ratelimit-*.test.ts`: Rate limiting tests
-- `vitest.setup.ts`: Test setup (imports `reflect-metadata`)
+- `__tests__/helpers/http.ts`: shared factories.
+- `__tests__/core/match.test.ts`, `__tests__/core/unit/helpers/helpers.test.ts`,
+  `__tests__/core/integration/pipeline/`, `__tests__/middlewares/e2e/`.
+- `vitest.setup.ts`.
 
 ## Naming Conventions
 
 **Files:**
-- PascalCase for classes: `Controller.ts`, `Helios.ts`
-- camelCase for utilities: `match.ts`, `controller.ts`
-- kebab-case for test files: `ratelimit-decorator.test.ts`
-- `index.ts` for barrel exports
+- PascalCase for files whose main export is a class: `Controller.ts`, `Helios.ts`,
+  `Endpoint.ts`.
+- camelCase for utilities: `match.ts`, `controller.ts`, `fingerprint.ts`.
+- Multi-word util files use dotted segments: `request.factory.ts`,
+  `lambda.event.normalizers.ts`.
+- Test files: `<feature>.test.ts` (kebab-case), under `__tests__/<pkg>/...`.
+- `index.ts` for barrels only.
 
 **Directories:**
-- lowercase, singular: `core/`, `http/`, `aws/`, `grpc/`
-- Types in `types/` subdirectories
-- Utils in `utils/` subdirectories
+- lowercase singular package dirs: `core/`, `http/`, `aws/`, `grpc/`, `middlewares/`.
+- `types/<pkg>/` and `utils/<pkg>/` nested one level under `src/`.
+
+**Types:** interfaces prefixed `I` (`IController`, `IHttpServer`). Custom errors extend
+`ApplicationError` and carry an HTTP `status`.
 
 ## Where to Add New Code
 
-**New Decorator:**
-- Parameter decorator: `src/core/src/decorators.ts`
-- Class decorator: `src/core/src/Controller.ts` or new file in `src/core/src/`
+**New param/method decorator:** `src/core/src/decorators.ts` (param) or a new file in
+`src/core/src/` (class-level), plus export from `src/core/src/index.ts`.
 
-**New Middleware:**
-- Implementation: `src/middlewares/src/`
-- Export from: `src/middlewares/src/index.ts`
+**New middleware decorator:** `src/middlewares/src/<name>.ts` + export from
+`src/middlewares/src/index.ts`. If it introduces a new tag, extend
+`MiddleWareItemType` / `MiddlewareTypeMap` in `src/core/src/types/core/controller.ts`
+and handle it in `buildCompiledMiddleware`, `execute`, and the `beforeRequest` fallback
+(`src/core/src/utils/core/controller.ts`) — keep compiled and fallback paths in sync.
 
-**New Adapter (e.g., Fastify):**
-- New package: `src/<adapter>/`
-- Follow pattern of `src/http/` or `src/aws/`
+**New pipeline behavior:** `src/core/src/utils/core/controller.ts`. Change both the
+`route.compiled` branch and the uncompiled fallback branch.
 
-**New Utility:**
-- Core utility: `src/core/src/utils/core/`
-- Shared utility: `src/core/src/utils/shared/`
+**New core utility:** `src/core/src/utils/core/` (pipeline-adjacent) or
+`src/core/src/utils/shared/` (reflect/parse helpers).
 
-**New Type:**
-- Core types: `src/core/src/types/core/`
-- Package-specific: `src/<package>/src/types/`
+**New type:** `src/core/src/types/core/` (shared) or `src/<pkg>/src/types/<pkg>/`.
 
-**New Test:**
-- Location: `__tests__/<package>/`
-- Naming: `<feature>.test.ts`
+**New transport adapter:** new `src/<adapter>/` package following `src/http/` or
+`src/aws/` shape; dispatch via `controller[CONTROLLER_REQUEST](req, res)`.
+
+**New test:** `__tests__/<pkg>/{unit|integration|e2e}/<feature>.test.ts`. Use factories
+from `__tests__/helpers/http.ts`.
+
+**New core public subpath:** update `src/core/package.json` `exports`,
+`vitest.config.ts` aliases, and any other resolver.
 
 ## Special Directories
 
-**`dist/`:**
-- Purpose: Compiled JavaScript output
-- Generated: Yes (via `tsc`)
-- Committed: No (in `.gitignore`)
+**`src/<pkg>/dist/`:** compiled JS + d.ts. Generated by `yarn build` (order:
+core -> http -> aws -> middlewares -> grpc). Present in the tree; treated as build
+output.
 
-**`node_modules/`:**
-- Purpose: Installed dependencies
-- Generated: Yes (via `yarn`)
-- Committed: No
+**`helios-docs/docs/`:** generated/authored docs, git-ignored.
 
-**`.changeset/`:**
-- Purpose: Changeset files for versioning
-- Generated: Yes (via `changeset`)
-- Committed: Yes
+**`.changeset/`:** Changesets version files, committed. `http` + `aws` + `middlewares`
+are version-linked; `core` and `grpc` version independently.
+
+**`.planning/codebase/`:** these analysis docs. `.planning/codebase/*.md` older notes
+(e.g. CONCERNS.md coverage numbers) can be stale.
+
+**`coverage/`, `node_modules/`:** generated, not committed.
 
 ---
 
-*Structure analysis: 2026-09-03*
+*Structure analysis: 2026-09-10*
