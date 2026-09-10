@@ -6,7 +6,7 @@ export const request = async function (this: IController, request: Request, resp
   const matched = matchRoutes(this[CONTROLLER_PRECOMPILED], request.path, request.method);
 
   if (!matched) {
-    response.error(new NotFoundError(`Route ${request.url} not found`, request.requestId));
+    response.error(new NotFoundError(`Route ${request.url} not found`));
     return null;
   }
 

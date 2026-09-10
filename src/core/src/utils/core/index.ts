@@ -4,6 +4,7 @@ export * from './endpoint';
 export * from './error';
 export * from './fingerprint';
 export * from './headers';
+export * from './logger';
 export * from './match';
 export * from './multipart';
 export * from './rbac';

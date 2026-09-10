@@ -1,0 +1,26 @@
+{
+  "id": "core-module/logging",
+  "title": "Logging",
+  "description": "HeliosJS includes a built-in Logger class with configurable log levels, timestamps, colors, and context support.",
+  "source": "@site/docs/core-module/logging.md",
+  "sourceDirName": "core-module",
+  "slug": "/core-module/logging",
+  "permalink": "/heliosjs/docs/core-module/logging",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 8,
+  "frontMatter": {
+    "sidebar_position": 8
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Rate Limiting",
+    "permalink": "/heliosjs/docs/core-module/rate-limiting"
+  },
+  "next": {
+    "title": "Use Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/use"
+  }
+}

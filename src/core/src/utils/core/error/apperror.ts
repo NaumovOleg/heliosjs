@@ -6,6 +6,7 @@ import type {
   HeliosError,
 } from '../../../types/core/error';
 import { ErrorCode } from '../../../types/core/error';
+import { getGlobalLogger } from '../logger';
 import { UnauthorizedError } from './authorizations';
 import { BaseError } from './base';
 import { NotFoundError } from './notfound';
@@ -86,13 +87,23 @@ export class ApplicationError {
     };
 
     if ((error.status ?? error.statusCode) == 401) {
-      return new UnauthorizedError(ErrorCode.UNAUTHORIZED, base);
+      return new UnauthorizedError(undefined, base);
     }
     if ((error.status ?? error.statusCode) == 404) {
-      return new NotFoundError(request.requestUrl.pathname, request.requestId);
+      const message = error.message
+        ? `${error.message} not found`
+        : `${request.requestUrl.pathname} not found`;
+      return new NotFoundError(message, undefined, base);
     }
-    if ((error as any).isAxiosError || (error as any).response) {
-      const httpError = error as any;
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      ('isAxiosError' in error || 'response' in error)
+    ) {
+      const httpError = error as {
+        message?: string;
+        response?: { status?: number; statusText?: string; data?: unknown };
+      };
       const status = httpError.response?.status ?? 500;
       const upstream = httpError.response?.data;
       return new BaseError(
@@ -100,7 +111,7 @@ export class ApplicationError {
         httpError.message || httpError.response?.statusText || 'External API error',
         {
           status,
-          cause: httpError,
+          cause: httpError as unknown as Error,
           upstream,
           ...base,
         }
@@ -151,6 +162,7 @@ export class ApplicationError {
   }
 
   private logError(error: HeliosError, meta: Meta): void {
+    const logger = getGlobalLogger();
     const logEntry = {
       timestamp: error.timestamp.toISOString(),
       requestId: error.requestId,
@@ -166,11 +178,11 @@ export class ApplicationError {
     };
 
     if (error.status >= 500) {
-      console.error(JSON.stringify(logEntry, null, 2));
+      logger.error(JSON.stringify(logEntry, null, 2));
     } else if (error.status >= 400) {
-      console.warn(JSON.stringify(logEntry));
+      logger.warn(JSON.stringify(logEntry));
     } else {
-      console.info(JSON.stringify(logEntry));
+      logger.log(JSON.stringify(logEntry));
     }
   }
 

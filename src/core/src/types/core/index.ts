@@ -3,6 +3,7 @@ export * from './controller';
 export * from './cors';
 export * from './error';
 export * from './fingerprint';
+export * from './logger';
 export * from './multipart';
 export * from './rbac';
 export * from './ratelimit';

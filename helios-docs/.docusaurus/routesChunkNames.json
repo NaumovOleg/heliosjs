@@ -51,17 +51,17 @@
     "items": [],
     "__props": "__props---heliosjs-blogb-12-c53"
   },
-  "/heliosjs/docs-674": {
+  "/heliosjs/docs-213": {
     "__comp": "__comp---theme-docs-root-5-e-9-0b6",
     "__context": {
       "plugin": "plugin---heliosjs-docsaba-0ef"
     }
   },
-  "/heliosjs/docs-775": {
+  "/heliosjs/docs-f31": {
     "__comp": "__comp---theme-doc-version-roota-7-b-5de",
     "__props": "__props---heliosjs-docs-46-d-fb4"
   },
-  "/heliosjs/docs-110": {
+  "/heliosjs/docs-d97": {
     "__comp": "__comp---theme-doc-roota-94-67a"
   },
   "/heliosjs/docs/aws/lambda-integration-e31": {
@@ -71,6 +71,10 @@
   "/heliosjs/docs/aws/plugins-33f": {
     "__comp": "__comp---theme-doc-item-178-a40",
     "content": "content---heliosjs-docs-aws-plugins-065-e31"
+  },
+  "/heliosjs/docs/benchmarks-7c9": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---heliosjs-docs-benchmarksfeb-06d"
   },
   "/heliosjs/docs/core-module/controllers-478": {
     "__comp": "__comp---theme-doc-item-178-a40",
@@ -83,6 +87,10 @@
   "/heliosjs/docs/core-module/installation-48f": {
     "__comp": "__comp---theme-doc-item-178-a40",
     "content": "content---heliosjs-docs-core-module-installation-67-f-6c3"
+  },
+  "/heliosjs/docs/core-module/logging-957": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---heliosjs-docs-core-module-logging-85-f-83e"
   },
   "/heliosjs/docs/core-module/parameter-decorators-01d": {
     "__comp": "__comp---theme-doc-item-178-a40",

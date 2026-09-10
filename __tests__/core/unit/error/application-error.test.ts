@@ -38,7 +38,7 @@ describe('ApplicationError', () => {
       { meta, config: { logErrors: false } }
     );
     expect(app.status).toBe(404);
-    // 404 is normalized to NotFoundError which formats message as "{resource} with id {id} not found"
+    // 404 is normalized to NotFoundError which formats message as "{resource} not found"
     expect(app.message).toContain('not found');
   });
 
@@ -50,22 +50,28 @@ describe('ApplicationError', () => {
   });
 
   it('normalizes 401 to UnauthorizedError', () => {
-    const app = new ApplicationError({ status: 401, message: 'no auth' }, {
-      meta,
-      config: { logErrors: false },
-    });
+    const app = new ApplicationError(
+      { status: 401, message: 'no auth' },
+      {
+        meta,
+        config: { logErrors: false },
+      }
+    );
     expect(app.code).toBe(ErrorCode.UNAUTHORIZED);
     expect(app.status).toBe(401);
   });
 
   it('normalizes 404 to NotFoundError', () => {
-    const app = new ApplicationError({ status: 404, message: 'missing' }, {
-      meta,
-      config: { logErrors: false },
-    });
+    const app = new ApplicationError(
+      { status: 404, message: 'missing' },
+      {
+        meta,
+        config: { logErrors: false },
+      }
+    );
     expect(app.code).toBe(ErrorCode.NOT_FOUND);
     expect(app.status).toBe(404);
-    // NotFoundError formats message as "{resource} with id {id} not found"
+    // NotFoundError formats message as "{resource} not found"
     expect(app.message).toContain('not found');
   });
 

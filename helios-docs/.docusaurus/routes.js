@@ -44,15 +44,15 @@ export default [
   },
   {
     path: '/heliosjs/docs',
-    component: ComponentCreator('/heliosjs/docs', '674'),
+    component: ComponentCreator('/heliosjs/docs', '213'),
     routes: [
       {
         path: '/heliosjs/docs',
-        component: ComponentCreator('/heliosjs/docs', '775'),
+        component: ComponentCreator('/heliosjs/docs', 'f31'),
         routes: [
           {
             path: '/heliosjs/docs',
-            component: ComponentCreator('/heliosjs/docs', '110'),
+            component: ComponentCreator('/heliosjs/docs', 'd97'),
             routes: [
               {
                 path: '/heliosjs/docs/aws/lambda-integration',
@@ -63,6 +63,12 @@ export default [
               {
                 path: '/heliosjs/docs/aws/plugins',
                 component: ComponentCreator('/heliosjs/docs/aws/plugins', '33f'),
+                exact: true,
+                sidebar: "tutorialSidebar"
+              },
+              {
+                path: '/heliosjs/docs/benchmarks',
+                component: ComponentCreator('/heliosjs/docs/benchmarks', '7c9'),
                 exact: true,
                 sidebar: "tutorialSidebar"
               },
@@ -81,6 +87,12 @@ export default [
               {
                 path: '/heliosjs/docs/core-module/installation',
                 component: ComponentCreator('/heliosjs/docs/core-module/installation', '48f'),
+                exact: true,
+                sidebar: "tutorialSidebar"
+              },
+              {
+                path: '/heliosjs/docs/core-module/logging',
+                component: ComponentCreator('/heliosjs/docs/core-module/logging', '957'),
                 exact: true,
                 sidebar: "tutorialSidebar"
               },

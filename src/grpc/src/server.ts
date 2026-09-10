@@ -2,6 +2,7 @@ import type { UntypedServiceImplementation } from '@grpc/grpc-js';
 import { loadPackageDefinition, Server, ServerCredentials } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 import { firstValueFrom, Observable } from 'rxjs';
+import { Logger } from '@heliosjs/core';
 import type { GrpcClient } from './client';
 import { GRPC_CLIENT_METADATA, GRPC_METHOD_METADATA, GRPC_SERVICE_METADATA } from './constants';
 import type {
@@ -31,6 +32,7 @@ export class GrpcServer {
   private readonly options: { url: string } & Partial<GrpcServerOptions>;
   private readonly protoGroups = new Map<string, ProtoGroup>();
   private readonly clients = new Map<string, GrpcClient>();
+  private readonly logger: Logger;
 
   /**
    * Creates a gRPC server instance.
@@ -43,6 +45,14 @@ export class GrpcServer {
     this.options = { url: '0.0.0.0:5000', ...options };
     if (clients) {
       this.clients = clients;
+    }
+
+    this.logger = new Logger({
+      ...this.options.log,
+      prefix: this.options.log === false ? 'gRPC' : this.options.log?.prefix ?? 'gRPC',
+    });
+    if (this.options.log === false) {
+      this.logger.setLevel('silent');
     }
   }
 
@@ -174,7 +184,7 @@ export class GrpcServer {
         if (err) {
           reject(err);
         } else {
-          console.log(`🚀 gRPC server running on ${boundPort}`);
+          this.logger.log(`gRPC server running on ${boundPort}`);
           resolve();
         }
       });

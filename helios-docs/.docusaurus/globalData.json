@@ -21,6 +21,11 @@
               "sidebar": "tutorialSidebar"
             },
             {
+              "id": "benchmarks",
+              "path": "/heliosjs/docs/benchmarks",
+              "sidebar": "tutorialSidebar"
+            },
+            {
               "id": "core-module/controllers",
               "path": "/heliosjs/docs/core-module/controllers",
               "sidebar": "tutorialSidebar"
@@ -33,6 +38,11 @@
             {
               "id": "core-module/installation",
               "path": "/heliosjs/docs/core-module/installation",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/logging",
+              "path": "/heliosjs/docs/core-module/logging",
               "sidebar": "tutorialSidebar"
             },
             {

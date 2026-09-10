@@ -6,6 +6,7 @@ import type {
   ErrorHandler,
   FingerprintConfig,
   InterceptorCB,
+  LoggerConfig,
   MiddlewareCB,
   RBACConfig,
   SanitizerConfig,
@@ -94,6 +95,13 @@ export interface ServerConfig {
    * @type {StaticConfig[]}
    */
   statics?: StaticConfig[];
+
+  /**
+   * Logging configuration. Set to `false` to disable all logs,
+   * or provide config to customize log level, prefix, and output.
+   * @type {LoggerConfig | false}
+   */
+  log?: LoggerConfig | false;
 
   /**
    * WebSocket enablement and lazy loading

@@ -13,8 +13,8 @@
   "frontMatter": {},
   "sidebar": "tutorialSidebar",
   "previous": {
-    "title": "Rate Limiting",
-    "permalink": "/heliosjs/docs/core-module/rate-limiting"
+    "title": "Logging",
+    "permalink": "/heliosjs/docs/core-module/logging"
   },
   "next": {
     "title": "Catch Middleware Decorator",

@@ -20,7 +20,7 @@
     "permalink": "/heliosjs/docs/core-module/parameter-decorators"
   },
   "next": {
-    "title": "Use Middleware Decorator",
-    "permalink": "/heliosjs/docs/middlewares/use"
+    "title": "Logging",
+    "permalink": "/heliosjs/docs/core-module/logging"
   }
 }

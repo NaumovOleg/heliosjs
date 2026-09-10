@@ -14,6 +14,7 @@ import type {
 } from '@heliosjs/core/types';
 import {
   handleCORS,
+  Logger,
   SSEServer,
   SSEService,
   sanitizeRequest,
@@ -45,6 +46,7 @@ import {
  */
 export class Helios extends Plugin implements IHttpServer {
   private readonly config: ServerConfig;
+  private readonly logger: Logger;
   private isRunning = false;
   private listenPromise?: Promise<http.Server>;
   private readonly sse?: SSEServer;
@@ -67,6 +69,15 @@ export class Helios extends Plugin implements IHttpServer {
   constructor(configOrClass: new (...args: unknown[]) => unknown) {
     super();
     this.config = resolveConfig(configOrClass);
+
+    this.logger = new Logger({
+      ...this.config.log,
+      prefix: this.config.log === false ? 'Helios' : this.config.log?.prefix ?? 'Helios',
+    });
+    if (this.config.log === false) {
+      this.logger.setLevel('silent');
+    }
+
     if (this.config.rbac?.getRoles) {
       setRolesExtractor(this.config.rbac.getRoles);
     }
@@ -129,24 +140,19 @@ export class Helios extends Plugin implements IHttpServer {
   }
 
   private logConfig() {
-    console.log(`
-╔════════════════════════════════════════╗
-║  🚀 Server Configuration               
-╠════════════════════════════════════════╣
-║  📍 Host: ${this.config.host}                       
-║  🔌 Port: ${this.config.port}                         
-║  🔌 Websocket: ${!!this.config.websocket}                         
-║  🔌 Websocket path prefix: ${this.config.websocket?.path ?? '/ws'}                       
-║  🔧 Global Middlewares: ${this.middlewares?.length || 0}                   
-║  🔧 Error handler: ${!this.config.errorHandler}                   
-║  🎯 Global Interceptors: ${!!this.config.interceptors?.length}                   
-║  📦 Controllers: ${this.controllers?.length ?? 0}                   
-║  📦 Sub controllers: ${
-      this.controllers.length - (this.config.controllers?.length ?? 0)
-    }                                    
-║  📦 GraphQL resolvers: ${this.config.graphql?.resolvers?.length ?? 0}                   
-╚════════════════════════════════════════╝
-    `);
+    this.logger.log('Server Configuration');
+    this.logger.log(`  Host: ${this.config.host ?? 'localhost'}`);
+    this.logger.log(`  Port: ${this.config.port ?? 3000}`);
+    this.logger.log(`  Websocket: ${!!this.config.websocket}`);
+    this.logger.log(`  Websocket path prefix: ${this.config.websocket?.path ?? '/ws'}`);
+    this.logger.log(`  Global Middlewares: ${this.middlewares?.length || 0}`);
+    this.logger.log(`  Error handler: ${!this.config.errorHandler}`);
+    this.logger.log(`  Global Interceptors: ${!!this.config.interceptors?.length}`);
+    this.logger.log(`  Controllers: ${this.controllers?.length ?? 0}`);
+    this.logger.log(
+      `  Sub controllers: ${this.controllers.length - (this.config.controllers?.length ?? 0)}`
+    );
+    this.logger.log(`  GraphQL resolvers: ${this.config.graphql?.resolvers?.length ?? 0}`);
   }
 
   /**
@@ -180,14 +186,7 @@ export class Helios extends Plugin implements IHttpServer {
     this.isRunning = true;
     this.listenPromise = new Promise<http.Server>((resolve, reject) => {
       const server = this.app.listen(listenPort, listenHost, async () => {
-        console.log(`
-╔════════════════════════════════════════╗
-║  🎉 Server started successfully!       
-║  📍 http://${listenHost}:${listenPort}  
-║  📊 Status: RUNNING                    
-╚════════════════════════════════════════╝
-          `);
-
+        this.logger.log(`Server started successfully! http://${listenHost}:${listenPort}`);
         await this.callPluginMethod('onStart', this.app);
         resolve(server);
       });

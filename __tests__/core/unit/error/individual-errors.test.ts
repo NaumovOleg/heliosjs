@@ -74,16 +74,26 @@ describe('InvalidStateError', () => {
 });
 
 describe('NotFoundError', () => {
-  it('creates with resource and id', () => {
-    const err = new NotFoundError('User', '42');
+  it('creates with message and id', () => {
+    const err = new NotFoundError('User with id 42 not found', '42');
     expect(err.status).toBe(404);
     expect(err.message).toBe('User with id 42 not found');
     expect(err.name).toBe('NotFoundError');
     expect(err).toBeInstanceOf(BaseError);
   });
 
+  it('creates with message only (no id)', () => {
+    const err = new NotFoundError('Route /foo not found');
+    expect(err.status).toBe(404);
+    expect(err.message).toBe('Route /foo not found');
+    expect(err.name).toBe('NotFoundError');
+  });
+
   it('accepts requestId and path options', () => {
-    const err = new NotFoundError('Order', '99', { requestId: 'r1', path: '/orders' });
+    const err = new NotFoundError('Order with id 99 not found', '99', {
+      requestId: 'r1',
+      path: '/orders',
+    });
     expect(err).toBeInstanceOf(BaseError);
   });
 });

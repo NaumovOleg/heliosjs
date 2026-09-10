@@ -15,5 +15,9 @@
   "previous": {
     "title": "gRPC Module API Reference",
     "permalink": "/heliosjs/docs/grpc/api"
+  },
+  "next": {
+    "title": "Benchmarks",
+    "permalink": "/heliosjs/docs/benchmarks"
   }
 }

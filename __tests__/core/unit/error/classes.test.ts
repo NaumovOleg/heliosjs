@@ -123,17 +123,20 @@ describe('ForbiddenError', () => {
 });
 
 describe('NotFoundError', () => {
-  it('formats message as "{resource} with id {id} not found"', () => {
-    const err = new NotFoundError('User', '123');
+  it('uses message as-is, id only in details', () => {
+    const err = new NotFoundError('User with id 123 not found', '123');
     expect(err.status).toBe(404);
     expect(err.code).toBe(ErrorCode.NOT_FOUND);
     expect(err.message).toBe('User with id 123 not found');
     expect(err.name).toBe('NotFoundError');
-    expect(err.details).toEqual([{ resource: 'User', id: '123' }]);
+    expect(err.details).toEqual([{ id: '123' }]);
   });
 
   it('accepts options', () => {
-    const err = new NotFoundError('Post', '42', { requestId: 'r-1', path: '/posts/42' });
+    const err = new NotFoundError('Post with id 42 not found', '42', {
+      requestId: 'r-1',
+      path: '/posts/42',
+    });
     expect(err.requestId).toBe('r-1');
     expect(err.path).toBe('/posts/42');
   });
