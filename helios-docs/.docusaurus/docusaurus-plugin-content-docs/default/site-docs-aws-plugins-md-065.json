@@ -1,0 +1,26 @@
+{
+  "id": "aws/plugins",
+  "title": "Custom Plugins for AWS Lambda",
+  "description": "Plugins extend the Lambda adapter with lifecycle hooks. Use them for logging, metrics, database connections, or any cross-cutting concern.",
+  "source": "@site/docs/aws/plugins.md",
+  "sourceDirName": "aws",
+  "slug": "/aws/plugins",
+  "permalink": "/heliosjs/docs/aws/plugins",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 13,
+  "frontMatter": {
+    "sidebar_position": 13
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "AWS Lambda Integration",
+    "permalink": "/heliosjs/docs/aws/lambda-integration"
+  },
+  "next": {
+    "title": "gRPC Module Documentation",
+    "permalink": "/heliosjs/docs/grpc/module"
+  }
+}

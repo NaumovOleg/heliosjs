@@ -1,0 +1,19 @@
+{
+  "id": "grtting-started/installation",
+  "title": "Tutorial Intro",
+  "description": "",
+  "source": "@site/docs/grtting-started/installation.md",
+  "sourceDirName": "grtting-started",
+  "slug": "/grtting-started/installation",
+  "permalink": "/helios/docs/grtting-started/installation",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Translate your site",
+    "permalink": "/helios/docs/tutorial-extras/translate-your-site"
+  }
+}

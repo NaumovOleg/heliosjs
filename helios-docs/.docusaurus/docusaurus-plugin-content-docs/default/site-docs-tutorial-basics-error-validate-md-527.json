@@ -1,0 +1,26 @@
+{
+  "id": "tutorial-basics/error-validate",
+  "title": "Validation & Error Handling",
+  "description": "Learn how to validate incoming data and handle errors gracefully in your HeliosJS application.",
+  "source": "@site/docs/tutorial-basics/error-validate.md",
+  "sourceDirName": "tutorial-basics",
+  "slug": "/tutorial-basics/error-validate",
+  "permalink": "/helios/docs/tutorial-basics/error-validate",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "sidebar_position": 4
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Routing & Parameters",
+    "permalink": "/helios/docs/tutorial-basics/parameter-decorators"
+  },
+  "next": {
+    "title": "Middleware",
+    "permalink": "/helios/docs/tutorial-basics/middlewares"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "aws/lambda-integration",
+  "title": "AWS Lambda Integration",
+  "description": "The Helios adapter from @heliosjs/aws translates AWS Lambda events into HeliosJS controller calls. It supports API Gateway (v1/v2), ALB, CloudFront, and Lambda Function URLs.",
+  "source": "@site/docs/aws/lambda-integration.md",
+  "sourceDirName": "aws",
+  "slug": "/aws/lambda-integration",
+  "permalink": "/heliosjs/docs/aws/lambda-integration",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 12,
+  "frontMatter": {
+    "sidebar_position": 12
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Custom Plugins",
+    "permalink": "/heliosjs/docs/http-module/plugins"
+  },
+  "next": {
+    "title": "Custom Plugins for AWS Lambda",
+    "permalink": "/heliosjs/docs/aws/plugins"
+  }
+}

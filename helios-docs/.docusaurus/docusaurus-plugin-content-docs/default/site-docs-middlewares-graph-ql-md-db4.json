@@ -1,0 +1,17 @@
+{
+  "id": "middlewares/graph-ql",
+  "title": "GraphQL Module in Helios",
+  "description": "Helios supports GraphQL integration using type-graphql and graphql-yoga packages, providing a decorator-based approach to define GraphQL schemas, resolvers, and subscriptions.",
+  "source": "@site/docs/middlewares/graph-ql.md",
+  "sourceDirName": "middlewares",
+  "slug": "/middlewares/graph-ql",
+  "permalink": "/helios/docs/middlewares/graph-ql",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 10,
+  "frontMatter": {
+    "sidebar_position": 10
+  }
+}

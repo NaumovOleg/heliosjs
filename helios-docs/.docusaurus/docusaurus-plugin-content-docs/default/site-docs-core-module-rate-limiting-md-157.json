@@ -1,0 +1,26 @@
+{
+  "id": "core-module/rate-limiting",
+  "title": "Rate Limiting",
+  "description": "HeliosJS provides built-in rate limiting via the @RateLimit decorator with multiple strategies.",
+  "source": "@site/docs/core-module/rate-limiting.md",
+  "sourceDirName": "core-module",
+  "slug": "/core-module/rate-limiting",
+  "permalink": "/heliosjs/docs/core-module/rate-limiting",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 14,
+  "frontMatter": {
+    "sidebar_position": 14
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Routing & Parameters",
+    "permalink": "/heliosjs/docs/core-module/parameter-decorators"
+  },
+  "next": {
+    "title": "Use Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/use"
+  }
+}

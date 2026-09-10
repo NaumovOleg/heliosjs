@@ -4,7 +4,7 @@
 
 ## Documentation
 
-👉 **[Full Documentation](https://naumovoleg.github.io/helios/)**
+👉 **[Full Documentation](https://naumovoleg.github.io/heliosjs/)**
 
 ## Packages
 

@@ -1,0 +1,14 @@
+{
+  "id": "grpc/README",
+  "title": "gRPC Module Documentation",
+  "description": "Introduction",
+  "source": "@site/docs/grpc/README.md",
+  "sourceDirName": "grpc",
+  "slug": "/grpc/",
+  "permalink": "/helios/docs/grpc/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

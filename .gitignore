@@ -9,3 +9,5 @@ src/examples/mock/*
 *.tsbuildinfo
 *.log
 /.crush
+helios-docs/docs/
+helios-docs/build

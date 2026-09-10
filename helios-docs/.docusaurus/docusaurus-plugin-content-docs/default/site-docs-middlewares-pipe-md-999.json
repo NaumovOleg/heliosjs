@@ -1,0 +1,23 @@
+{
+  "id": "middlewares/pipe",
+  "title": "Pipe Middleware Decorator",
+  "description": "The @Pipe decorator transforms request data before it reaches the handler.",
+  "source": "@site/docs/middlewares/pipe.md",
+  "sourceDirName": "middlewares",
+  "slug": "/middlewares/pipe",
+  "permalink": "/heliosjs/docs/middlewares/pipe",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Intercept Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/intercept"
+  },
+  "next": {
+    "title": "Sanitize Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/sanitize"
+  }
+}

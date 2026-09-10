@@ -1,0 +1,26 @@
+{
+  "id": "core-module/parameter-decorators",
+  "title": "Routing & Parameters",
+  "description": "HeliosJS provides powerful routing with decorators. Every parameter decorator injects data directly into your handler method.",
+  "source": "@site/docs/core-module/parameter-decorators.md",
+  "sourceDirName": "core-module",
+  "slug": "/core-module/parameter-decorators",
+  "permalink": "/heliosjs/docs/core-module/parameter-decorators",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 6,
+  "frontMatter": {
+    "sidebar_position": 6
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Validation with DTOs and class-validator",
+    "permalink": "/heliosjs/docs/core-module/validation"
+  },
+  "next": {
+    "title": "Rate Limiting",
+    "permalink": "/heliosjs/docs/core-module/rate-limiting"
+  }
+}

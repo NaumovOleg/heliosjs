@@ -1,0 +1,86 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  padding-top: 2rem;
+}
+.containerCode {
+  width: fit-content;
+  text-align: left;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.buttons a {
+  margin-right: 30px;
+}
+
+.features {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+  width: 100%;
+  text-align: center;
+}
+
+.featuresRow {
+  justify-content: center;
+  gap: 10px;
+  margin: 0 -5px;
+}
+
+.featureCard {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border-radius: 12px;
+  background: var(--ifm-background-surface-color);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.featureCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.featureIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.featureTitle {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.featureDescription {
+  margin: 0;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .featureCard {
+  background: var(--ifm-background-surface-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .featureCard:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}

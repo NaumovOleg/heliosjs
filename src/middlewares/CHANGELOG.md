@@ -1,5 +1,13 @@
 # Change Log
 
+## 10.0.5
+
+### Patch Changes
+
+- documentation
+- Updated dependencies
+  - @heliosjs/core@3.2.8
+
 ## 10.0.4
 
 ### Patch Changes

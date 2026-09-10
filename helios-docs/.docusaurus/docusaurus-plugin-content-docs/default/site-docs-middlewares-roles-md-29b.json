@@ -1,0 +1,23 @@
+{
+  "id": "middlewares/roles",
+  "title": "Roles (RBAC) Decorator",
+  "description": "The @Roles decorator adds role-based access control (RBAC) to controllers and routes. It restricts access to users that hold one or more required roles, building on the same guard pipeline as @Guard.",
+  "source": "@site/docs/middlewares/roles.md",
+  "sourceDirName": "middlewares",
+  "slug": "/middlewares/roles",
+  "permalink": "/heliosjs/docs/middlewares/roles",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Guard Decorator",
+    "permalink": "/heliosjs/docs/middlewares/guard"
+  },
+  "next": {
+    "title": "Fingerprint Decorator",
+    "permalink": "/heliosjs/docs/middlewares/fingerprint"
+  }
+}

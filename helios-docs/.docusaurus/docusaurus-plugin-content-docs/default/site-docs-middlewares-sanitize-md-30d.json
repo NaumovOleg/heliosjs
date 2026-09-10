@@ -1,0 +1,23 @@
+{
+  "id": "middlewares/sanitize",
+  "title": "Sanitize Middleware Decorator",
+  "description": "The @Sanitize decorator applies Joi-based sanitization to request data.",
+  "source": "@site/docs/middlewares/sanitize.md",
+  "sourceDirName": "middlewares",
+  "slug": "/middlewares/sanitize",
+  "permalink": "/heliosjs/docs/middlewares/sanitize",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Pipe Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/pipe"
+  },
+  "next": {
+    "title": "Cors Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/cors"
+  }
+}

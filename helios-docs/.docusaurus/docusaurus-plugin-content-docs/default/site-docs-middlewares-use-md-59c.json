@@ -1,0 +1,23 @@
+{
+  "id": "middlewares/use",
+  "title": "Use Middleware Decorator",
+  "description": "The @Use decorator registers middleware functions that execute before the route handler.",
+  "source": "@site/docs/middlewares/use.md",
+  "sourceDirName": "middlewares",
+  "slug": "/middlewares/use",
+  "permalink": "/heliosjs/docs/middlewares/use",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Rate Limiting",
+    "permalink": "/heliosjs/docs/core-module/rate-limiting"
+  },
+  "next": {
+    "title": "Catch Middleware Decorator",
+    "permalink": "/heliosjs/docs/middlewares/catch"
+  }
+}

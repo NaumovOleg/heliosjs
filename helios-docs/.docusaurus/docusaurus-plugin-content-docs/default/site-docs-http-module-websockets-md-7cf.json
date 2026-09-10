@@ -1,0 +1,26 @@
+{
+  "id": "http-module/websockets",
+  "title": "WebSocket",
+  "description": "HeliosJS provides decorator-driven WebSocket support with topic pub/sub, broadcasting, and client management.",
+  "source": "@site/docs/http-module/websockets.md",
+  "sourceDirName": "http-module",
+  "slug": "/http-module/websockets",
+  "permalink": "/heliosjs/docs/http-module/websockets",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 8,
+  "frontMatter": {
+    "sidebar_position": 8
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "HTTP Server",
+    "permalink": "/heliosjs/docs/http-module/server"
+  },
+  "next": {
+    "title": "Server-Sent Events (SSE)",
+    "permalink": "/heliosjs/docs/http-module/server-sent-events"
+  }
+}

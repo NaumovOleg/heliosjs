@@ -1,0 +1,26 @@
+{
+  "id": "http-module/server-sent-events",
+  "title": "Server-Sent Events (SSE)",
+  "description": "SSE pushes real-time updates from server to client over HTTP. Unlike WebSocket, SSE is unidirectional (server → client) and works over standard HTTP.",
+  "source": "@site/docs/http-module/server-sent-events.md",
+  "sourceDirName": "http-module",
+  "slug": "/http-module/server-sent-events",
+  "permalink": "/heliosjs/docs/http-module/server-sent-events",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 9,
+  "frontMatter": {
+    "sidebar_position": 9
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "WebSocket",
+    "permalink": "/heliosjs/docs/http-module/websockets"
+  },
+  "next": {
+    "title": "GraphQL Module in Helios",
+    "permalink": "/heliosjs/docs/http-module/graph-ql"
+  }
+}

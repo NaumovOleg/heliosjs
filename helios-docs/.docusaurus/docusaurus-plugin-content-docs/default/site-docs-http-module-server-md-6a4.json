@@ -1,0 +1,26 @@
+{
+  "id": "http-module/server",
+  "title": "HTTP Server",
+  "description": "The @Server decorator configures your HTTP server, and the Helios class starts and manages it.",
+  "source": "@site/docs/http-module/server.md",
+  "sourceDirName": "http-module",
+  "slug": "/http-module/server",
+  "permalink": "/heliosjs/docs/http-module/server",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 7,
+  "frontMatter": {
+    "sidebar_position": 7
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Fingerprint Decorator",
+    "permalink": "/heliosjs/docs/middlewares/fingerprint"
+  },
+  "next": {
+    "title": "WebSocket",
+    "permalink": "/heliosjs/docs/http-module/websockets"
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/heliosjs/docs",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/heliosjs/docs",
+          "mainDocId": "intro",
+          "docs": [
+            {
+              "id": "aws/lambda-integration",
+              "path": "/heliosjs/docs/aws/lambda-integration",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "aws/plugins",
+              "path": "/heliosjs/docs/aws/plugins",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/controllers",
+              "path": "/heliosjs/docs/core-module/controllers",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/error",
+              "path": "/heliosjs/docs/core-module/error",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/installation",
+              "path": "/heliosjs/docs/core-module/installation",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/parameter-decorators",
+              "path": "/heliosjs/docs/core-module/parameter-decorators",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/rate-limiting",
+              "path": "/heliosjs/docs/core-module/rate-limiting",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "core-module/validation",
+              "path": "/heliosjs/docs/core-module/validation",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "grpc/api",
+              "path": "/heliosjs/docs/grpc/api",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "grpc/examples",
+              "path": "/heliosjs/docs/grpc/examples",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "grpc/module",
+              "path": "/heliosjs/docs/grpc/module",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "grpc/usage",
+              "path": "/heliosjs/docs/grpc/usage",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "http-module/graph-ql",
+              "path": "/heliosjs/docs/http-module/graph-ql",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "http-module/plugins",
+              "path": "/heliosjs/docs/http-module/plugins",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "http-module/server",
+              "path": "/heliosjs/docs/http-module/server",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "http-module/server-sent-events",
+              "path": "/heliosjs/docs/http-module/server-sent-events",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "http-module/websockets",
+              "path": "/heliosjs/docs/http-module/websockets",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "intro",
+              "path": "/heliosjs/docs/intro",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/basics",
+              "path": "/heliosjs/docs/middlewares/basics"
+            },
+            {
+              "id": "middlewares/catch",
+              "path": "/heliosjs/docs/middlewares/catch",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/cors",
+              "path": "/heliosjs/docs/middlewares/cors",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/fingerprint",
+              "path": "/heliosjs/docs/middlewares/fingerprint",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/guard",
+              "path": "/heliosjs/docs/middlewares/guard",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/intercept",
+              "path": "/heliosjs/docs/middlewares/intercept",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/pipe",
+              "path": "/heliosjs/docs/middlewares/pipe",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/roles",
+              "path": "/heliosjs/docs/middlewares/roles",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/sanitize",
+              "path": "/heliosjs/docs/middlewares/sanitize",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "middlewares/use",
+              "path": "/heliosjs/docs/middlewares/use",
+              "sidebar": "tutorialSidebar"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "tutorialSidebar": {
+              "link": {
+                "path": "/heliosjs/docs/intro",
+                "label": "intro"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

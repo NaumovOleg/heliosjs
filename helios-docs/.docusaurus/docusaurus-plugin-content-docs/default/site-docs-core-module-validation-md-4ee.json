@@ -1,0 +1,26 @@
+{
+  "id": "core-module/validation",
+  "title": "Validation with DTOs and class-validator",
+  "description": "HeliosJS validates request data using DTO classes with class-validator decorators. Validation runs automatically before your handler executes.",
+  "source": "@site/docs/core-module/validation.md",
+  "sourceDirName": "core-module",
+  "slug": "/core-module/validation",
+  "permalink": "/heliosjs/docs/core-module/validation",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Error Handling",
+    "permalink": "/heliosjs/docs/core-module/error"
+  },
+  "next": {
+    "title": "Routing & Parameters",
+    "permalink": "/heliosjs/docs/core-module/parameter-decorators"
+  }
+}
