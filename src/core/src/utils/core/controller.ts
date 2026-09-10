@@ -21,7 +21,44 @@ import { getOrComputeFingerprint } from './fingerprint';
 import { ForbiddenError } from './error';
 import { getBodyAndMultipart, getParams, buildParamExtractor, extractMiddlewares } from './helper';
 import { enforceRateLimit } from './ratelimit';
+import { routeSpecificity } from './match';
 import { sanitizeRequest } from './sanitize';
+
+/**
+ * Error codes that resolve to their own HTTP response and bypass `@Catch`
+ * handlers — but only when the route declares no error handler of its own.
+ */
+export const SKIP_ERROR_HANDLER_CODES: (ErrorCode | undefined)[] = [
+  ErrorCode.FORBIDDEN,
+  ErrorCode.NOT_FOUND,
+  ErrorCode.RATE_LIMIT_EXCEEDED,
+  ErrorCode.UNAUTHORIZED,
+];
+
+/**
+ * Runs error handlers newest-first, stopping at the first that returns a
+ * non-Error value (which becomes `response.data`). Returns true when a handler
+ * produced such a value, false when every handler re-threw or returned an Error.
+ */
+async function runErrorHandlers(
+  handlers: (ErrorHandler | undefined)[],
+  error: unknown,
+  request: Request,
+  response: Response
+): Promise<boolean> {
+  let caught: unknown = error;
+  for (const handler of handlers) {
+    const resp = await Promise.resolve(handler?.(caught as Error, request, response)).catch(
+      (err) => err
+    );
+    caught = resp;
+    if (!(resp instanceof Error)) {
+      response.data = caught;
+      return true;
+    }
+  }
+  return false;
+}
 
 export const execute = async (route: Route, request: Request, response: Response) => {
   request.params = route.compiledParamExtractor
@@ -122,17 +159,15 @@ export const execute = async (route: Route, request: Request, response: Response
         response.status =
           route.compiled?.status ?? route.functions.find((fn) => fn.status)?.status ?? 200;
       }
-      if (data !== undefined) {
-        if (route.compiled?.interceptors) {
-          const interceptors = route.compiled.interceptors;
-          for (let i = interceptors.length - 1; i >= 0; i--) {
-            data = await Promise.resolve(interceptors[i](data, request, response));
-          }
-        } else {
-          const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
-          for (const interceptor of interceptors) {
-            data = await Promise.resolve(interceptor?.(data, request, response));
-          }
+      if (route.compiled?.interceptors) {
+        const interceptors = route.compiled.interceptors;
+        for (let i = interceptors.length - 1; i >= 0; i--) {
+          data = await Promise.resolve(interceptors[i](data, request, response));
+        }
+      } else {
+        const interceptors = extractMiddlewares(route.functions, 'interceptor').reverse();
+        for (const interceptor of interceptors) {
+          data = await Promise.resolve(interceptor?.(data, request, response));
         }
       }
     }
@@ -142,24 +177,20 @@ export const execute = async (route: Route, request: Request, response: Response
     return response;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    if (
-      [
-        ErrorCode.FORBIDDEN,
-        ErrorCode.NOT_FOUND,
-        ErrorCode.RATE_LIMIT_EXCEEDED,
-        ErrorCode.UNAUTHORIZED,
-      ].includes(error.code)
-    ) {
-      response.error(error);
-      return response;
-    }
-
     let caught = error;
 
     const compiledEH = route.compiled?.errorHandlers;
     const fallbackEH = compiledEH
       ? null
       : extractMiddlewares(route.functions, 'errorHandler').reverse();
+    const handlerCount = compiledEH?.length ?? fallbackEH?.length ?? 0;
+
+    // Errors with these codes carry their own HTTP semantics; skip @Catch only
+    // when the route has no explicit error handler to override them.
+    if (handlerCount === 0 && SKIP_ERROR_HANDLER_CODES.includes(error?.code)) {
+      response.error(error);
+      return response;
+    }
 
     if (compiledEH) {
       for (let i = compiledEH.length - 1; i >= 0; i--) {
@@ -184,7 +215,6 @@ export const execute = async (route: Route, request: Request, response: Response
     }
 
     if (caught instanceof Error) {
-      const handlerCount = compiledEH?.length ?? fallbackEH?.length ?? 0;
       if (handlerCount === 0) {
         throw caught;
       }
@@ -305,12 +335,8 @@ export const beforeRequest = async (
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      if ([ErrorCode.FORBIDDEN, ErrorCode.RATE_LIMIT_EXCEEDED].includes(err.code)) throw err;
-      const promises = handlers.map((handler) => handler(err, request, response));
-      if (promises.length) {
-        await Promise.all(promises);
-        return true;
-      }
+      if (handlers.length === 0) throw err;
+      if (await runErrorHandlers(handlers, err, request, response)) return true;
       throw err;
     }
     return false;
@@ -345,14 +371,9 @@ export const beforeRequest = async (
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    if ([ErrorCode.FORBIDDEN, ErrorCode.RATE_LIMIT_EXCEEDED].includes(err.code)) {
-      throw err;
-    }
-    if (compiled.errorHandlers.length > 0) {
-      const promises = compiled.errorHandlers.map((handler) => handler(err, request, response));
-      await Promise.all(promises);
-      return true;
-    }
+    if (compiled.errorHandlers.length === 0) throw err;
+    const ordered = [...compiled.errorHandlers].reverse();
+    if (await runErrorHandlers(ordered, err, request, response)) return true;
     throw err;
   }
   return false;
@@ -391,6 +412,7 @@ export function collectRoutes(
       functions: allFunctions,
       fn: instance[name].bind(instance),
       compiledRegex,
+      specificity: routeSpecificity(current),
       compiled: buildCompiledMiddleware(allFunctions),
       compiledParamExtractor: buildParamExtractor(current),
     });

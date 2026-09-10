@@ -44,10 +44,10 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * internally by the framework during request processing.
  */
 export function Guard(guard: GuardClass | GuardFunction | GuardInstance) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ guard: guard }];
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);

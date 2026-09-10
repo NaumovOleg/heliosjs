@@ -3,37 +3,33 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
  * Decorator to register an interceptor at the controller or method level.
  *
- * Interceptors are functions that wrap the execution of a route handler.
- * They can run logic before after the handler is executed, allowing
- * you to modify  responses, or handle cross-cutting concerns.
+ * An interceptor runs *after* the route handler. It receives the value the
+ * handler returned and whatever it returns becomes the new response payload,
+ * so it is the place for response shaping, wrapping, or caching.
  *
- * @param handler - Interceptor callback function.
+ * Signature: `(data, req, res) => newData` (may be async). Interceptors run
+ * regardless of whether the handler returned a value, including `undefined`.
+ *
+ * @param interceptor - `(data, req, res) => newData` callback.
  *
  * @returns A decorator that attaches interceptor metadata to the target
  * (either a class or a method).
  *
  * @example
- * // Logging interceptor
- * @Intercept(async (ctx, next) => {
- *   console.log('Before');
- *   const result = await next();
- *   console.log('After');
- *   return result;
- * })
+ * // Wrap every response body
+ * @Intercept((data) => ({ data, timestamp: Date.now() }))
  * class MyController {}
  *
  * @example
  * // Method-level interceptor
  * class MyController {
- *   @Intercept(async (ctx, next) => {
- *     return next();
- *   })
+ *   @Intercept(async (data, req) => ({ ...data, path: req.path }))
  *   getData() {}
  * }
  *
  * @remarks
- * - Interceptors can modify the result returned by the handler.
- * - They are executed in the order they are applied.
+ * - Interceptors replace the result returned by the handler.
+ * - Multiple interceptors run in reverse order (the one nearest the handler first).
  * - Can be used for:
  *   - logging
  *   - response transformation
@@ -44,10 +40,10 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * used internally by the framework during request processing.
  */
 export function Intercept(interceptor: InterceptorCB) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ interceptor }];
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);

@@ -146,6 +146,7 @@ export interface Route {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => any;
   compiledRegex?: RegExp;
+  specificity?: string;
   compiled?: CompiledMiddleware;
   compiledParamExtractor?: (path: string) => Record<string, string>;
 }

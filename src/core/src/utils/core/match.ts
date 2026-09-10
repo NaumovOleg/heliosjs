@@ -105,32 +105,52 @@ function isMethodMatch(routeMethod: string, requestMethod: string): boolean {
   return routeMethod === 'ANY' || routeMethod === requestMethod;
 }
 
+/**
+ * Sortable specificity key: one rank char per segment, compared left to right.
+ * static(4) > :param(regex)(3) > :param(2) > optional(1) > *(0). The trailing '5'
+ * makes `/a` beat `/a/:id?` or `/a/*` when both match the same path.
+ */
+export function routeSpecificity(route: string): string {
+  let key = '';
+  for (const seg of route.split('/')) {
+    if (!seg) continue;
+    if (seg === '*') key += '0';
+    else if (seg.endsWith('?')) key += '1';
+    else if (/^:[a-zA-Z_][a-zA-Z0-9_]*\(.+\)$/.test(seg)) key += '3';
+    else if (seg.startsWith(':')) key += '2';
+    else key += '4';
+  }
+  return key + '5';
+}
+
 export function matchRoutes(
   controller: ControllerMeta,
   requestPath: string,
   requestMethod: string
 ) {
   const normalizedRequestPath = normalizePath(requestPath);
+  let best: Route | undefined;
+  let bestKey = '';
 
-  function searchInController(controller: ControllerMeta): Route | undefined {
+  function searchInController(controller: ControllerMeta) {
     for (const route of controller.routes) {
-      if (!isMethodMatch(route.method, requestMethod)) {
-        continue;
-      }
+      if (!isMethodMatch(route.method, requestMethod)) continue;
 
-      const extracted = matchCompiledRegex(route, normalizedRequestPath);
-      if (extracted !== null) {
-        return route;
+      const key = route.specificity ?? routeSpecificity(route.route);
+      // Ties keep the first declared route; lower-ranked routes can't win, skip the regex.
+      if (key <= bestKey) continue;
+
+      if (matchCompiledRegex(route, normalizedRequestPath) !== null) {
+        best = route;
+        bestKey = key;
       }
     }
 
     for (const child of controller.children ?? []) {
-      const found = searchInController(child);
-      if (found) return found;
+      searchInController(child);
     }
-
-    return undefined;
   }
 
-  return searchInController(controller);
+  searchInController(controller);
+  return best;
 }

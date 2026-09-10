@@ -37,7 +37,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * This metadata is accessible via Reflect API and used internally by the framework to enforce CORS.
  */
 export function Cors(config: CORSConfig = {}) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const defaultConfig: CORSConfig = {
       origin: '*',
       optionsSuccessStatus: 204,
@@ -48,7 +48,7 @@ export function Cors(config: CORSConfig = {}) {
 
     const data = [{ cors: finalConfig }];
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);

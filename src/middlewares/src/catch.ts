@@ -28,10 +28,10 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * to invoke the registered error handler when errors occur.
  */
 export function Catch(handler: ErrorHandler) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ errorHandler: handler }];
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);

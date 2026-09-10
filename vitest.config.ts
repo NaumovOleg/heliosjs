@@ -28,7 +28,6 @@ export default defineConfig({
       '**/grpc/unit/server-extended.test.ts',
       '**/http/unit/factories.test.ts',
       '**/core/unit/socket/server.test.ts',
-      '**/middlewares/e2e/**',
     ],
     coverage: {
       provider: 'v8',

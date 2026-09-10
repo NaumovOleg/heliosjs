@@ -39,11 +39,11 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * to apply sanitization logic.
  */
 export function Sanitize(config: SanitizerConfig | SanitizerConfig[]) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const sanitizers = Array.isArray(config) ? config : [config];
     const data = sanitizers.map(sanitizer => ({ sanitizer }));
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);

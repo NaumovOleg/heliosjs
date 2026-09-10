@@ -30,10 +30,10 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * by the framework during request processing.
  */
 export function Pipe(pipe: Pipe) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ pipe }];
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);

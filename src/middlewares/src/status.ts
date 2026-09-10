@@ -36,6 +36,8 @@ export function Status(status: number) {
   return function (target: any, propertyKey?: string): void {
     if (propertyKey) {
       defineMiddlewaresMeta([{ status }], target, propertyKey);
+    } else {
+      defineMiddlewaresMeta([{ status }], target);
     }
   };
 }

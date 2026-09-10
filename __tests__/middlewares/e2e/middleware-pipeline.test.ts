@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import http from 'node:http';
 import { describe, expect, it, afterEach, vi } from 'vitest';
 import { Helios, Server } from '@heliosjs/http';
-import { Controller, Get, Post, Body } from '@heliosjs/core';
+import { Controller, Get, Post, Body, UnauthorizedError } from '@heliosjs/core';
 import { Use, Guard, Catch, Intercept, Status, Ok201, Ok204, Pipe } from '@heliosjs/middlewares';
 
 let portCounter = 20000;
@@ -268,5 +268,96 @@ describe('E2E: Middleware pipeline', () => {
     expect(res.status).toBe(200);
     expect(caughtErrors).toHaveLength(1);
     expect(caughtErrors[0].message).toBe('middleware boom');
+  });
+
+  it('@Intercept runs even when the handler returns undefined', async () => {
+    let ran = false;
+
+    @Controller('/void')
+    class VoidCtrl {
+      @Intercept((data: any) => {
+        ran = true;
+        return data ?? { fromInterceptor: true };
+      })
+      @Get('/')
+      handler() {
+        return undefined;
+      }
+    }
+
+    app = buildApp([VoidCtrl]);
+    const base = await startApp(app);
+
+    const res = await fetch(`${base}/void`);
+    expect(ran).toBe(true);
+    expect(await res.json()).toEqual({ fromInterceptor: true });
+  });
+
+  it('@Catch catches custom errors whose code is UNAUTHORIZED/NOT_FOUND/etc.', async () => {
+    const caughtErrors: Error[] = [];
+
+    @Controller('/custom-err')
+    class CustomErrCtrl {
+      @Catch((err: Error) => {
+        caughtErrors.push(err);
+        return { handled: true };
+      })
+      @Get('/')
+      fail() {
+        throw new UnauthorizedError('nope');
+      }
+    }
+
+    app = buildApp([CustomErrCtrl]);
+    const base = await startApp(app);
+
+    const res = await fetch(`${base}/custom-err`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ handled: true });
+    expect(caughtErrors).toHaveLength(1);
+    expect((caughtErrors[0] as any).code).toBe('UNAUTHORIZED');
+  });
+
+  it('@Catch return value shapes the body when a middleware throws', async () => {
+    @Controller('/shape')
+    class ShapeCtrl {
+      @Catch((err: Error) => ({ shaped: true, msg: err.message }))
+      @Use((_req: any, _res: any) => {
+        throw new Error('mw boom');
+      })
+      @Get('/')
+      handler() {
+        return { ok: true };
+      }
+    }
+
+    app = buildApp([ShapeCtrl]);
+    const base = await startApp(app);
+
+    const res = await fetch(`${base}/shape`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ shaped: true, msg: 'mw boom' });
+  });
+
+  it('@Status at the class level sets the default status for all routes', async () => {
+    @Status(202)
+    @Controller('/cls-status')
+    class ClsStatusCtrl {
+      @Get('/a')
+      a() {
+        return { a: true };
+      }
+
+      @Get('/b')
+      b() {
+        return { b: true };
+      }
+    }
+
+    app = buildApp([ClsStatusCtrl]);
+    const base = await startApp(app);
+
+    expect((await fetch(`${base}/cls-status/a`)).status).toBe(202);
+    expect((await fetch(`${base}/cls-status/b`)).status).toBe(202);
   });
 });

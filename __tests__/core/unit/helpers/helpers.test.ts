@@ -36,12 +36,6 @@ describe('matchRoutes (extended)', () => {
     expect(matchRoutes(meta([r]), '/nope', 'GET')).toBeUndefined();
   });
 
-  it('first route wins (declaration order)', () => {
-    const wildcard = makeRoute({ route: '/*', method: 'GET', name: 'wild' });
-    const specific = makeRoute({ route: '/users', method: 'GET', name: 'specific' });
-    expect(matchRoutes(meta([wildcard, specific]), '/users', 'GET')).toBe(wildcard);
-  });
-
   it('matches regex param route', () => {
     const r = makeRoute({ route: '/users/:id(\\d+)', method: 'GET' });
     expect(matchRoutes(meta([r]), '/users/123', 'GET')).toBe(r);

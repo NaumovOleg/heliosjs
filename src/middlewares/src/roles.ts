@@ -85,10 +85,10 @@ export function Roles(...args: (RolesArg | RolesOptions)[]) {
   const { roles, options } = normalizeArgs(args);
   const guard = createRolesGuard(roles, options);
 
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ guard }];
 
-    if (descriptor) {
+    if (propertyKey) {
       defineMiddlewaresMeta(data, target, propertyKey);
     } else {
       defineMiddlewaresMeta(data, target);
