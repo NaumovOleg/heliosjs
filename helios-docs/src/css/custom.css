@@ -1,30 +1,36 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * HeliosJS brand theme. Primary blue and the gold accent are pulled from the
+ * logo (helios-logo.svg: #354fab / #f9dc81) instead of the Infima defaults.
  */
 
-/* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #354fab;
+  --ifm-color-primary-dark: #2b418c;
+  --ifm-color-primary-darker: #27397c;
+  --ifm-color-primary-darkest: #1a2755;
+  --ifm-color-primary-light: #4460c5;
+  --ifm-color-primary-lighter: #5771cb;
+  --ifm-color-primary-lightest: #8295d8;
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(53, 79, 171, 0.1);
+
+  /* Logo gold, for accents outside Infima's own primary-color system
+     (e.g. custom homepage components). */
+  --helios-gold: #f9dc81;
+  --helios-gold-dark: #efb80b;
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* Lighter/brighter primary in dark mode keeps contrast on a dark background. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #7388d3;
+  --ifm-color-primary-dark: #546ec9;
+  --ifm-color-primary-darker: #4460c4;
+  --ifm-color-primary-darkest: #334ca3;
+  --ifm-color-primary-light: #92a2dd;
+  --ifm-color-primary-lighter: #a5b3e3;
+  --ifm-color-primary-lightest: #d0d7f0;
+  --docusaurus-highlighted-code-line-bg: rgba(115, 136, 211, 0.2);
+
+  --helios-gold: #f9dc81;
+  --helios-gold-dark: #f2c94c;
 }

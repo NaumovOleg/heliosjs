@@ -19,7 +19,11 @@ const config: Config = {
   organizationName: 'NaumovOleg',
   projectName: 'heliosjs',
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
 
   presets: [
     [
@@ -27,12 +31,27 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
+          editUrl: 'https://github.com/NaumovOleg/heliosjs/edit/master/helios-docs/',
         },
+        blog: false,
 
         theme: {
           customCss: './src/css/custom.css',
         },
       } satisfies Preset.Options,
+    ],
+  ],
+
+  themes: [
+    [
+      '@easyops-cn/docusaurus-search-local',
+      {
+        hashed: true,
+        indexDocs: true,
+        indexBlog: false,
+        indexPages: false,
+        highlightSearchTermsOnTargetPage: true,
+      },
     ],
   ],
 
@@ -85,13 +104,40 @@ const config: Config = {
         {
           title: 'Docs',
           items: [
+            { label: 'Introduction', to: '/docs/intro' },
+            { label: 'Request Lifecycle', to: '/docs/core-module/request-lifecycle' },
+            { label: 'HTTP Server', to: '/docs/http-module/server' },
+            { label: 'AWS Lambda', to: '/docs/aws/lambda-integration' },
+            { label: 'gRPC', to: '/docs/grpc/module' },
+          ],
+        },
+        {
+          title: 'Packages',
+          items: [
+            { label: '@heliosjs/core', href: 'https://www.npmjs.com/package/@heliosjs/core' },
+            { label: '@heliosjs/http', href: 'https://www.npmjs.com/package/@heliosjs/http' },
+            { label: '@heliosjs/aws', href: 'https://www.npmjs.com/package/@heliosjs/aws' },
             {
-              label: 'Tutorial',
-              to: '/docs/intro',
+              label: '@heliosjs/middlewares',
+              href: 'https://www.npmjs.com/package/@heliosjs/middlewares',
             },
+            { label: '@heliosjs/grpc', href: 'https://www.npmjs.com/package/@heliosjs/grpc' },
+          ],
+        },
+        {
+          title: 'More',
+          items: [
+            { label: 'GitHub', href: 'https://github.com/NaumovOleg/heliosjs' },
+            { label: 'Issues', href: 'https://github.com/NaumovOleg/heliosjs/issues' },
+            {
+              label: 'Benchmarks',
+              to: '/docs/benchmarks',
+            },
+            { label: 'License (MIT)', href: 'https://github.com/NaumovOleg/heliosjs/blob/master/LICENSE' },
           ],
         },
       ],
+      copyright: `Copyright © ${new Date().getFullYear()} HeliosJS. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

@@ -19,7 +19,7 @@ import {
   Patch,
   Delete,
   Body,
-  Param,
+  Params,
   QueryParam,
   NotFoundError,
 } from "@heliosjs/core";
@@ -48,7 +48,7 @@ export class UserController {
   }
 
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     const user = users.find((u) => u.id === Number(id));
     if (!user) {
       throw new NotFoundError("User", id);
@@ -64,7 +64,7 @@ export class UserController {
   }
 
   @Put("/:id")
-  replace(@Param("id") id: string, @Body() data: Omit<User, "id">) {
+  replace(@Params("id") id: string, @Body() data: Omit<User, "id">) {
     const userId = Number(id);
     const index = users.findIndex((u) => u.id === userId);
     if (index === -1) {
@@ -75,7 +75,7 @@ export class UserController {
   }
 
   @Patch("/:id")
-  update(@Param("id") id: string, @Body() data: Partial<Omit<User, "id">>) {
+  update(@Params("id") id: string, @Body() data: Partial<Omit<User, "id">>) {
     const user = users.find((u) => u.id === Number(id));
     if (!user) {
       throw new NotFoundError("User", id);
@@ -85,7 +85,7 @@ export class UserController {
   }
 
   @Delete("/:id")
-  remove(@Param("id") id: string) {
+  remove(@Params("id") id: string) {
     const index = users.findIndex((u) => u.id === Number(id));
     if (index === -1) {
       throw new NotFoundError("User", id);
@@ -128,7 +128,7 @@ Group related controllers under a parent prefix:
 ```typescript
 import { Controller } from "@heliosjs/core";
 
-@Controller("/api", controllers: [UserController, PostController])
+@Controller({ prefix: "/api", controllers: [UserController, PostController] })
 export class RootController {}
 ```
 
@@ -137,19 +137,24 @@ This creates routes like `/api/users/...` and `/api/posts/...`.
 You can nest multiple levels:
 
 ```typescript
-@Controller("/api/v1", controllers: [
-  UserController,
-  PostController,
-  CommentController,
-])
+@Controller({
+  prefix: "/api/v1",
+  controllers: [UserController, PostController, CommentController],
+})
 export class V1Controller {}
 
-@Controller("/api/v2", controllers: [UserControllerV2])
+@Controller({ prefix: "/api/v2", controllers: [UserControllerV2] })
 export class V2Controller {}
 
 @Controller({ controllers: [V1Controller, V2Controller] })
 export class RootController {}
 ```
+
+:::note
+`@Controller(path, middlewares?)` (the string form) only accepts a prefix and
+an optional middleware array — nesting child controllers requires the object
+form, `@Controller({ prefix, middlewares, controllers })`.
+:::
 
 ## Route Decorators
 
@@ -198,27 +203,31 @@ export class App {}
 ### Via @Controller with nested controllers
 
 ```typescript
-@Controller("/api", controllers: [UserController, PostController])
+@Controller({ prefix: "/api", controllers: [UserController, PostController] })
 export class RootController {}
 ```
 
 ## Route Priority
 
-Routes are matched by specificity. More specific routes should be defined first:
+Routes are matched by **specificity**, not declaration order: a static
+segment (`/profile`) always outranks a `:param`, which outranks an optional
+`:param?`, which outranks a wildcard `*` — segment by segment, left to right.
+Declaration order only breaks a tie between two routes of equal specificity.
+So you can freely mix static and parameterized routes in either order:
 
 ```typescript
 @Controller("/users")
 export class UserController {
-  // Specific route first
+  @Get("/:id")
+  getUserById(@Params("id") id: string) {
+    return { userId: id };
+  }
+
+  // Still matches /users/profile, even though it's declared after /:id —
+  // a static segment always beats a :param at the same position.
   @Get("/profile")
   getProfile() {
     return { page: "profile" };
-  }
-
-  // Parameterized route after
-  @Get("/:id")
-  getUserById(@Param("id") id: string) {
-    return { userId: id };
   }
 }
 ```
@@ -234,8 +243,8 @@ import { Use, Guard } from "@heliosjs/middlewares";
 const authMiddleware = (req: any, res: any, next: any) => {
   const token = req.getHeader("authorization");
   if (!token) {
-    res.statusCode = 401;
-    return;
+    res.status = 401;
+    return; // not calling next() stops the pipeline here
   }
   req.setState("user", { id: 1, name: "Alice", roles: ["admin"] });
   next();
@@ -298,7 +307,7 @@ import {
   Put,
   Delete,
   Body,
-  Param,
+  Params,
   QueryParam,
   Headers,
   NotFoundError,
@@ -342,7 +351,7 @@ export class TaskController {
   }
 
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     const task = tasks.find((t) => t.id === Number(id));
     if (!task) {
       throw new NotFoundError("Task", id);
@@ -373,7 +382,7 @@ export class TaskController {
   }
 
   @Put("/:id")
-  replace(@Param("id") id: string, @Body() data: { title: string; completed: boolean }) {
+  replace(@Params("id") id: string, @Body() data: { title: string; completed: boolean }) {
     const index = tasks.findIndex((t) => t.id === Number(id));
     if (index === -1) {
       throw new NotFoundError("Task", id);
@@ -383,7 +392,7 @@ export class TaskController {
   }
 
   @Patch("/:id")
-  update(@Param("id") id: string, @Body() data: Partial<Task>) {
+  update(@Params("id") id: string, @Body() data: Partial<Task>) {
     const task = tasks.find((t) => t.id === Number(id));
     if (!task) {
       throw new NotFoundError("Task", id);
@@ -393,7 +402,7 @@ export class TaskController {
   }
 
   @Delete("/:id")
-  remove(@Param("id") id: string) {
+  remove(@Params("id") id: string) {
     const index = tasks.findIndex((t) => t.id === Number(id));
     if (index === -1) {
       throw new NotFoundError("Task", id);
@@ -447,7 +456,7 @@ curl -X DELETE http://localhost:3000/tasks/1
 | `@Query(path)` | Method | QUERY route (body-carrying idempotent) |
 | `@Any()` | Method | Catch-all for any method |
 | `@Body(name?)` | Parameter | Extract request body |
-| `@Param(name?)` | Parameter | Extract URL parameter |
+| `@Params(name?)` | Parameter | Extract URL parameter |
 | `@QueryParam(name?)` | Parameter | Extract query string parameter |
 | `@Headers(name?)` | Parameter | Extract HTTP header |
 | `@Cookies(name?)` | Parameter | Extract cookie |

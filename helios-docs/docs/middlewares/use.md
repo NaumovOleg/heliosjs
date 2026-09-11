@@ -1,3 +1,7 @@
+---
+description: Register (req, res, next) middleware functions that run before the route handler with @Use.
+---
+
 # Use Middleware Decorator
 
 The `@Use` decorator registers middleware functions that execute before the route handler.
@@ -80,19 +84,21 @@ export class UserController {
 
 ### Logging Middleware
 
+`req`/`res` here are the framework `Request`/`Response`, not raw Node
+objects — there's no `res.on('finish', ...)` to hook into. Log from an
+`@Intercept` instead, which runs once the handler has actually produced a
+result (and `req.startTime` is the request's high-resolution start time):
+
 ```typescript
-const loggingMiddleware = (req: any, res: any, next: any) => {
-  const start = Date.now();
+import { Intercept } from "@heliosjs/middlewares";
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
-  });
-
-  next();
+const loggingInterceptor = (data: any, req: any, res: any) => {
+  const duration = Date.now() - req.startTime; // req.startTime is set by the framework
+  console.log(`${req.method} ${req.path} ${res.status} ${duration}ms`);
+  return data;
 };
 
-@Use(loggingMiddleware)
+@Intercept(loggingInterceptor)
 @Controller("/api")
 export class ApiController {}
 ```
@@ -131,7 +137,7 @@ export class ProtectedController {
 ### Request ID Middleware
 
 ```typescript
-import { generateUniqueId } from "@heliosjs/core";
+import { generateUniqueId } from "@heliosjs/core/utils";
 
 const requestIdMiddleware = (req: any, res: any, next: any) => {
   const requestId = req.getHeader("x-request-id") || generateUniqueId();
@@ -174,8 +180,10 @@ A middleware can short-circuit the pipeline by sending a response without callin
 const cacheMiddleware = (req: any, res: any, next: any) => {
   const cached = cache.get(req.path);
   if (cached) {
-    // Don't call next() - response is sent directly
-    return res.json(cached);
+    // Set the payload and don't call next() — the pipeline stops here and
+    // the adapter still sends whatever res.data currently holds.
+    res.data = cached;
+    return;
   }
   next(); // No cache, continue to handler
 };

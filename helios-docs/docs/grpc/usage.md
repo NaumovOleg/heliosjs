@@ -1,3 +1,7 @@
+---
+description: Define gRPC services, unary and streaming methods, and clients with HeliosJS's gRPC decorators.
+---
+
 # gRPC Module Usage
 
 ## Defining gRPC Services
@@ -13,17 +17,19 @@ import { join } from "node:path";
   package: "user",
 })
 export class UserService {
-  @GrpcMethod("FindOne")
+  // No arguments needed — the method name ("findOne") already matches the
+  // proto RPC ("FindOne") case-insensitively.
+  @GrpcMethod()
   findOne(data: { id: number }) {
     return { id: data.id, name: "User " + data.id };
   }
 
-  @GrpcMethod("FindMany")
+  @GrpcMethod()
   findMany(data: { ids: number[] }) {
     return data.ids.map((id) => ({ id, name: "User " + id }));
   }
 
-  @GrpcMethod("Create")
+  @GrpcMethod()
   create(data: { name: string; email: string }) {
     return { id: Date.now(), ...data };
   }
@@ -32,17 +38,33 @@ export class UserService {
 
 ## Implementing gRPC Methods
 
-`@GrpcMethod` takes optional service name and method name:
+`@GrpcMethod(serviceName?, methodName?)` — **both arguments are positional
+overrides, in that order**. It's easy to misread the first argument as "the
+method name"; it is not.
 
 ```typescript
-// Auto-detected from class name
-@GrpcMethod("FindOne")
+// Most common case: no arguments. The method name is taken from the
+// property itself ("findOne"), matched against the proto RPC ("FindOne").
+@GrpcMethod()
 findOne(data: { id: number }) { return { id: data.id }; }
 
-// Explicit service and method names
+// Override the method name only — pass undefined for serviceName so it
+// still falls back to the enclosing @GrpcService.
+@GrpcMethod(undefined, "FindOne")
+lookupOne(data: { id: number }) { return { id: data.id }; }
+
+// Override both service and method name.
 @GrpcMethod("UserService", "FindOne")
 findOne(data: { id: number }) { return { id: data.id }; }
 ```
+
+:::warning
+`@GrpcMethod("FindOne")` with a **single** argument does **not** set the
+method name — it overrides the *service* name to `"FindOne"`. With no proto
+service actually called that, registration fails with `Service "FindOne" not
+found`. If the property name already matches the RPC name (the common case),
+skip the arguments entirely: `@GrpcMethod()`.
+:::
 
 ## Streaming Methods
 
@@ -56,7 +78,7 @@ import { GrpcService, GrpcStreamMethod } from "@heliosjs/grpc";
   package: "chat",
 })
 export class ChatService {
-  @GrpcStreamMethod("Chat")
+  @GrpcStreamMethod()
   chat(call: any) {
     call.on("data", (message: any) => {
       console.log("Received:", message);
@@ -93,7 +115,7 @@ export class UserOrchestrator {
     ]);
 
     return { ...user, books };
-    }
+  }
 }
 ```
 
@@ -132,8 +154,11 @@ client.close();
 
 ```typescript
 import { GrpcModule } from "@heliosjs/grpc";
+import { join } from "node:path";
 
-const grpc = GrpcModule.forRoot({ server: { url: "0.0.0.0:50051", ... } });
+const grpc = GrpcModule.forRoot({
+  server: { url: "0.0.0.0:50051", package: "hero", protoPath: join(__dirname, "./hero.proto") },
+});
 
 // Start
 await grpc.start();

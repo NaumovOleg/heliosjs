@@ -9,7 +9,7 @@ The `Helios` adapter from `@heliosjs/aws` translates AWS Lambda events into Heli
 ## Basic Setup
 
 ```typescript
-import { Controller, Get, Post, Body, Param } from "@heliosjs/core";
+import { Controller, Get, Post, Body, Params } from "@heliosjs/core";
 import { Helios } from "@heliosjs/aws";
 
 @Controller("/users")
@@ -20,7 +20,7 @@ export class UserController {
   findAll() { return this.users; }
 
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     return this.users.find((u) => u.id === Number(id));
   }
 
@@ -78,7 +78,7 @@ import {
   Patch,
   Delete,
   Body,
-  Param,
+  Params,
   QueryParam,
   Headers,
   NotFoundError,
@@ -120,7 +120,7 @@ export class ProductController {
   }
 
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     const product = products.find((p) => p.id === Number(id));
     if (!product) throw new NotFoundError("Product", id);
     return product;
@@ -139,7 +139,7 @@ export class ProductController {
   }
 
   @Put("/:id")
-  replace(@Param("id") id: string, @Body() data: Omit<Product, "id">) {
+  replace(@Params("id") id: string, @Body() data: Omit<Product, "id">) {
     const index = products.findIndex((p) => p.id === Number(id));
     if (index === -1) throw new NotFoundError("Product", id);
     products[index] = { id: Number(id), ...data };
@@ -147,7 +147,7 @@ export class ProductController {
   }
 
   @Patch("/:id")
-  update(@Param("id") id: string, @Body() data: Partial<Product>) {
+  update(@Params("id") id: string, @Body() data: Partial<Product>) {
     const product = products.find((p) => p.id === Number(id));
     if (!product) throw new NotFoundError("Product", id);
     Object.assign(product, data);
@@ -155,7 +155,7 @@ export class ProductController {
   }
 
   @Delete("/:id")
-  remove(@Param("id") id: string) {
+  remove(@Params("id") id: string) {
     const index = products.findIndex((p) => p.id === Number(id));
     if (index === -1) throw new NotFoundError("Product", id);
     products.splice(index, 1);
@@ -199,14 +199,18 @@ export const handler = adapter.handler;
 
 ## TypeScript Types
 
-```typescript
-import { LambdaEvent } from "@heliosjs/aws";
+`adapter.handler` already **is** a standard AWS Lambda `Handler` — export it
+directly, no wrapping needed:
 
-// The handler signature matches AWS Lambda
-export const handler: LambdaHandler = async (event: LambdaEvent, context) => {
-  return adapter.handler(event, context);
-};
+```typescript
+export const handler = adapter.handler;
 ```
+
+`LambdaEvent` (exported from `@heliosjs/aws`) is the union of every event
+shape it accepts — `APIGatewayProxyEvent`, `APIGatewayProxyEventV2`,
+`ALBEvent`, `CloudFrontRequestEvent`, and the Lambda Function URL event —
+useful when you need to type something that touches the raw event yourself,
+e.g. inside a plugin's `onInit(app, event, context)`.
 
 ## Remarks
 

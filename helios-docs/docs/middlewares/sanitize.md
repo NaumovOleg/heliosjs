@@ -1,3 +1,7 @@
+---
+description: Validate and clean request data with Joi schemas using @Sanitize and the built-in SANITIZER helpers.
+---
+
 # Sanitize Middleware Decorator
 
 The `@Sanitize` decorator applies Joi-based sanitization to request data.
@@ -95,9 +99,9 @@ The `action` property controls what the sanitization does:
 
 | Action | Behavior |
 |--------|----------|
-| `"sanitize"` (default) | Apply defaults and convert types, strip unknowns |
-| `"validate"` | Validate only, no type conversion |
-| `"both"` | Validate and sanitize |
+| `"both"` (default) | Validate and convert/sanitize in one pass |
+| `"validate"` | Reject invalid data; no type conversion or defaults applied |
+| `"sanitize"` | Convert types and apply defaults; missing-but-required fields don't reject |
 
 ```typescript
 // Validate-only mode - rejects invalid data

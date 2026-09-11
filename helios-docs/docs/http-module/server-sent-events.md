@@ -27,41 +27,54 @@ export class App {}
 | `@OnSSEError()` | Handle SSE errors |
 | `@InjectSSE()` | Inject the SSE service |
 
+## Two Kinds of SSE Handler
+
+SSE has two distinct kinds of method, and it's important not to mix them up:
+
+- A regular **HTTP route** (`@Get`) is where a connection is actually
+  **established** — the client calls it, and inside it you call
+  `sse.createConnection(res)`. This goes through normal parameter resolution,
+  so `@Req()` / `@Res()` / `@InjectSSE()` all work here.
+- `@OnSSEConnection()` / `@OnSSEClose()` / `@OnSSEError()` are **lifecycle
+  callbacks** that fire for *every* connection created anywhere, however it
+  was created. They're always called with a single `event: SSEEvent`
+  argument — parameter decorators don't apply to them, and returning a value
+  from one does nothing (there's no request/response cycle to return into).
+
 ## Basic SSE Controller
 
 ```typescript
-import { Controller, Req, Res } from "@heliosjs/core";
-import {
-  OnSSEConnection,
-  OnSSEClose,
-  OnSSEError,
-  InjectSSE,
-  ISSEService,
-} from "@heliosjs/http";
+import { Controller, Get, Req, Res } from "@heliosjs/core";
+import type { Request, Response, ISSEService } from "@heliosjs/core";
+import type { SSEEvent } from "@heliosjs/core/types";
+import { OnSSEConnection, OnSSEClose, OnSSEError, InjectSSE } from "@heliosjs/http";
 
 @Controller("events")
 export class EventsController {
-  @OnSSEConnection()
-  onConnect(@Req() req: any, @Res() res: any, @InjectSSE() sse: ISSEService) {
+  // Establishes the connection — the client does `new EventSource('/events/subscribe')`
+  @Get("/subscribe")
+  subscribe(@Req() req: Request, @Res() res: Response, @InjectSSE() sse: ISSEService) {
     const client = sse.createConnection(res);
-
-    // Send welcome message
     sse.sendToClient(client.id, {
       event: "welcome",
       data: { clientId: client.id, message: "Connected to SSE" },
     });
+  }
 
-    return { clientId: client.id };
+  // Fires for every connection, from any route that calls createConnection()
+  @OnSSEConnection()
+  onConnect(event: SSEEvent) {
+    console.log(`SSE client ${event.client.id} connected`);
   }
 
   @OnSSEClose()
-  onClose(@Req() req: any) {
-    console.log("SSE client disconnected");
+  onClose(event: SSEEvent) {
+    console.log(`SSE client ${event.client.id} disconnected`);
   }
 
   @OnSSEError()
-  onError(@Req() req: any, error: any) {
-    console.error("SSE error:", error);
+  onError(event: SSEEvent) {
+    console.error("SSE error:", event.data);
   }
 }
 ```
@@ -69,14 +82,15 @@ export class EventsController {
 ## Sending Events to Clients
 
 ```typescript
-import { Controller, Post, Body, Param } from "@heliosjs/core";
-import { InjectSSE, ISSEService } from "@heliosjs/http";
+import { Controller, Post, Body, Params } from "@heliosjs/core";
+import type { ISSEService } from "@heliosjs/core";
+import { InjectSSE } from "@heliosjs/http";
 
 @Controller("notifications")
 export class NotificationController {
   @Post("/send/:clientId")
   sendToClient(
-    @Param("clientId") clientId: string,
+    @Params("clientId") clientId: string,
     @Body() data: { message: string },
     @InjectSSE() sse: ISSEService,
   ) {
@@ -110,7 +124,8 @@ export class NotificationController {
 
 ```typescript
 import { Controller, Get, Req, Res } from "@heliosjs/core";
-import { OnSSEConnection, InjectSSE, ISSEService } from "@heliosjs/http";
+import type { ISSEService } from "@heliosjs/core";
+import { InjectSSE } from "@heliosjs/http";
 
 @Controller("stocks")
 export class StockController {
@@ -135,8 +150,9 @@ export class StockController {
 
     this.intervals.set(client.id, interval);
 
-    // Clean up on disconnect
-    req.on("close", () => {
+    // Clean up on disconnect — req/res are framework wrappers; the raw Node
+    // request (an EventEmitter) is available via req.raw.
+    req.raw.on("close", () => {
       clearInterval(this.intervals.get(client.id)!);
       this.intervals.delete(client.id);
     });

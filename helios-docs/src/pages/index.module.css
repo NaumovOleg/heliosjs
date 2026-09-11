@@ -12,18 +12,80 @@
   display: flex;
   padding-top: 2rem;
 }
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heroLogo {
+  margin-bottom: 1rem;
+}
+
+.heroIcon {
+  width: 96px;
+  height: 96px;
+  filter: drop-shadow(0 4px 16px rgba(53, 79, 171, 0.25));
+}
+
+.heroIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.heroTitle {
+  font-size: 2.75rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.heroTagline {
+  font-size: 1.25rem;
+  color: var(--ifm-font-color-secondary);
+  max-width: 32rem;
+  margin: 0 auto 2rem;
+}
+
 .containerCode {
   width: fit-content;
+  max-width: 100%;
   text-align: left;
+  margin: 0 auto 1rem;
+}
+
+.codeBlock {
+  background: #1b1e2b;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  overflow-x: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  text-align: left;
+}
+
+.codeBlock pre {
+  margin: 0;
+  background: transparent;
+}
+
+.codeBlock code {
+  background: transparent;
+  color: #e4e7f1;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre;
 }
 
 .buttons {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
+
 .buttons a {
-  margin-right: 30px;
+  margin: 0;
 }
 
 .features {
@@ -34,10 +96,30 @@
   text-align: center;
 }
 
+.sectionHeader {
+  margin-bottom: 2.5rem;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.sectionSubtitle {
+  color: var(--ifm-font-color-secondary);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
 .featuresRow {
   justify-content: center;
   gap: 10px;
   margin: 0 -5px;
+}
+
+.featureCol {
+  padding-bottom: 1.5rem;
 }
 
 .featureCard {
@@ -76,11 +158,33 @@
 }
 
 /* Dark mode adjustments */
-[data-theme="dark"] .featureCard {
+[data-theme='dark'] .featureCard {
   background: var(--ifm-background-surface-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-[data-theme="dark"] .featureCard:hover {
+[data-theme='dark'] .featureCard:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .codeBlock {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 2rem;
+  }
+
+  .heroTagline {
+    font-size: 1.05rem;
+  }
+
+  .codeBlock {
+    padding: 1.25rem;
+  }
+
+  .codeBlock code {
+    font-size: 0.75rem;
+  }
 }

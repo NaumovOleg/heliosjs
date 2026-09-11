@@ -73,8 +73,8 @@ function Code() {
             <pre>
               <code>
                 {`
-    import { Controller, Get, Post } from '@heliosjs/core';
-    import { Helios } from '@heliosjs/http';
+    import { Controller, Get, Post, Body } from '@heliosjs/core';
+    import { Server, Helios } from '@heliosjs/http';
 
     @Controller('/api')
     class ApiController {
@@ -82,15 +82,17 @@ function Code() {
       health() {
         return { status: 'ok' };
       }
-      
+
       @Post('/users')
       createUser(@Body() data: UserDto) {
         return { id: 1, ...data };
       }
     }
-    @Server({ controllers: [Api] })
-    export class Server {}
-    const app = new Helios(Server);
+
+    @Server({ controllers: [ApiController] })
+    class App {}
+
+    const app = new Helios(App);
     app.listen(3000);
 `}
               </code>
@@ -115,6 +117,7 @@ function HomepageHeader() {
             </div>
           </div>
           <h1 className={styles.heroTitle}>{siteConfig.title}</h1>
+          <p className={styles.heroTagline}>{siteConfig.tagline}</p>
           <div className={styles.buttons}>
             <a className="button button--primary button--lg" href={useBaseUrl('/docs/intro')}>
               Get Started →

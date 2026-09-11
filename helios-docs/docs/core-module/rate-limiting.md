@@ -33,7 +33,7 @@ export class ApiController {
 | `windowMs` | `number` | Time window in milliseconds |
 | `strategy` | `RateLimitStrategy` | Rate limiting algorithm |
 | `keyGen` | `(req) => string` | Custom key generator |
-| `onLimit` | `(req, res, record) => void` | Custom limit exceeded handler |
+| `onLimit` | `(req, res) => void \| Promise<void>` | Custom limit exceeded hook |
 | `cost` | `number` | Cost per request (default: 1) |
 
 ## Strategies
@@ -133,17 +133,20 @@ heavy() { return computeHeavyResult(); }
 
 ## Custom Limit Handler
 
-Override the default 429 response:
+`onLimit` is a **side-effect hook**, not a response override — it fires right
+before the request is rejected, and whatever it does (or throws) can't stop
+the 429: HeliosJS always throws `RateLimitExceededError` afterward, and any
+error `onLimit` itself throws is swallowed so it can't mask that result. Use
+it for logging, metrics, or alerting; use `@Catch` if you want to change the
+response body a rate-limit breach produces.
 
 ```typescript
 @RateLimit({
   max: 100,
   windowMs: 60_000,
-  onLimit: (req, res, record) => {
-    return res.status(429).json({
-      error: "Rate limit exceeded",
-      retryAfter: Math.ceil((record.resetAt - Date.now()) / 1000),
-    });
+  onLimit: (req, res) => {
+    metrics.increment("rate_limit.exceeded", { path: req.path });
+    console.warn(`Rate limit hit by ${req.getClientIp()} on ${req.path}`);
   },
 })
 @Get("/")
@@ -152,28 +155,30 @@ handler() { return {}; }
 
 ## Global Rate Limit Configuration
 
-Set default strategy for all `@RateLimit` decorators:
-
-```typescript
-import { Server } from "@heliosjs/http";
-import { slidingWindow, tokenBucket } from "@heliosjs/core";
-
-@Server({
-  controllers: [ApiController],
-  // Global rate limit defaults
-  // (configured via setRateLimitConfig in your entry point)
-})
-export class App {}
-```
+`setRateLimitConfig` sets the default `strategy` / `keyGen` / `onLimit` used
+by every `@RateLimit` decorator that doesn't specify its own — `max` and
+`windowMs` always come from the decorator itself and can't be defaulted this
+way. Call it once, before the server starts handling requests:
 
 ```typescript
 import { setRateLimitConfig, slidingWindow } from "@heliosjs/core";
 
-// Set before starting server
 setRateLimitConfig({
   strategy: slidingWindow(),
   keyGen: (req) => req.getClientIp(),
 });
+```
+
+```typescript
+import "reflect-metadata";
+import { Server, Helios } from "@heliosjs/http";
+
+@Server({ controllers: [ApiController] })
+export class App {}
+
+// setRateLimitConfig(...) above already applies to every @RateLimit below this
+const server = new Helios(App);
+await server.listen(3000);
 ```
 
 ## Response Headers

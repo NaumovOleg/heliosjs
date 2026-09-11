@@ -32,52 +32,52 @@ export class ResourceController {
   create(@Body() data: any) { return data; }
 
   @Put("/:id")
-  replace(@Param("id") id: string, @Body() data: any) { return data; }
+  replace(@Params("id") id: string, @Body() data: any) { return data; }
 
   @Patch("/:id")
-  update(@Param("id") id: string, @Body() data: any) { return data; }
+  update(@Params("id") id: string, @Body() data: any) { return data; }
 
   @Delete("/:id")
-  remove(@Param("id") id: string) { return { deleted: true }; }
+  remove(@Params("id") id: string) { return { deleted: true }; }
 
   @Options("/")
   allowed() { return { methods: ["GET", "POST", "PUT", "PATCH", "DELETE"] }; }
 
   @Head("/:id")
-  exists(@Param("id") id: string) { /* returns only headers */ }
+  exists(@Params("id") id: string) { /* returns only headers */ }
 
   @Query("/search")
   search(@Body() filter: any) { return { results: [] }; }
 }
 ```
 
-## URL Parameters (@Param)
+## URL Parameters (@Params)
 
 Extract dynamic segments from the URL:
 
 ```typescript
-import { Controller, Get, Param } from "@heliosjs/core";
+import { Controller, Get, Params } from "@heliosjs/core";
 
 @Controller("/users")
 export class UserController {
   // /users/123
   @Get("/:id")
-  getUser(@Param("id") id: string) {
+  getUser(@Params("id") id: string) {
     return { id: Number(id) };
   }
 
   // /users/123/posts/456
   @Get("/:userId/posts/:postId")
   getUserPost(
-    @Param("userId") userId: string,
-    @Param("postId") postId: string,
+    @Params("userId") userId: string,
+    @Params("postId") postId: string,
   ) {
     return { userId: Number(userId), postId: Number(postId) };
   }
 
   // /users/123/posts (nested)
   @Get("/:userId/posts")
-  getUserPosts(@Param("userId") userId: string) {
+  getUserPosts(@Params("userId") userId: string) {
     return { userId: Number(userId), posts: [] };
   }
 }
@@ -299,14 +299,16 @@ export class ResponseController {
     res.redirect("/new-location", 301);
   }
 
+  // Returning a string sends it as text/plain; set Content-Type yourself for HTML
   @Get("/html")
   html(@Res() res: Response) {
-    return res.html("<h1>Hello World</h1>");
+    res.setHeader("Content-Type", "text/html");
+    return "<h1>Hello World</h1>";
   }
 
   @Get("/text")
-  text(@Res() res: Response) {
-    return res.text("plain text response");
+  text() {
+    return "plain text response";
   }
 }
 ```
@@ -400,7 +402,7 @@ import {
   Get,
   Post,
   Body,
-  Param,
+  Params,
   QueryParam,
   Headers,
   Cookies,
@@ -446,7 +448,7 @@ export class ProductController {
 
   @Get("/:id")
   findOne(
-    @Param("id") id: string,
+    @Params("id") id: string,
     @Fingerprint() fingerprint: string,
   ) {
     const product = products.find((p) => p.id === Number(id));
@@ -486,34 +488,36 @@ export class ProductController {
 
 | Decorator | Source | Usage |
 |-----------|--------|-------|
-| `@Param(name?)` | URL path | `/users/:id` → `@Param('id')` |
-| `@QueryParam(name?)` | Query string | `?page=1` → `@QueryParam('page')` |
+| `@Params(nameOrDto?)` | URL path | `/users/:id` → `@Params('id')`, or `@Params(ParamsDto)` to validate |
+| `@QueryParam(nameOrDto?)` | Query string | `?page=1` → `@QueryParam('page')` |
 | `@Body(nameOrDto?)` | Request body | JSON payload |
-| `@Headers(name?)` | HTTP headers | Authorization header |
-| `@Cookies(name?)` | Cookie header | Session cookie |
-| `@Files(name?)` | Multipart data | File uploads |
+| `@Headers(nameOrDto?)` | HTTP headers | Authorization header |
+| `@Cookies(nameOrDto?)` | Cookie header | Session cookie |
+| `@Files(nameOrDto?)` | Multipart data | File uploads |
 | `@Req()` | Raw request | Full Request object |
 | `@Res()` | Raw response | Full Response object |
 | `@Fingerprint()` | Computed | Hashed request fingerprint |
-| `@Params(dto?)` | URL params | Validated route params |
 
 ## Route Priority
 
-Routes are matched by specificity. More specific routes should come before parameterized ones:
+Routes are matched by **specificity**, not declaration order — a static
+segment always beats a `:param` at the same position, so fixed and
+parameterized routes can be declared in any order:
 
 ```typescript
 @Controller("/users")
 export class UserController {
-  // Fixed path - matched first
+  @Get("/:id")
+  getUser(@Params("id") id: string) { return { userId: id }; }
+
+  // Still wins over /:id for the literal path /users/profile
   @Get("/profile")
   getProfile() { return { page: "profile" }; }
 
-  // Fixed path - matched second
   @Get("/settings")
   getSettings() { return { page: "settings" }; }
-
-  // Parameterized path - matched last
-  @Get("/:id")
-  getUser(@Param("id") id: string) { return { userId: id }; }
 }
 ```
+
+See [Controllers → Route Priority](./controllers.md#route-priority) for the
+full specificity ranking.

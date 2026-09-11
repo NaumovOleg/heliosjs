@@ -1,3 +1,7 @@
+---
+description: Transform body, query, params, or headers before validation and the handler with @Pipe.
+---
+
 # Pipe Middleware Decorator
 
 The `@Pipe` decorator transforms request data before it reaches the handler.
@@ -10,12 +14,15 @@ Pipes modify `body`, `query`, `params`, or `headers` data before validation and 
 
 ```typescript
 interface Pipe {
-  body?: (body: any) => any;
-  query?: (query: Record<string, string>) => Record<string, string>;
-  params?: (params: Record<string, string>) => Record<string, string>;
-  headers?: (headers: Record<string, string>) => Record<string, string>;
+  body?: (body: any, request: Request) => any;
+  query?: (query: Record<string, string | string[]>, request: Request) => Record<string, string | string[]>;
+  params?: (params: Record<string, string>, request: Request) => Record<string, string>;
+  headers?: (headers: Record<string, string | string[]>, request: Request) => Record<string, string | string[]>;
 }
 ```
+
+Each function's second argument is the current `Request`, in case the
+transform needs more context than the field being replaced.
 
 ## Basic Usage
 
@@ -78,6 +85,9 @@ export class ItemController {
 ### URL Slug Normalization
 
 ```typescript
+import { Controller, Get, Params } from "@heliosjs/core";
+import { Pipe } from "@heliosjs/middlewares";
+
 @Pipe({
   params: (params) => ({
     ...params,
@@ -87,7 +97,7 @@ export class ItemController {
 @Controller("/articles")
 export class ArticleController {
   @Get("/:slug")
-  findBySlug(@Param("slug") slug: string) {
+  findBySlug(@Params("slug") slug: string) {
     return { slug };
   }
 }

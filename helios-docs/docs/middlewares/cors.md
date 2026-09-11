@@ -1,3 +1,7 @@
+---
+description: Configure Cross-Origin Resource Sharing per controller or route with @Cors.
+---
+
 # Cors Middleware Decorator
 
 The `@Cors` decorator configures Cross-Origin Resource Sharing (CORS) for controllers or methods.
@@ -41,7 +45,7 @@ export class ApiController {}
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `origin` | `string \| string[]` | `*` | Allowed origins |
+| `origin` | `string \| string[] \| ((origin: string) => boolean)` | `*` | Allowed origin(s), or a predicate deciding per-request |
 | `methods` | `string[]` | all methods | Allowed HTTP methods |
 | `allowedHeaders` | `string[]` | all headers | Allowed request headers |
 | `exposedHeaders` | `string[]` | none | Headers exposed to the browser |
@@ -102,27 +106,26 @@ export class UserController {
 
 ### Dynamic Origin
 
-For dynamic origin validation, use the global `cors` option in `@Server`:
+`origin` also accepts a synchronous predicate — `(origin: string) => boolean`
+— for validation logic that a fixed list can't express (subdomain matching,
+an allow-list from a database loaded at startup, etc.):
 
 ```typescript
 import { Server } from "@heliosjs/http";
 
+const allowedOrigins = ["https://example.com", "https://app.example.com"];
+
 @Server({
   controllers: [ApiController],
   cors: {
-    origin: (origin, callback) => {
-      const allowedOrigins = ["https://example.com", "https://app.example.com"];
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: (origin) => allowedOrigins.includes(origin),
     credentials: true,
   },
 })
 export class App {}
 ```
+
+Works the same way on `@Cors` at the controller/method level.
 
 ## Remarks
 

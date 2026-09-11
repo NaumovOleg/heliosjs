@@ -162,12 +162,23 @@ newUser(@Root() user: User): User {
 To enable GraphQL in your Helios application, add the following configuration snippet to your module or application setup:
 
 ```ts
+import { Server } from "@heliosjs/http";
+import { UserResolver, pubSub } from "./user.resolver";
+
 @Server({
-  graphql: { path: '/graphql', resolvers: [ApiResolver], pubSub },
+  controllers: [],
+  graphql: { path: "/graphql", resolvers: [UserResolver], pubSub },
 })
+export class App {}
 ```
 
 This configuration sets the GraphQL endpoint path to `/graphql`, registers the `UserResolver` for handling GraphQL queries, mutations, and subscriptions, and integrates the `pubSub` instance for real-time subscription support.
+
+:::note
+`websocket` and `graphql` can't both be enabled on the same server — `graphql`
+already opens its own WebSocket server (for subscriptions) on the configured
+path.
+:::
 
 ## Summary
 

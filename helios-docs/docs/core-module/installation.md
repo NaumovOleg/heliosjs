@@ -105,7 +105,7 @@ Create `src/controllers/user.controller.ts`:
 
 ```typescript
 import "reflect-metadata";
-import { Controller, Get, Post, Body, Param, NotFoundError } from "@heliosjs/core";
+import { Controller, Get, Post, Body, Params, NotFoundError } from "@heliosjs/core";
 
 interface User {
   id: number;
@@ -123,7 +123,7 @@ export class UserController {
   }
 
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     const user = users.find((u) => u.id === Number(id));
     if (!user) {
       throw new NotFoundError("User", id);

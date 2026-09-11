@@ -50,6 +50,10 @@ await server.listen();
 | `rbac`         | `{ getRoles: (req) => roles }`            | RBAC extractor                                         |
 | `fingerprint`  | `{ secret?, components?, compute? }`      | Fingerprint config                                     |
 | `log`          | `LoggerConfig \| false`                   | Logging config (see [Logging](../core-module/logging)) |
+| `bodyLimit`    | `number`                                  | Max request body size in bytes. Default 1 MB; `0` disables the limit |
+| `trustProxy`   | `boolean`                                 | Trust `X-Forwarded-For`/`X-Forwarded-Proto` for `getClientIp()`/`isSecure()`. Default `false` — only enable behind a proxy you control |
+| `requestTimeout` | `number`                                | Node's `http.Server.requestTimeout` in ms               |
+| `headersTimeout` | `number`                                | Node's `http.Server.headersTimeout` in ms                |
 
 ## Global Middleware
 
@@ -93,15 +97,15 @@ export class App {}
 
 ```typescript
 import { Server } from '@heliosjs/http';
-import { serializeError } from '@heliosjs/core';
+import { serializeError } from '@heliosjs/core/utils';
 
 @Server({
   controllers: [ApiController],
   errorHandler: (error, req, res) => {
     console.error(`[${req.requestId}]`, error);
     const serialized = serializeError(error);
-    const status = serialized.status || 500;
-    return res.status(status).json({ success: false, error: serialized });
+    res.status = serialized.status || 500;
+    return { success: false, error: serialized };
   },
 })
 export class App {}
@@ -146,6 +150,22 @@ import { Server } from '@heliosjs/http';
 export class App {}
 ```
 
+## Body Size and Proxy Trust
+
+```typescript
+@Server({
+  controllers: [ApiController],
+  bodyLimit: 5 * 1024 * 1024, // 5 MB (default is 1 MB; 0 disables the limit)
+  trustProxy: true, // only behind a proxy/load balancer you control
+})
+export class App {}
+```
+
+`trustProxy` controls whether `req.getClientIp()` and `req.isSecure()` honor
+`X-Forwarded-For` / `X-Forwarded-Proto`. Leave it `false` (the default) unless
+you're behind a reverse proxy — these headers are client-spoofable, and both
+rate limiting and fingerprinting key off `getClientIp()` by default.
+
 ## Helios Server API
 
 ```typescript
@@ -178,7 +198,7 @@ Group controllers under a prefix:
 ```typescript
 import { Controller } from "@heliosjs/core";
 
-@Controller("/api", controllers: [UserController, PostController])
+@Controller({ prefix: "/api", controllers: [UserController, PostController] })
 export class RootController {}
 
 @Server({
@@ -193,9 +213,9 @@ export class App {}
 ```typescript
 import 'reflect-metadata';
 import path from 'path';
-import { Controller, Get, Post, Body, Param, Req } from '@heliosjs/core';
+import { Controller, Get, Post, Body, Params, Req } from '@heliosjs/core';
 import { Server, Helios } from '@heliosjs/http';
-import { Catch, Use, Guard, Cors } from '@heliosjs/middlewares';
+import { Guard, Cors } from '@heliosjs/middlewares';
 
 // --- Controllers ---
 
@@ -207,16 +227,12 @@ export class HealthController {
   }
 }
 
-const authGuard = (req: any, res: any, next: any) => {
-  if (!req.getHeader('authorization')) {
-    res.statusCode = 401;
-    return { error: 'Unauthorized' };
-  }
-  next();
-};
+// A guard returns boolean | string — true to allow, false/a message to reject
+// with 403 (unlike a @Use middleware, it can't call next() or write the response).
+const isAuthenticated = (req: any) => !!req.getHeader('authorization') || 'Unauthorized';
 
 @Controller('/api/users')
-@Guard(authGuard)
+@Guard(isAuthenticated)
 export class UserController {
   @Get('/')
   findAll() {
@@ -224,7 +240,7 @@ export class UserController {
   }
 
   @Get('/:id')
-  findOne(@Param('id') id: string) {
+  findOne(@Params('id') id: string) {
     return { id: Number(id), name: 'Alice' };
   }
 
@@ -242,7 +258,8 @@ export class UserController {
   statics: [{ path: path.join(__dirname, '../public'), options: { index: 'index.html' } }],
   errorHandler: (error, req, res) => {
     console.error(error);
-    return res.status(500).json({ error: error.message });
+    res.status = 500;
+    return { error: error.message };
   },
 })
 export class App {}

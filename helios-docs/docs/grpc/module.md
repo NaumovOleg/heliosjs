@@ -1,3 +1,7 @@
+---
+description: GrpcModule — the singleton that groups a gRPC server and named gRPC clients.
+---
+
 # gRPC Module Documentation
 
 ## Introduction
@@ -25,12 +29,15 @@ import { join } from "node:path";
   package: "hero",
 })
 class HeroService {
-  @GrpcMethod("FindOne")
+  // No arguments: the method name ("findOne") already matches the proto
+  // RPC ("FindOne") case-insensitively. A single string argument would
+  // override the *service* name, not the method — see the Usage guide.
+  @GrpcMethod()
   findOne(data: { id: number }) {
     return { id: data.id, name: "Hero " + data.id };
   }
 
-  @GrpcMethod("FindMany")
+  @GrpcMethod()
   findMany(data: { ids: number[] }) {
     return data.ids.map((id) => ({ id, name: "Hero " + id }));
   }

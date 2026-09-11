@@ -1,3 +1,7 @@
+---
+description: Reference of every class, decorator, type, and utility exported by @heliosjs/grpc.
+---
+
 # gRPC Module API Reference
 
 This document provides an overview of the API exports from the gRPC module, including classes, decorators, types, and utility functions.

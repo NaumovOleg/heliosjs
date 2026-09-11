@@ -27,12 +27,12 @@ HeliosJS provides built-in error classes and a `@Catch` decorator for structured
 ### NotFoundError
 
 ```typescript
-import { Controller, Get, Param, NotFoundError } from "@heliosjs/core";
+import { Controller, Get, Params, NotFoundError } from "@heliosjs/core";
 
 @Controller("/users")
 export class UserController {
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     const user = database.findUser(id);
     if (!user) {
       throw new NotFoundError("User", id);
@@ -42,7 +42,9 @@ export class UserController {
 }
 ```
 
-Response:
+`new NotFoundError(message, id?, options?)` uses `message` as-is — it does
+**not** build a sentence for you. The optional `id` is attached to
+`error.details` instead:
 
 ```json
 {
@@ -50,11 +52,15 @@ Response:
   "error": {
     "code": "NOT_FOUND",
     "status": 404,
-    "message": "User with id '123' not found",
+    "message": "User",
+    "details": [{ "id": "123" }],
     "timestamp": "2024-01-15T10:30:00.000Z"
   }
 }
 ```
+
+Pass a full sentence yourself (built with a template string) if you want the
+message to include the id.
 
 ### ValidationError
 
@@ -191,31 +197,29 @@ The `@Catch` decorator registers error handlers at the controller or method leve
 
 ### Controller-Level Error Handler
 
+A `@Catch` handler doesn't call `res.send()`-style methods — it just
+**returns** the value that becomes the response body (and can set `res.status`
+first):
+
 ```typescript
-import { Controller, Get } from "@heliosjs/core";
+import { Controller, Get, Response, Request } from "@heliosjs/core";
 import { Catch } from "@heliosjs/middlewares";
 
-const errorHandler = (error: Error, req: any, res: any) => {
+const errorHandler = (error: Error, req: Request, res: Response) => {
   console.error(`[${req.requestId}] Error:`, error.message);
 
   if (error.name === "ValidationError") {
-    return res.status(400).json({
-      success: false,
-      error: { message: error.message, details: (error as any).details },
-    });
+    res.status = 400;
+    return { success: false, error: { message: error.message, details: (error as any).details } };
   }
 
   if (error.name === "NotFoundError") {
-    return res.status(404).json({
-      success: false,
-      error: { message: error.message },
-    });
+    res.status = 404;
+    return { success: false, error: { message: error.message } };
   }
 
-  return res.status(500).json({
-    success: false,
-    error: { message: "Internal server error" },
-  });
+  res.status = 500;
+  return { success: false, error: { message: "Internal server error" } };
 };
 
 @Controller("/users")
@@ -228,15 +232,16 @@ export class UserController {
 ### Method-Level Error Handler
 
 ```typescript
-import { Controller, Post, Body } from "@heliosjs/core";
+import { Controller, Post, Body, Response } from "@heliosjs/core";
 import { Catch } from "@heliosjs/middlewares";
 
 @Controller("/users")
 export class UserController {
   @Post("/")
-  @Catch((error: Error, req: any, res: any) => {
+  @Catch((error: Error, req, res: Response) => {
     console.error("Create user failed:", error.message);
-    return res.status(500).json({ error: "Failed to create user" });
+    res.status = 500;
+    return { error: "Failed to create user" };
   })
   create(@Body() data: any) {
     // If this throws, the method-level handler runs
@@ -256,7 +261,8 @@ const logError = (error: Error, req: any, res: any) => {
 };
 
 const respondError = (error: Error, req: any, res: any) => {
-  return res.status(500).json({ error: error.message });
+  res.status = 500;
+  return { error: error.message };
 };
 
 @Controller("/users")
@@ -270,21 +276,25 @@ export class UserController {
 }
 ```
 
+These three helpers live in **`@heliosjs/core/utils`**, not the package root.
+
 ## serializeError Utility
 
-The `serializeError` function converts any error type into a standardized `SerializedError` object:
+`serializeError` flattens any error-like value into a `SerializedError` —
+`type` is one of `'HeliosError' | 'Error' | 'HttpError' | 'AxiosError' | 'ValidationError' | 'Unknown'`:
 
 ```typescript
-import { serializeError } from "@heliosjs/core";
+import { serializeError } from "@heliosjs/core/utils";
 
-// Works with HeliosJS errors
+// Helios errors (anything with .code + .toResponse()) become "HttpError"
 const heliosError = new NotFoundError("User", "123");
 serializeError(heliosError);
 // {
-//   type: "NotFoundError",
-//   message: "User with id '123' not found",
+//   type: "HttpError",
+//   message: "User",
 //   status: 404,
 //   code: "NOT_FOUND",
+//   details: [{ id: "123" }],
 //   ...
 // }
 
@@ -315,38 +325,46 @@ serializeError(new Error("Something broke"));
 
 ## isError Utility
 
-Check if a value is an error of any recognized type:
+Check if a value is an error of any recognized type — note that any
+non-empty string or number also counts as "error-shaped":
 
 ```typescript
-import { isError } from "@heliosjs/core";
+import { isError } from "@heliosjs/core/utils";
 
 isError(new NotFoundError("User", "1"));    // true
 isError(new Error("fail"));                 // true
-isError("error string");                    // false
+isError("error string");                    // true  — non-empty strings count
 isError(null);                              // false
+isError({});                                 // false — no message/status/code
 ```
 
 ## getErrorType Utility
 
-Classify an error with confidence level:
+Classify a value and say whether it's an error:
 
 ```typescript
-import { getErrorType } from "@heliosjs/core";
+import { getErrorType } from "@heliosjs/core/utils";
 
 getErrorType(new NotFoundError("User", "1"));
-// { isError: true, type: "NotFoundError", confidence: "high" }
+// { isError: true, type: "HeliosError", confidence: "high" }
 
-getErrorType({ message: "fail", status: 404 });
-// { isError: true, type: "ErrorObject", confidence: "medium" }
+getErrorType(new Error("fail"));
+// { isError: true, type: "Error", confidence: "high" }
+
+getErrorType(null);
+// { isError: false, type: null, confidence: "high" }
 ```
 
 ## Global Error Handler via @Server
 
 Register a global error handler in your server configuration:
 
+Like `@Catch`, the global `errorHandler` returns the response body directly —
+it runs as a catch-all after any route- or controller-level `@Catch`:
+
 ```typescript
 import { Server } from "@heliosjs/http";
-import { serializeError } from "@heliosjs/core";
+import { serializeError } from "@heliosjs/core/utils";
 
 @Server({
   controllers: [UserController],
@@ -354,12 +372,9 @@ import { serializeError } from "@heliosjs/core";
     console.error(`[${req.requestId}]`, error);
 
     const serialized = serializeError(error);
-    const status = serialized.status || 500;
+    res.status = serialized.status || 500;
 
-    return res.status(status).json({
-      success: false,
-      error: serialized,
-    });
+    return { success: false, error: serialized };
   },
 })
 export class App {}
@@ -373,7 +388,7 @@ import {
   Get,
   Post,
   Body,
-  Param,
+  Params,
   Headers,
   NotFoundError,
   ValidationError,
@@ -384,15 +399,15 @@ import {
 import { Catch, Guard } from "@heliosjs/middlewares";
 
 const errorHandler = (error: Error, req: any, res: any) => {
-  const status = (error as any).status || 500;
-  return res.status(status).json({
+  res.status = (error as any).status || 500;
+  return {
     success: false,
     error: {
       name: error.name,
       message: error.message,
       timestamp: new Date().toISOString(),
     },
-  });
+  };
 };
 
 @Controller("/api")

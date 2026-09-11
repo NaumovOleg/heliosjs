@@ -8,6 +8,7 @@ const sidebars: SidebarsConfig = {
       label: 'Basics',
       items: [
         'core-module/installation',
+        'core-module/request-lifecycle',
         'core-module/controllers',
         'core-module/error',
         'core-module/validation',
@@ -29,6 +30,7 @@ const sidebars: SidebarsConfig = {
         'middlewares/guard',
         'middlewares/roles',
         'middlewares/fingerprint',
+        'middlewares/status',
       ],
     },
     {

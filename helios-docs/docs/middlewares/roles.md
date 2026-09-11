@@ -1,3 +1,7 @@
+---
+description: Role-based access control on controllers and routes with @Roles, built on the guard pipeline.
+---
+
 # Roles (RBAC) Decorator
 
 The `@Roles` decorator adds role-based access control (RBAC) to controllers and routes. It restricts access to users that hold one or more required roles, building on the same guard pipeline as [`@Guard`](./guard.md).
@@ -95,7 +99,7 @@ invoices() {
 ```typescript
 @Roles("admin", { message: "Admins only" })
 @Delete("/:id")
-remove(@Param("id") id: string) {}
+remove(@Params("id") id: string) {}
 ```
 
 ### Controller-level (global) and method-level (local)
@@ -111,7 +115,7 @@ export class ProjectController {
 
   @Delete("/:id")
   @Roles("admin") // this route additionally requires "admin"
-  remove(@Param("id") id: string) {}
+  remove(@Params("id") id: string) {}
 }
 ```
 

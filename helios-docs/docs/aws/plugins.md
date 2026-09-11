@@ -13,12 +13,18 @@ interface Plugin {
   name: string;
   onInit?(app: ILambdaAdapter, event: LambdaEvent, context: Context): void | Promise<void>;
   hooks?: {
-    beforeRequest?(req: IncomingMessage): void | Promise<void>;
+    beforeRequest?(event: LambdaEvent, context: Context): void | Promise<void>;
     beforeRoute?(req: Request, res: Response): void | Promise<void>;
     afterResponse?(req: Request, res: Response): void | Promise<void>;
   };
 }
 ```
+
+Unlike the `@heliosjs/http` plugin interface, the AWS `Plugin` has **no
+`middleware` field** — `beforeRoute` (which runs once the framework `Request`
+exists) is the closest equivalent. `beforeRequest` here gets the **raw**
+Lambda `event`/`context`, before any framework `Request` is built — there's
+no `IncomingMessage` on Lambda.
 
 ## Registering Plugins
 
@@ -48,8 +54,8 @@ const loggingPlugin: Plugin = {
   },
 
   hooks: {
-    beforeRequest(req) {
-      console.log("Processing request");
+    beforeRequest(event, context) {
+      console.log(`Processing ${context.awsRequestId}`);
     },
     afterResponse(req, res) {
       console.log("Request completed");
@@ -60,6 +66,8 @@ const loggingPlugin: Plugin = {
 
 ### Metrics Plugin
 
+`req.startTime` is set by the framework itself — no manual bookkeeping needed:
+
 ```typescript
 import { Plugin } from "@heliosjs/aws";
 
@@ -67,16 +75,13 @@ const metricsPlugin: Plugin = {
   name: "metrics",
 
   hooks: {
-    beforeRequest(req) {
-      (req as any)._startTime = Date.now();
-    },
-    afterResponse(req: any, res) {
-      const duration = Date.now() - (req._startTime || 0);
+    afterResponse(req, res) {
+      const duration = Date.now() - req.startTime;
       console.log(JSON.stringify({
         type: "metric",
         duration,
-        path: req.url,
-        statusCode: res.statusCode,
+        path: req.path,
+        status: res.status,
         functionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
       }));
     },
@@ -101,9 +106,10 @@ const createDbPlugin = (config: any): Plugin => {
       console.log("Database pool created");
     },
 
-    middleware(req: any, res, next) {
-      req.setState("db", pool);
-      next();
+    hooks: {
+      beforeRoute(req) {
+        req.setState("db", pool);
+      },
     },
   };
 };
@@ -125,7 +131,9 @@ const tracingPlugin: Plugin = {
   name: "tracing",
 
   hooks: {
-    beforeRequest(req) {
+    beforeRoute(req) {
+      // req is the framework Request here, so getHeader() is available
+      // (beforeRequest only gets the raw Lambda event/context).
       const traceId = req.getHeader("x-amzn-trace-id");
       console.log("Trace ID:", traceId);
     },
@@ -133,8 +141,8 @@ const tracingPlugin: Plugin = {
       // Add custom annotations
       console.log(JSON.stringify({
         type: "trace",
-        path: req.url,
-        statusCode: res.statusCode,
+        path: req.path,
+        status: res.status,
       }));
     },
   },
@@ -146,9 +154,9 @@ const tracingPlugin: Plugin = {
 | Hook | When | Arguments |
 |------|------|-----------|
 | `onInit` | Lambda cold start | `app`, `event`, `context` |
-| `beforeRequest` | Before raw HTTP processing | `IncomingMessage` |
+| `beforeRequest` | Before the raw event is parsed | `LambdaEvent`, `Context` |
 | `beforeRoute` | Before route dispatch | `Request`, `Response` |
-| `afterResponse` | After response sent | `Request`, `Response` |
+| `afterResponse` | After response is built | `Request`, `Response` |
 
 ## Best Practices
 

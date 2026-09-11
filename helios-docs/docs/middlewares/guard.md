@@ -1,3 +1,7 @@
+---
+description: Control access to a controller or route with a function, class, or instance guard using @Guard.
+---
+
 # Guard Decorator
 
 The `@Guard` decorator registers a guard that controls access to a controller or route handler.
@@ -93,7 +97,7 @@ class AdminController {}
 Apply a guard to a single route instead of the whole controller:
 
 ```typescript
-import { Controller, Get, Delete, Param } from "@heliosjs/core";
+import { Controller, Get, Delete, Params } from "@heliosjs/core";
 import { Guard } from "@heliosjs/middlewares";
 
 @Controller("/posts")
@@ -103,7 +107,7 @@ class PostController {
 
   @Delete("/:id")
   @Guard((req) => req.getState("user")?.isAdmin === true)
-  remove(@Param("id") id: string) {}
+  remove(@Params("id") id: string) {}
 }
 ```
 

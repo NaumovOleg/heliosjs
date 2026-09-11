@@ -1,3 +1,7 @@
+---
+description: Compute and inject a hashed request fingerprint with @Fingerprint() and @UseFingerprint().
+---
+
 # Fingerprint Decorator
 
 Request fingerprinting derives a stable identifier from request attributes (client IP, User-Agent, headers), hashes it, and exposes it to your application. HeliosJS provides two complementary decorators:

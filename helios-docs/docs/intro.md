@@ -10,7 +10,7 @@ Welcome to HeliosJS! A decorator-first Node.js framework for building REST APIs,
 
 ```typescript
 import "reflect-metadata";
-import { Controller, Get, Post, Body, Param } from "@heliosjs/core";
+import { Controller, Get, Post, Body, Params } from "@heliosjs/core";
 import { Server, Helios } from "@heliosjs/http";
 
 @Controller("/users")
@@ -23,7 +23,7 @@ class UserController {
   }
 
   @Get("/:id")
-  findOne(@Param("id") id: string) {
+  findOne(@Params("id") id: string) {
     return this.users.find((u) => u.id === Number(id));
   }
 
@@ -61,7 +61,7 @@ curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d 
 | Feature             | Package                 | Description                                                                              |
 | ------------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
 | Controllers         | `@heliosjs/core`        | `@Controller`, `@Get`, `@Post`, `@Put`, `@Patch`, `@Delete`                              |
-| Parameter Injection | `@heliosjs/core`        | `@Body`, `@Param`, `@QueryParam`, `@Headers`, `@Req`, `@Res`, `@Cookies`, `@Fingerprint` |
+| Parameter Injection | `@heliosjs/core`        | `@Body`, `@Params`, `@QueryParam`, `@Headers`, `@Req`, `@Res`, `@Cookies`, `@Fingerprint` |
 | Validation          | `@heliosjs/core`        | DTO classes with `class-validator` decorators                                            |
 | Error Handling      | `@heliosjs/core`        | `NotFoundError`, `ValidationError`, `ForbiddenError`, etc.                               |
 | Middleware          | `@heliosjs/middlewares` | `@Use`, `@Guard`, `@Roles`, `@Catch`, `@Intercept`, `@Pipe`, `@Sanitize`, `@Cors`        |

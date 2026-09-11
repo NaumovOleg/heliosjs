@@ -1,16 +1,29 @@
+---
+description: Transform a handler's return value after it resolves with @Intercept.
+---
+
 # Intercept Middleware Decorator
 
-The `@Intercept` decorator wraps route handlers with before/after logic.
+The `@Intercept` decorator transforms a handler's return value before it's
+sent as the response.
 
 ## Purpose
 
-Interceptors let you run code before and after a handler executes. They receive a `next` function that invokes the handler, giving you full control over the request lifecycle.
+An interceptor runs **after** the route handler returns — it receives
+whatever the handler (or the previous interceptor) produced and returns the
+value that replaces it. This makes `@Intercept` the place for response
+shaping, wrapping, or caching a handler's output — not for logic that must
+run *before* the handler (use [`@Use`](./use.md) or [`@Guard`](./guard.md)
+for that).
 
 ## Signature
 
 ```typescript
-type InterceptorCB = (data: any, req?: Request, res?: Response) => Promise<unknown> | unknown;
+type InterceptorCB = (data: unknown, req?: Request, res?: Response) => Promise<unknown> | unknown;
 ```
+
+`data` is the value to transform — it is **not** a context object, and there
+is no `next()` to call. Return the (possibly modified) value.
 
 ## Basic Usage
 
@@ -18,17 +31,15 @@ type InterceptorCB = (data: any, req?: Request, res?: Response) => Promise<unkno
 import { Controller, Get } from "@heliosjs/core";
 import { Intercept } from "@heliosjs/middlewares";
 
-@Intercept(async (data, req, res) => {
-  console.log("Before handler");
-  const result = await data.next();
-  console.log("After handler");
-  return result;
-})
+@Intercept((data) => ({ data, timestamp: Date.now() }))
 @Controller("/users")
 export class UserController {
   @Get("/")
-  findAll() { return []; }
+  findAll() {
+    return [{ id: 1, name: "Alice" }];
+  }
 }
+// GET /users → { data: [{ id: 1, name: "Alice" }], timestamp: 1700000000000 }
 ```
 
 ## Method-Level Interceptor
@@ -37,170 +48,31 @@ export class UserController {
 @Controller("/users")
 export class UserController {
   @Get("/")
-  @Intercept(async (data, req, res) => {
-    const start = Date.now();
-    const result = await data.next();
-    console.log(`GET /users took ${Date.now() - start}ms`);
-    return result;
-  })
-  findAll() { return []; }
+  @Intercept(async (data, req) => ({ ...data, path: req?.path }))
+  findAll() {
+    return { users: [] };
+  }
 }
 ```
 
-## Real-World Examples
+## Execution Order
 
-### Response Transformation
+Interceptors run **after** the handler, and when several apply to one route
+they run **innermost first**: any method-level interceptor runs before the
+controller's class-level ones, and among interceptors stacked on the same
+target, the one written closest to the class/method (the bottom-most
+`@Intercept` in the stack) runs first. Each interceptor's return value
+becomes the next one's `data`.
 
 ```typescript
-@Intercept(async (data) => {
-  const result = await data.next();
-
-  // Wrap all responses in a standard envelope
-  return {
-    success: true,
-    data: result,
-    timestamp: new Date().toISOString(),
-  };
+@Controller("/api")
+@Intercept((data) => {
+  console.log("outer");
+  return { ...data, outer: true };
 })
-@Controller("/api")
-export class ApiController {
-  @Get("/users")
-  getUsers() { return [{ id: 1, name: "Alice" }]; }
-}
-// Response: { success: true, data: [{ id: 1, name: "Alice" }], timestamp: "..." }
-```
-
-### Timing / Performance Logging
-
-```typescript
-const timingInterceptor = async (data: any, req: any) => {
-  const start = performance.now();
-
-  try {
-    const result = await data.next();
-    return result;
-  } finally {
-    const duration = performance.now() - start;
-    console.log(`${req.method} ${req.path} - ${duration.toFixed(2)}ms`);
-
-    if (duration > 1000) {
-      console.warn(`Slow request: ${req.method} ${req.path}`);
-    }
-  }
-};
-
-@Intercept(timingInterceptor)
-@Controller("/api")
-export class ApiController {}
-```
-
-### Caching
-
-```typescript
-const cache = new Map<string, { data: any; expiry: number }>();
-
-const cacheInterceptor = (ttlMs: number) => async (data: any, req: any) => {
-  if (req.method !== "GET") {
-    return data.next(); // Only cache GET requests
-  }
-
-  const key = req.path + JSON.stringify(req.query);
-  const cached = cache.get(key);
-
-  if (cached && cached.expiry > Date.now()) {
-    return cached.data;
-  }
-
-  const result = await data.next();
-  cache.set(key, { data: result, expiry: Date.now() + ttlMs });
-  return result;
-};
-
-@Controller("/products")
-export class ProductController {
-  @Get("/")
-  @Intercept(cacheInterceptor(60_000)) // Cache for 1 minute
-  findAll() { return fetchProducts(); }
-}
-```
-
-### Error Recovery
-
-```typescript
-const retryInterceptor = async (data: any, req: any) => {
-  try {
-    return await data.next();
-  } catch (error) {
-    console.error("Handler failed, returning fallback:", error.message);
-    return { fallback: true, message: "Service temporarily unavailable" };
-  }
-};
-
-@Controller("/api")
-export class ApiController {
-  @Get("/external")
-  @Intercept(retryInterceptor)
-  fetchExternal() {
-    return callExternalService(); // Might fail
-  }
-}
-```
-
-### Authorization Check
-
-```typescript
-const roleInterceptor = (requiredRole: string) => async (data: any, req: any) => {
-  const user = req.getState("user");
-
-  if (!user || user.role !== requiredRole) {
-    throw new ForbiddenError(`${requiredRole} access required`);
-  }
-
-  return data.next();
-};
-
-@Controller("/admin")
-@Intercept(roleInterceptor("admin"))
-export class AdminController {
-  @Get("/dashboard")
-  dashboard() { return { stats: {} }; }
-}
-```
-
-### Adding Response Headers
-
-```typescript
-const addHeadersInterceptor = async (data: any, req: any, res: any) => {
-  const result = await data.next();
-
-  res.setHeader("X-Powered-By", "HeliosJS");
-  res.setHeader("X-Request-Id", req.requestId || "unknown");
-
-  return result;
-};
-
-@Intercept(addHeadersInterceptor)
-@Controller("/api")
-export class ApiController {}
-```
-
-## Stacking Multiple Interceptors
-
-Interceptors wrap each other in order (outermost runs first):
-
-```typescript
-@Controller("/api")
-@Intercept(async (data) => {
-  console.log("1: before");
-  const result = await data.next();
-  console.log("1: after");
-  return result;
-})
-@Intercept(async (data) => {
-  console.log("2: before");
-  const result = await data.next();
-  console.log("2: after");
-  return result;
+@Intercept((data) => {
+  console.log("inner");
+  return { ...data, inner: true };
 })
 export class ApiController {
   @Get("/")
@@ -209,12 +81,136 @@ export class ApiController {
     return {};
   }
 }
-// Output: 1: before → 2: before → handler → 2: after → 1: after
+// Order: handler → "inner" → "outer"
+// Response: { inner: true, outer: true }
 ```
+
+There is no equivalent "before the handler" phase — if you need code to run
+before the handler and don't need to change what it returns, that's a
+[`@Use`](./use.md) middleware instead.
+
+## Real-World Examples
+
+### Response Envelope
+
+Wrap every response in a consistent shape:
+
+```typescript
+@Intercept((data) => ({
+  success: true,
+  data,
+  timestamp: new Date().toISOString(),
+}))
+@Controller("/api")
+export class ApiController {
+  @Get("/users")
+  getUsers() { return [{ id: 1, name: "Alice" }]; }
+}
+// Response: { success: true, data: [{ id: 1, name: "Alice" }], timestamp: "..." }
+```
+
+### Redacting Fields
+
+```typescript
+const redactPassword = (data: any) => {
+  if (Array.isArray(data)) return data.map(({ password, ...rest }) => rest);
+  if (data && typeof data === "object") {
+    const { password, ...rest } = data;
+    return rest;
+  }
+  return data;
+};
+
+@Intercept(redactPassword)
+@Controller("/users")
+export class UserController {
+  @Get("/:id")
+  findOne() {
+    return { id: 1, name: "Alice", password: "hashed..." };
+  }
+}
+// Response: { id: 1, name: "Alice" }
+```
+
+### Timing / Performance Logging
+
+An interceptor sees the request via its second argument, so it can log
+alongside the transform — but since it only runs after the handler resolves,
+it measures handler-to-interceptor time, not the full request:
+
+```typescript
+const timingInterceptor = (data: any, req: any) => {
+  const duration = Date.now() - req.startTime; // req.startTime is set by the framework
+  if (duration > 1000) {
+    console.warn(`Slow request: ${req.method} ${req.path} (${duration.toFixed(2)}ms)`);
+  }
+  return data;
+};
+
+@Intercept(timingInterceptor)
+@Controller("/api")
+export class ApiController {}
+```
+
+### Adding Response Headers
+
+An interceptor can also read/write `res` — useful for headers that depend on
+the final payload:
+
+```typescript
+const addHeadersInterceptor = (data: any, req: any, res: any) => {
+  res.setHeader("X-Powered-By", "HeliosJS");
+  res.setHeader("X-Request-Id", req.requestId ?? "unknown");
+  return data;
+};
+
+@Intercept(addHeadersInterceptor)
+@Controller("/api")
+export class ApiController {}
+```
+
+### Simple Response Caching
+
+Because an interceptor only sees the handler's *result*, it can't skip
+calling the handler — use it to populate a cache after the fact, not to
+short-circuit before the handler runs (a [`@Use`](./use.md) middleware that
+doesn't call `next()` is the right tool for that):
+
+```typescript
+const cache = new Map<string, unknown>();
+
+const cacheInterceptor = (ttlMs: number) => (data: any, req: any) => {
+  if (req.method === "GET") {
+    const key = req.path + JSON.stringify(req.query);
+    cache.set(key, data);
+    setTimeout(() => cache.delete(key), ttlMs);
+  }
+  return data;
+};
+
+@Controller("/products")
+export class ProductController {
+  @Get("/")
+  @Intercept(cacheInterceptor(60_000))
+  findAll() { return fetchProducts(); }
+}
+```
+
+## What `@Intercept` Is Not For
+
+- **Authentication/authorization** — the handler has already run by the time
+  an interceptor sees its result, so it's too late to block anything. Use
+  [`@Guard`](./guard.md) or [`@Roles`](./roles.md).
+- **Catching handler errors** — a thrown error skips interceptors entirely
+  and goes to [`@Catch`](./catch.md) handlers instead; interceptors only ever
+  see a successful return value.
+- **Code that must run before the handler** — use [`@Use`](./use.md).
 
 ## Remarks
 
-- Interceptors wrap the handler execution, enabling before/after logic
-- They can modify the result returned by the handler
-- Multiple interceptors compose in declaration order
-- Common use cases: logging, caching, response transformation, timing, authorization
+- Interceptors only run on a **successful** handler return — a thrown error
+  bypasses them.
+- Multiple interceptors compose innermost-first; each receives the previous
+  one's return value.
+- Applying `@Intercept` at the class level covers every route in the
+  controller (and stacks with any method-level interceptor on top).

@@ -11,9 +11,9 @@ Plugins hook into the server lifecycle to add reusable functionality like loggin
 ```typescript
 interface Plugin {
   name: string;
-  onInit?(server: any): void | Promise<void>;
-  onStart?(server: any): void | Promise<void>;
-  onStop?(server: any): void | Promise<void>;
+  onInit?(server: Server): void | Promise<void>;
+  onStart?(server: Server): void | Promise<void>;
+  onStop?(server: Server): void | Promise<void>;
   middleware?: MiddlewareCB;
   hooks?: {
     beforeRequest?(req: IncomingMessage): void | Promise<void>;
@@ -22,6 +22,11 @@ interface Plugin {
   };
 }
 ```
+
+`middleware` and `hooks.beforeRoute` / `hooks.afterResponse` receive the
+**framework** `Request`/`Response` — not raw Node objects, and not an
+EventEmitter, so there's no `res.on(...)`. Only `hooks.beforeRequest` sees the
+raw Node `IncomingMessage`, before a framework `Request` even exists.
 
 ## Basic Plugin
 
@@ -44,10 +49,7 @@ const loggerPlugin: Plugin = {
   },
 
   middleware(req, res, next) {
-    const start = Date.now();
-    res.on("finish", () => {
-      console.log(`${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
-    });
+    (req as any)._start = Date.now();
     next();
   },
 
@@ -59,7 +61,8 @@ const loggerPlugin: Plugin = {
       // Runs before route dispatch
     },
     afterResponse(req, res) {
-      // Runs after response is sent
+      const duration = Date.now() - ((req as any)._start ?? Date.now());
+      console.log(`${req.method} ${req.path} ${res.status} ${duration}ms`);
     },
   },
 };
@@ -90,17 +93,10 @@ const metricsPlugin: Plugin = {
   name: "metrics",
 
   hooks: {
-    beforeRequest(req) {
-      (req as any)._startTime = Date.now();
-    },
+    // req.startTime is set by the framework itself — no bookkeeping needed.
     afterResponse(req, res) {
-      const duration = Date.now() - ((req as any)._startTime || 0);
-      const path = (req as any).url || "unknown";
-      const method = (req as any).method || "unknown";
-      const statusCode = (res as any).statusCode || 200;
-
-      // Record metrics
-      metrics.increment(`http.requests.${method}.${statusCode}`);
+      const duration = Date.now() - req.startTime;
+      metrics.increment(`http.requests.${req.method}.${res.status}`);
       metrics.histogram("http.duration", duration);
     },
   },
@@ -142,6 +138,11 @@ server.usePlugin(createDbPlugin({ connectionString: process.env.DATABASE_URL }))
 
 ### Rate Limiting Plugin
 
+This is a minimal illustration of writing plugin middleware — for real rate
+limiting, prefer the built-in [`@RateLimit`](../core-module/rate-limiting.md)
+decorator, which has pluggable strategies and a shared in-memory store with
+proper eviction.
+
 ```typescript
 import { Plugin } from "@heliosjs/http";
 
@@ -158,8 +159,9 @@ const createRateLimitPlugin = (maxRequests: number, windowMs: number): Plugin =>
 
       if (record && record.resetAt > now) {
         if (record.count >= maxRequests) {
-          res.statusCode = 429;
-          return { error: "Too many requests" };
+          res.status = 429;
+          res.data = { error: "Too many requests" };
+          return; // not calling next() stops the pipeline here
         }
         record.count++;
       } else {

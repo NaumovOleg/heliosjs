@@ -257,7 +257,7 @@ import {
   Controller,
   Post,
   Body,
-  ConflictError,
+  DuplicateEntryError,
 } from "@heliosjs/core";
 import {
   IsString,
@@ -297,7 +297,7 @@ export class AuthController {
   @Post("/register")
   register(@Body(RegisterDto) data: RegisterDto) {
     if (registeredEmails.includes(data.email)) {
-      throw new ConflictError("Email already registered");
+      throw new DuplicateEntryError("Email already registered");
     }
 
     registeredEmails.push(data.email);

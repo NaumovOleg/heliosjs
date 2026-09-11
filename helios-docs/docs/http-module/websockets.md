@@ -12,11 +12,19 @@ HeliosJS provides decorator-driven WebSocket support with topic pub/sub, broadca
 import { Server } from "@heliosjs/http";
 
 @Server({
-  controllers: [SocketController],
-  websocket: { path: "/ws" },
+  controllers: [ChatController],
+  websocket: { path: "/ws", controllers: [ChatController] },
 })
 export class App {}
 ```
+
+:::note
+`websocket.controllers` is **required** and separate from the top-level
+`controllers` — it's the list the WebSocket server scans for `@OnWS` /
+`@OnMessage` / `@Subscribe` handlers. A controller left out of it will never
+receive WebSocket events, even if it's already in `controllers` for regular
+HTTP routes.
+:::
 
 ## Decorators
 
@@ -33,15 +41,8 @@ export class App {}
 
 ```typescript
 import { Controller } from "@heliosjs/core";
-import {
-  OnConnection,
-  OnMessage,
-  OnClose,
-  OnError,
-  Subscribe,
-  InjectWS,
-  IWebSocketService,
-} from "@heliosjs/http";
+import type { WebSocketEvent } from "@heliosjs/core";
+import { OnConnection, OnMessage, OnClose, OnError } from "@heliosjs/http";
 
 @Controller("chat")
 export class ChatController {
@@ -83,14 +84,19 @@ export class ChatController {
 
 Subscribe to topics and broadcast messages:
 
+:::note
+`@OnWS`/`@OnMessage`/`@Subscribe` handlers are lifecycle callbacks, not HTTP
+routes — they're always called with a single `event` argument, so parameter
+decorators like `@InjectWS()` don't apply inside them. To reach the WebSocket
+service from one of these handlers, call `WebSocketService.getInstance()`
+directly instead.
+:::
+
 ```typescript
 import { Controller } from "@heliosjs/core";
-import {
-  Subscribe,
-  OnMessage,
-  InjectWS,
-  IWebSocketService,
-} from "@heliosjs/http";
+import type { WebSocketEvent } from "@heliosjs/core";
+import { WebSocketService } from "@heliosjs/core/utils";
+import { Subscribe, OnMessage } from "@heliosjs/http";
 
 @Controller("notifications")
 export class NotificationController {
@@ -106,9 +112,9 @@ export class NotificationController {
   }
 
   @OnMessage("broadcast")
-  handleBroadcast(event: WebSocketEvent, @InjectWS() ws: IWebSocketService) {
+  handleBroadcast(event: WebSocketEvent) {
     // Publish to a topic - all subscribers receive it
-    ws.publishToTopic("announcements", {
+    WebSocketService.getInstance().publishToTopic("announcements", {
       type: "announcement",
       data: { message: event.message?.data },
     });
@@ -118,11 +124,14 @@ export class NotificationController {
 
 ## InjectWS - Service Injection
 
-Use `@InjectWS()` to access the WebSocket service programmatically:
+`@InjectWS()` works on regular HTTP route handlers (unlike the lifecycle
+handlers above, these go through normal parameter resolution) — use it to
+push WebSocket messages as a side effect of a REST call:
 
 ```typescript
-import { Controller, Post, Body, Param } from "@heliosjs/core";
-import { InjectWS, IWebSocketService } from "@heliosjs/http";
+import { Controller, Post, Body, Params } from "@heliosjs/core";
+import type { IWebSocketService } from "@heliosjs/core";
+import { InjectWS } from "@heliosjs/http";
 
 @Controller("admin")
 export class AdminController {
@@ -141,7 +150,7 @@ export class AdminController {
 
   @Post("/notify/:clientId")
   notify(
-    @Param("clientId") clientId: string,
+    @Params("clientId") clientId: string,
     @Body() data: { message: string },
     @InjectWS() ws: IWebSocketService,
   ) {
@@ -155,7 +164,7 @@ export class AdminController {
 
   @Post("/topic/:topic")
   publishToTopic(
-    @Param("topic") topic: string,
+    @Params("topic") topic: string,
     @Body() data: any,
     @InjectWS() ws: IWebSocketService,
   ) {
@@ -180,15 +189,8 @@ A complete chat room with rooms and broadcasting:
 
 ```typescript
 import { Controller } from "@heliosjs/core";
-import {
-  OnConnection,
-  OnMessage,
-  OnClose,
-  Subscribe,
-  InjectWS,
-  IWebSocketService,
-  WebSocketEvent,
-} from "@heliosjs/http";
+import type { WebSocketEvent } from "@heliosjs/core";
+import { OnConnection, OnMessage, OnClose, Subscribe } from "@heliosjs/http";
 
 @Controller("chatroom")
 export class ChatRoomController {
@@ -218,7 +220,7 @@ export class ChatRoomController {
   }
 
   @OnMessage("join-room")
-  joinRoom(event: WebSocketEvent, @InjectWS() ws: IWebSocketService) {
+  joinRoom(event: WebSocketEvent) {
     const roomName = event.message?.data?.room;
     if (roomName) {
       // Client auto-subscribes via @Subscribe decorators
@@ -232,7 +234,7 @@ export class ChatRoomController {
   }
 
   @OnMessage("leave-room")
-  leaveRoom(event: WebSocketEvent, @InjectWS() ws: IWebSocketService) {
+  leaveRoom(event: WebSocketEvent) {
     const roomName = event.message?.data?.room;
     event.client.socket.send(
       JSON.stringify({

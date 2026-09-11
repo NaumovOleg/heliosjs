@@ -1,3 +1,7 @@
+---
+description: Register error handlers at the controller or method level with @Catch.
+---
+
 # Catch Middleware Decorator
 
 The `@Catch` decorator registers error handlers at the controller or method level.
@@ -12,6 +16,10 @@ When a route handler throws an error, `@Catch` intercepts it and runs your custo
 type ErrorHandler = (error: Error, req: Request, res: Response) => unknown;
 ```
 
+A `@Catch` handler doesn't call `res.send()`-style methods — it **returns**
+the value that becomes the response body, optionally after setting
+`res.status`.
+
 ## Basic Usage
 
 ```typescript
@@ -21,7 +29,8 @@ import { Catch } from "@heliosjs/middlewares";
 @Controller("/users")
 @Catch((error, req, res) => {
   console.error("Error:", error.message);
-  return res.status(500).json({ error: error.message });
+  res.status = 500;
+  return { error: error.message };
 })
 export class UserController {
   @Get("/")
@@ -34,38 +43,32 @@ export class UserController {
 ## Controller-Level Error Handler
 
 ```typescript
-import { Controller, Get, NotFoundError, ValidationError } from "@heliosjs/core";
+import { Controller, Get, Params, NotFoundError, ValidationError } from "@heliosjs/core";
 import { Catch } from "@heliosjs/middlewares";
 
 const errorHandler = (error: Error, req: any, res: any) => {
   // Handle known errors
   if (error instanceof NotFoundError) {
-    return res.status(404).json({
-      success: false,
-      error: { message: error.message },
-    });
+    res.status = 404;
+    return { success: false, error: { message: error.message } };
   }
 
   if (error instanceof ValidationError) {
-    return res.status(400).json({
-      success: false,
-      error: { message: error.message, details: (error as any).details },
-    });
+    res.status = 400;
+    return { success: false, error: { message: error.message, details: (error as any).details } };
   }
 
   // Unknown errors
   console.error(`[${req.requestId}] Unhandled error:`, error);
-  return res.status(500).json({
-    success: false,
-    error: { message: "Internal server error" },
-  });
+  res.status = 500;
+  return { success: false, error: { message: "Internal server error" } };
 };
 
 @Controller("/api")
 @Catch(errorHandler)
 export class ApiController {
   @Get("/users/:id")
-  getUser(@Param("id") id: string) {
+  getUser(@Params("id") id: string) {
     const user = findUser(id);
     if (!user) throw new NotFoundError("User", id);
     return user;
@@ -81,7 +84,8 @@ export class UserController {
   @Post("/")
   @Catch((error, req, res) => {
     console.error("Create user failed:", error.message);
-    return res.status(400).json({ error: "Could not create user" });
+    res.status = 400;
+    return { error: "Could not create user" };
   })
   create(@Body() data: any) {
     // If this throws, the method-level handler runs
@@ -100,15 +104,15 @@ const logError = (error: Error, req: any, res: any) => {
 };
 
 const formatError = (error: Error, req: any, res: any) => {
-  const status = (error as any).status || 500;
-  return res.status(status).json({
+  res.status = (error as any).status || 500;
+  return {
     success: false,
     error: {
       name: error.name,
       message: error.message,
       requestId: req.requestId,
     },
-  });
+  };
 };
 
 @Controller("/api")
@@ -139,10 +143,8 @@ const asyncErrorHandler = async (error: Error, req: any, res: any) => {
     timestamp: new Date().toISOString(),
   });
 
-  return res.status(500).json({
-    error: "Internal server error",
-    requestId: req.requestId,
-  });
+  res.status = 500;
+  return { error: "Internal server error", requestId: req.requestId };
 };
 
 @Controller("/api")
@@ -157,11 +159,8 @@ const createErrorHandler = (serviceName: string) => {
   return (error: Error, req: any, res: any) => {
     console.error(`[${serviceName}] ${error.name}: ${error.message}`);
 
-    return res.status((error as any).status || 500).json({
-      service: serviceName,
-      error: error.message,
-      path: req.path,
-    });
+    res.status = (error as any).status || 500;
+    return { service: serviceName, error: error.message, path: req.path };
   };
 };
 
