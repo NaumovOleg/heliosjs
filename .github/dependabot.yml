@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Single yarn workspace: root yarn.lock covers all 5 packages + helios-docs.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
