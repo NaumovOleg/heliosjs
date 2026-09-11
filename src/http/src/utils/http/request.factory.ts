@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http';
 import {
-  generateUniqueId,
+  generateFastRequestId,
   parseBody,
   parseQuery,
   parseRequestCookie,
@@ -57,7 +57,7 @@ export class RequestFactory {
       cookies,
       sourceIp,
       userAgent: (req.headers['user-agent'] as string) || 'unknown',
-      requestId: generateUniqueId(),
+      requestId: generateFastRequestId(),
       stage: 'http',
       timestamp: new Date(),
       raw: req,

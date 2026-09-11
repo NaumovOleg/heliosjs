@@ -34,8 +34,10 @@ export class Req implements Request {
   /** When false, `X-Forwarded-*` headers are ignored for client IP / protocol. */
   trustProxy: boolean;
 
+  // Most requests never call setState/getState — allocate lazily instead of
+  // paying for a Map on every request.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly _state = new Map<string, any>();
+  private _state?: Map<string, any>;
 
   constructor(options: RequestOptions) {
     this.method = options.method.toUpperCase();
@@ -156,7 +158,7 @@ export class Req implements Request {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setState(key: string, value: any): void {
-    this._state.set(key, value);
+    (this._state ??= new Map()).set(key, value);
   }
 
   /**
@@ -164,7 +166,7 @@ export class Req implements Request {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getState<T = any>(key: string): T | undefined {
-    return this._state.get(key);
+    return this._state?.get(key);
   }
 
   /**

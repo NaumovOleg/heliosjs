@@ -1,11 +1,19 @@
 import type { ChildProcess } from 'node:child_process';
-import { fork } from 'node:child_process';
+import { execSync, fork } from 'node:child_process';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import autocannon from 'autocannon';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// This file runs compiled from benchmarks/dist/run.js (dist/ is gitignored),
+// so __dirname is benchmarks/dist — go up one to land the results file in
+// benchmarks/ itself, tracked by git. Every run appends instead of
+// overwriting, so `git log -p` on this one file becomes the perf trend line
+// instead of numbers only living in whichever markdown table someone last
+// pasted them into.
+const RESULTS_FILE = path.join(__dirname, '..', 'results.csv');
 
 // Each framework is measured multiple times in its own process, after a
 // discarded warmup run, and reported as a median — see "Methodology" in
@@ -144,6 +152,59 @@ function printTable(scenarioName: string, rows: FrameworkSummary[]) {
   console.log('─'.repeat(72));
 }
 
+function getCommit(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      cwd: __dirname,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+function csvField(value: unknown): string {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+function appendResults(perScenario: Record<string, FrameworkSummary[]>) {
+  const isNew = !fs.existsSync(RESULTS_FILE);
+  const date = new Date().toISOString();
+  const commit = getCommit();
+  const node = process.version;
+  const platform = `${os.type()} ${os.release()}`;
+
+  const rows = Object.entries(perScenario).flatMap(([scenario, results]) =>
+    results.map((r) =>
+      [
+        date,
+        commit,
+        node,
+        platform,
+        scenario,
+        r.name,
+        Math.round(r.reqPerSec),
+        r.latencyAvg.toFixed(2),
+        r.latencyP99.toFixed(2),
+        r.throughputMBs.toFixed(2),
+      ]
+        .map(csvField)
+        .join(',')
+    )
+  );
+
+  if (isNew) {
+    fs.writeFileSync(
+      RESULTS_FILE,
+      'date,commit,node,os,scenario,framework,reqPerSec,latencyAvgMs,latencyP99Ms,throughputMBs\n'
+    );
+  }
+  fs.appendFileSync(RESULTS_FILE, rows.join('\n') + '\n');
+  console.log(`\nAppended ${rows.length} rows to ${path.relative(process.cwd(), RESULTS_FILE)}`);
+}
+
 async function main() {
   const cpus = os.cpus();
   console.log(`HeliosJS Benchmark: Helios vs Express vs Fastify vs NestJS`);
@@ -173,6 +234,8 @@ async function main() {
   for (const s of SCENARIOS) {
     printTable(s.name, perScenario[s.name]);
   }
+
+  appendResults(perScenario);
 }
 
 main().catch((e: Error) => {

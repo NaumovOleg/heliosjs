@@ -10,15 +10,21 @@ import { getDefaultStrategy } from './strategies';
  * metadata items (controller-level precede method-level in `route.functions`,
  * so the last one wins), merges strategy/keyGen/onLimit over the global config,
  * runs the strategy, sets `X-RateLimit-*` headers, and throws on breach.
+ *
+ * @param rateLimitItems - Precomputed `compiled.rateLimits` for this route, when
+ *   the caller already has it (the request pipeline does). Falls back to
+ *   scanning `route.functions` itself when omitted, so direct/test callers
+ *   that only have a `route` keep working unchanged.
  */
 export async function enforceRateLimit(
   request: Request,
   response: Response,
   route: Route,
+  rateLimitItems?: RateLimitOptions[],
 ): Promise<void> {
-  const items = route.functions
-    .map((fn) => fn.rateLimit)
-    .filter((item): item is RateLimitOptions => Boolean(item));
+  const items =
+    rateLimitItems ??
+    route.functions.map((fn) => fn.rateLimit).filter((item): item is RateLimitOptions => Boolean(item));
 
   if (items.length === 0) return;
 

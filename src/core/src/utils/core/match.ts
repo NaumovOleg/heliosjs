@@ -154,8 +154,26 @@ export function matchRoutes(
   requestPath: string,
   requestMethod: string
 ) {
+  return findRoute(controller, requestPath, requestMethod)?.route;
+}
+
+/**
+ * @internal Same search as {@link matchRoutes}, but also returns the params
+ * extracted along the way. `matchCompiledRegex` already builds that params
+ * object while checking each candidate — `matchRoutes` used to throw it away
+ * and `execute` would re-run the same regex to rebuild it. The request
+ * pipeline (`descriptors/request.ts`) uses this instead, so routing costs one
+ * regex exec per request rather than two; `matchRoutes` stays for callers
+ * (tests, direct `execute` calls) that only need the route.
+ */
+export function findRoute(
+  controller: ControllerMeta,
+  requestPath: string,
+  requestMethod: string
+): { route: Route; params: Record<string, string> } | undefined {
   const normalizedRequestPath = normalizePath(requestPath);
   let best: Route | undefined;
+  let bestParams: Record<string, string> | undefined;
   let bestKey = '';
   let method = requestMethod;
 
@@ -167,8 +185,10 @@ export function matchRoutes(
       // Ties keep the first declared route; lower-ranked routes can't win, skip the regex.
       if (key <= bestKey) continue;
 
-      if (matchCompiledRegex(route, normalizedRequestPath) !== null) {
+      const params = matchCompiledRegex(route, normalizedRequestPath);
+      if (params !== null) {
         best = route;
+        bestParams = params;
         bestKey = key;
       }
     }
@@ -187,5 +207,5 @@ export function matchRoutes(
     searchInController(controller);
   }
 
-  return best;
+  return best ? { route: best, params: bestParams ?? {} } : undefined;
 }

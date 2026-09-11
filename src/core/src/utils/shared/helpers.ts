@@ -6,13 +6,27 @@ import type {
   RouteMetadata,
 } from '../../types/core/controller';
 
-/** @internal Generates a request/client id: `crypto.randomUUID()` where available, else a timestamp+random fallback. */
+/** @internal Generates a client id: `crypto.randomUUID()` where available, else a timestamp+random fallback. */
 export const generateUniqueId = () => {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
+
+// One random tag per process (not per call) so ids stay unique across
+// restarts/instances without paying `crypto.randomUUID()`'s cost on every
+// request.
+const REQUEST_ID_PROCESS_TAG = Math.random().toString(36).slice(2, 8);
+let requestIdCounter = 0;
+
+/**
+ * @internal Fast per-request id: a process-unique tag plus a monotonic
+ * counter, both base36. Used for `Request.requestId` on the HTTP hot path —
+ * unlike `generateUniqueId`, this needs to be cheap, not unpredictable
+ * (nothing security-sensitive keys off it).
+ */
+export const generateFastRequestId = () => `${REQUEST_ID_PROCESS_TAG}-${requestIdCounter++}`;
 
 /** @internal Reads the `@Controller` config stored on a class prototype by `defineControllerMeta`. */
 export function reflectControllerMeta(target: object): ControllerMeta {

@@ -153,6 +153,12 @@ export interface CompiledMiddleware {
   cors: CORSConfig[];
   rateLimits: RateLimitOptions[];
   status?: number;
+  /**
+   * Precomputed at build time: true when sanitizers/guards/pipes/middlewares/
+   * rateLimits are all empty, so `execute()` can skip calling `beforeRequest()`
+   * (and its `await`) entirely for this route.
+   */
+  hasBeforeRequestWork: boolean;
 }
 
 /** @internal One precompiled route: pattern, matcher, params, and compiled middleware. */

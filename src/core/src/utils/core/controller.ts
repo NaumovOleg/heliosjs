@@ -70,8 +70,17 @@ async function runErrorHandlers(
  * returns `response`. This is the request pipeline itself — adapters call it per
  * matched route; app code never calls it directly.
  */
-export const execute = async (route: Route, request: Request, response: Response) => {
-  request.params = extractRouteParams(route, request.path);
+export const execute = async (
+  route: Route,
+  request: Request,
+  response: Response,
+  precomputedParams?: Record<string, string>
+) => {
+  // The request pipeline (descriptors/request.ts) already matched this exact
+  // route via `findRoute` and hands back its params, so it can skip a second
+  // regex exec here. Direct `execute()` callers (tests, other adapters) don't
+  // have that, so they still get params derived the old way.
+  request.params = precomputedParams ?? extractRouteParams(route, request.path);
 
   // `route.compiled` is set for every real route; derive it for hand-built ones.
   const compiled = route.compiled ?? buildCompiledMiddleware(route.functions);
@@ -101,7 +110,12 @@ export const execute = async (route: Route, request: Request, response: Response
   }
 
   try {
-    const handled = await beforeRequest(request, response, route);
+    // beforeRequest() is a guaranteed no-op when the route has no
+    // sanitizers/guards/pipes/middlewares/rateLimits — skip the call (and its
+    // `await`) rather than pay a microtask hop to run zero-length loops.
+    const handled = compiled.hasBeforeRequestWork
+      ? await beforeRequest(request, response, route)
+      : false;
 
     if (handled) {
       return response;
@@ -175,7 +189,14 @@ export const execute = async (route: Route, request: Request, response: Response
       args.push(request, response);
     }
 
-    let data = await Promise.resolve(route.fn(...args));
+    // Only await when the result actually looks like a promise/thenable —
+    // matches what `Promise.resolve(x)` would unwrap anyway, but skips a
+    // microtask hop for the common case of a handler returning a plain value.
+    const result = route.fn(...args);
+    let data =
+      result && typeof (result as PromiseLike<unknown>).then === 'function'
+        ? await result
+        : result;
 
     const isError = data instanceof Error;
 
@@ -314,9 +335,12 @@ export const beforeRequest = async (
   response: Response,
   route: Route
 ): Promise<boolean> => {
-  await enforceRateLimit(request, response, route);
-
   const compiled = route.compiled ?? buildCompiledMiddleware(route.functions);
+
+  // Routes precompile their rateLimit items into `compiled.rateLimits` already
+  // (see buildCompiledMiddleware below); reuse that instead of re-scanning
+  // `route.functions` on every request.
+  await enforceRateLimit(request, response, route, compiled.rateLimits);
 
   try {
     for (const sanitizer of compiled.sanitizers) {
@@ -441,6 +465,7 @@ function buildCompiledMiddleware(fns: MiddlewaresMetadataItem[]): CompiledMiddle
     errorHandlers: [],
     cors: [],
     rateLimits: [],
+    hasBeforeRequestWork: false,
   };
 
   for (const fn of fns) {
@@ -454,6 +479,13 @@ function buildCompiledMiddleware(fns: MiddlewaresMetadataItem[]): CompiledMiddle
     if (fn.rateLimit) compiled.rateLimits.push(fn.rateLimit);
     if (fn.status !== undefined) compiled.status = fn.status;
   }
+
+  compiled.hasBeforeRequestWork =
+    compiled.sanitizers.length > 0 ||
+    compiled.guards.length > 0 ||
+    compiled.pipes.length > 0 ||
+    compiled.middlewares.length > 0 ||
+    compiled.rateLimits.length > 0;
 
   return compiled;
 }

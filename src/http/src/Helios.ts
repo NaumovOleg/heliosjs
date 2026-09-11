@@ -318,6 +318,20 @@ export class Helios extends Plugin implements IHttpServer {
       sanitizeRequest(request, sanitizer);
     }
 
+    // Fast path: no static/config/global middleware registered at all (the
+    // common case for a route with none declared). Skip building the nested
+    // runMiddlewares/afterStatic/afterConfig closures below — each request
+    // would otherwise allocate them and pay ~6 extra async hops just to find
+    // every stage empty.
+    if (
+      this.staticMiddlewares.length === 0 &&
+      this.middlewares.length === 0 &&
+      this.globalMiddlewares.length === 0
+    ) {
+      if (restOfPipeline) await restOfPipeline();
+      return;
+    }
+
     const runMiddlewares = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       middlewares: ((...args: any[]) => any)[],
@@ -418,15 +432,16 @@ export class Helios extends Plugin implements IHttpServer {
   private async sendResponse(request: Request, response: Response): Promise<void> {
     if (response.headersSent) return;
 
-    if (
-      !response.getHeader('Content-Type') ||
-      response.getHeader('Content-Type') === 'application/json'
-    ) {
-      const data = response.data;
-      if (typeof data === 'string') {
-        response.setHeader('Content-Type', 'text/plain');
-      } else {
-        response.setHeader('Content-Type', 'application/json');
+    const currentContentType = response.getHeader('Content-Type');
+    if (!currentContentType || currentContentType === 'application/json') {
+      // Res's constructor already defaults Content-Type to application/json,
+      // so the common (non-string-body) case would otherwise call
+      // setHeader() a second time with the exact same value — a wasted round
+      // trip through Node's header-name/value validation. Only set when it's
+      // actually changing.
+      const contentType = typeof response.data === 'string' ? 'text/plain' : 'application/json';
+      if (currentContentType !== contentType) {
+        response.setHeader('Content-Type', contentType);
       }
     }
 
