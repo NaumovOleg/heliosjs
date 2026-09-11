@@ -77,7 +77,7 @@ Errors whose `code` is FORBIDDEN, NOT_FOUND, RATE_LIMIT_EXCEEDED, or UNAUTHORIZE
 
   Config comes from the `@Server` / `@Port` class decorators under `SERVER_CONFIG_KEY`. The WebSocket/SSE servers and GraphQL (type-graphql + graphql-yoga) are optional, and WebSocket and GraphQL can't be enabled together.
 - `@heliosjs/aws`: `Helios` in `src/aws/src/lambda.ts` exposes `app.handler`. It normalizes REST, HTTP API, and function URL events into the core `Request`.
-- `@heliosjs/grpc`: `GrpcServer` / `GrpcClient` over `@grpc/grpc-js`, with rxjs observables for streams. This is mostly separate from the HTTP pipeline. It imports `Logger` and types from core but doesn't declare core as a peer dependency.
+- `@heliosjs/grpc`: `GrpcServer` / `GrpcClient` over `@grpc/grpc-js`, with rxjs observables for streams. This is mostly separate from the HTTP pipeline. It imports `Logger` and types from core, and declares `@heliosjs/core` as a peer dependency.
 
 Core also owns cross-cutting singletons that adapters configure: `setRolesExtractor`, `setFingerprintConfig`, `setRateLimitConfig`, `setGlobalLogger`, and `WebSocketService.getInstance()` / `SSEService.getInstance()`.
 
