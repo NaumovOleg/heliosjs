@@ -5,7 +5,10 @@ import type { Request, Response } from '@heliosjs/core/types';
 import { getGlobalLogger, mimeFromPath } from '@heliosjs/core/utils';
 import type { StaticOptions } from '../../types/http';
 
-export function staticMiddleware(root: string | undefined, options: StaticOptions & { path?: string } = {}) {
+export function staticMiddleware(
+  root: string | undefined,
+  options: StaticOptions & { path?: string } = {}
+) {
   const opts = {
     index: 'index.html',
     extensions: ['html', 'htm'],
@@ -41,9 +44,10 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
       return next();
     }
     const safePath = decodedUrl.replace(/\\/g, '/');
-    const relativePath = mountPath && safePath.startsWith(mountPath)
-      ? safePath.slice(mountPath.length) || '/'
-      : safePath;
+    const relativePath =
+      mountPath && safePath.startsWith(mountPath)
+        ? safePath.slice(mountPath.length) || '/'
+        : safePath;
     const fullPath = path.join(realRootPath, relativePath);
     const normalizedPath = path.normalize(fullPath);
 
@@ -149,7 +153,7 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
           await new Promise<void>((resolve, reject) => {
             const stream = fs.createReadStream(filePath, { start, end });
 
-            stream.on('error', err => {
+            stream.on('error', (err) => {
               getGlobalLogger().error('static: stream error', err);
               if (!res.headersSent) {
                 res.status = 500;
@@ -169,7 +173,7 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
       await new Promise<void>((resolve, reject) => {
         const stream = fs.createReadStream(filePath);
 
-        stream.on('error', err => {
+        stream.on('error', (err) => {
           getGlobalLogger().error('static: stream error', err);
           if (!res.headersSent) {
             res.status = 500;
@@ -183,6 +187,7 @@ export function staticMiddleware(root: string | undefined, options: StaticOption
         if (res.raw) {
           stream.pipe(res.raw as ServerResponse);
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           stream.pipe(res as any);
         }
       });

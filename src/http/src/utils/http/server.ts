@@ -20,6 +20,7 @@ import type { ServerConfig } from '../../types/http';
  * - Defaults: port = 3000, host = 'localhost'.
  * - Merges middleware, interceptors, errorHandler, cors, controllers, sanitizers from decorators or object.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const resolveConfig = (configOrClass?: any): ServerConfig => {
   if (!configOrClass || typeof configOrClass !== 'function') {
     throw new Error('Invalid root controller');
@@ -36,8 +37,9 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
     ...decoratorConfig,
     errorHandler: decoratorConfig.errorHandler ?? errorHandler,
     interceptors: [interceptor].filter((el: unknown) => !!el),
-    middlewares:
-      (decoratorConfig.middlewares ?? []).concat(middlewares ?? []).filter((el: unknown) => !!el),
+    middlewares: (decoratorConfig.middlewares ?? [])
+      .concat(middlewares ?? [])
+      .filter((el: unknown) => !!el),
     cors: decoratorConfig.cors,
     controllers: (decoratorConfig.controllers ?? []).filter((el: unknown) => !!el),
     sanitizers,

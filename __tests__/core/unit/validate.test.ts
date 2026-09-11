@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validate as heliosValidate } from '@heliosjs/core/utils';
+import { compileSchema, validate as heliosValidate } from '@heliosjs/core/utils';
 import { IsString, IsNumber, MinLength, IsNotEmpty } from 'class-validator';
 
 class TestDto {
@@ -84,6 +84,34 @@ describe('validate', () => {
     } catch (e) {
       // class-validator may throw for classes without proper decorators
       expect(e).toBeDefined();
+    }
+  });
+});
+
+describe('compileSchema', () => {
+  const NameSchema = compileSchema<{ name: string; age: number }>({
+    type: 'object',
+    required: ['name', 'age'],
+    properties: {
+      name: { type: 'string', minLength: 2 },
+      age: { type: 'integer', minimum: 0 },
+    },
+  });
+
+  it('returns the (coerced) data when it matches the schema', async () => {
+    const result = await heliosValidate(NameSchema, { name: 'John', age: '30' });
+    expect(result).toEqual({ name: 'John', age: 30 });
+  });
+
+  it('throws ValidationError with field-level details on mismatch', async () => {
+    try {
+      await heliosValidate(NameSchema, { name: 'J' });
+      expect.fail('should have thrown');
+    } catch (error: any) {
+      expect(error.details).toBeDefined();
+      expect(Array.isArray(error.details)).toBe(true);
+      expect(error.details.length).toBeGreaterThan(0);
+      expect(error.details[0]).toHaveProperty('constraint');
     }
   });
 });

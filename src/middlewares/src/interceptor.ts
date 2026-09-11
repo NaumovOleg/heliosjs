@@ -40,6 +40,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * used internally by the framework during request processing.
  */
 export function Intercept(interceptor: InterceptorCB) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ interceptor }];
 

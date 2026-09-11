@@ -34,6 +34,7 @@ const BASE_PORT = 4400;
 
 const FRAMEWORKS = [
   { name: 'Helios', file: 'helios-validate.js', library: 'class-validator' },
+  { name: 'Helios (Ajv)', file: 'helios-validate-ajv.js', library: 'JSON Schema / Ajv' },
   { name: 'Express', file: 'express-validate.js', library: 'class-validator (manual)' },
   { name: 'Fastify', file: 'fastify-validate.js', library: 'JSON Schema / Ajv' },
   { name: 'NestJS', file: 'nestjs-validate.js', library: 'class-validator' },

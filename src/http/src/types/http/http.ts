@@ -149,6 +149,7 @@ export interface ServerConfig {
     path: string;
     playground?: boolean;
     pubSub?: PubSub;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     resolvers?: Function[];
   };
 }

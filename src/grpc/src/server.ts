@@ -155,7 +155,7 @@ export class GrpcServer {
     return group;
   }
 
-  private getServiceDefinitionFromGroup(group: ProtoGroup, serviceName: string): any {
+  private getServiceDefinitionFromGroup(group: ProtoGroup, serviceName: string) {
     let current = group.definition;
 
     const packageParts = group.package.split('.');

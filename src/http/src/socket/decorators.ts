@@ -22,6 +22,7 @@ import { createParamDecorator } from '@heliosjs/core/utils';
  * onChat(@InjectWS() ws: WebSocketService, msg: WebSocketMessage) {}
  */
 export function OnWS(type: WebSocketHandlerType, topic?: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const handlers = Reflect.getMetadata(WS_HANDLER, target.constructor) || [];
     handlers.push({ type, topic, method: propertyKey });
@@ -91,6 +92,7 @@ export function OnError() {
  * onNews(data: unknown) {}
  */
 export function Subscribe(topic: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const topics = Reflect.getMetadata(WS_TOPIC_KEY, target.constructor) || [];
     topics.push({ topic, method: propertyKey });

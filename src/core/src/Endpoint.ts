@@ -23,6 +23,7 @@ import { defineRouteMeta } from './utils/shared';
  * @returns A method decorator.
  */
 export function Endpoint(method: HTTP_METHODS, pathPattern?: string, middlewares?: MiddlewareCB[]) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = target[propertyKey];
     if (!originalMethod) {

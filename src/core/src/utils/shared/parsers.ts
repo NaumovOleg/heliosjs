@@ -57,6 +57,7 @@ export const parseBody = (request: {
       str = String(data);
     }
 
+    // eslint-disable-next-line no-control-regex
     str = str.replace(/[\0\x08\x0E-\x1F]/g, '');
     if (str.charCodeAt(0) === 0xfeff) {
       str = str.slice(1);
@@ -119,16 +120,13 @@ export const parseBody = (request: {
 };
 
 const parseCookie = (cookies: string) => {
-  return (cookies as string).split(';').reduce(
-    (acc, cookie) => {
-      const [name, value] = cookie.trim().split('=');
-      if (name && value) {
-        acc[name] = decodeURIComponent(value);
-      }
-      return acc;
-    },
-    {} as Record<string, string>,
-  );
+  return (cookies as string).split(';').reduce((acc, cookie) => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) {
+      acc[name] = decodeURIComponent(value);
+    }
+    return acc;
+  }, {} as Record<string, string>);
 };
 
 /** @internal Parses one or more `Cookie` header values into a `name -> value` map. */
@@ -149,7 +147,7 @@ export const parseRequestCookie = (cookies?: string | string[]): Record<string, 
  * `Record<string, string | string[]>`, dropping `undefined` entries.
  */
 export const parseHeaders = (
-  headers?: Record<string, string | undefined>,
+  headers?: Record<string, string | undefined>
 ): Record<string, string | string[]> => {
   const result: Record<string, string | string[]> = {};
 

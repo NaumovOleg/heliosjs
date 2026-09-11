@@ -19,6 +19,7 @@ export interface SQSHandlerConfig {
 
 export interface SNSHandlerConfig {
   topicArn?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filterPolicy?: Record<string, any>;
 }
 

@@ -89,6 +89,7 @@
     "@types/react-dom": "^19.0.0",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "^4",
+    "ajv": "8.20.0",
     "autocannon": "^7.15.0",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
@@ -105,7 +106,7 @@
     "graphql-scalars": "1.25.0",
     "graphql-ws": "6.0.7",
     "graphql-yoga": "5.18.1",
-    "joi": "18.0.2",
+    "joi": "18.2.9",
     "nodemon": "3.1.14",
     "parse-multipart-data": "1.5.0",
     "prism-react-renderer": "^2.3.0",
@@ -122,11 +123,11 @@
     "ws": "8.21.3"
   },
   "dependencies": {
-    "@grpc/grpc-js": "1.14.3",
+    "@grpc/grpc-js": "1.14.4",
     "rxjs": "7.8.2"
   },
   "resolutions": {
-    "@grpc/grpc-js": "1.14.3",
+    "@grpc/grpc-js": "1.14.4",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "parse-multipart-data": "1.5.0",

@@ -291,6 +291,7 @@ export function RateLimit(options: RateLimitOptions) {
     throw new TypeError('@RateLimit: `windowMs` must be a positive number');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string) {
     const item = { rateLimit: options };
     if (propertyKey) {

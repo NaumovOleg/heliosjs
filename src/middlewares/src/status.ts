@@ -21,6 +21,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * }
  */
 export function Status(status: number) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string): void {
     if (propertyKey) {
       defineMiddlewaresMeta([{ status }], target, propertyKey);

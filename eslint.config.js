@@ -64,6 +64,8 @@ export default defineConfig([
       '**/dist/',
       '**/build/',
       '**/coverage/',
+      '.opencode',
+      '__tests__',
       // Docusaurus's own generated cache/bundle (gitignored, but not
       // previously excluded here) — building the docs locally makes it
       // appear on disk and its bundled JS then gets linted as if it were

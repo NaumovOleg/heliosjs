@@ -1,7 +1,4 @@
-import type {
-  FingerprintComponent,
-  MiddlewareCB,
-} from '@heliosjs/core/types';
+import type { FingerprintComponent, MiddlewareCB } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta, getOrComputeFingerprint } from '@heliosjs/core/utils';
 
 /** Options for `@UseFingerprint`. */
@@ -26,6 +23,7 @@ export function UseFingerprint(options: UseFingerprintOptions = {}) {
     return next();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ middleware }];
     if (propertyKey) {

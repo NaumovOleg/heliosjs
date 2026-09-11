@@ -236,7 +236,8 @@ export const normalizeLambdaFunctionUrlEvent = (
     });
   }
 
-  const forwardedProto = event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'];
+  const forwardedProto =
+    event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'];
   const protocol =
     forwardedProto?.split(',')[0]?.trim().toLowerCase() ||
     event.requestContext.http.protocol.split('/')[0].toLowerCase();
@@ -246,7 +247,7 @@ export const normalizeLambdaFunctionUrlEvent = (
   const fullUrl = `${protocol}://${host}${path}${queryString}`;
   const requestUrl = new URL(fullUrl);
 
-  let body: any = event.body ?? '';
+  let body = event.body ?? '';
   if (event.body && event.isBase64Encoded) {
     try {
       body = Buffer.from(event.body, 'base64').toString('utf-8');
@@ -259,7 +260,9 @@ export const normalizeLambdaFunctionUrlEvent = (
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
         body = JSON.parse(body);
-      } catch {}
+      } catch {
+        /* empty */
+      }
     }
   }
 

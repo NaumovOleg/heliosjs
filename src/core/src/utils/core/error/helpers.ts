@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ValidationError } from 'class-validator';
 import type { SerializedError } from '../../../types/core/error';
 

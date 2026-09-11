@@ -39,6 +39,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * }
  */
 export function Guard(guard: GuardClass | GuardFunction | GuardInstance) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ guard: guard }];
 

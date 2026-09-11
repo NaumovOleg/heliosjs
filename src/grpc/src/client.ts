@@ -66,6 +66,7 @@ export class GrpcClient implements ClientGrpc {
    * @param serviceName - Service name as defined in proto.
    * @returns Service proxy object with observable-returning methods.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly serviceClients = new Map<string, any>();
 
   getService<T extends object>(serviceName: string): T {

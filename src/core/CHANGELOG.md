@@ -1,5 +1,15 @@
 # Change Log
 
+## 4.0.0
+
+### Major Changes
+
+- `ajv`, `class-validator`, `class-transformer`, and `joi` are now optional peer dependencies of `@heliosjs/core` instead of bundled dependencies — install whichever ones your app actually uses (`npm install class-validator class-transformer` for `@Body(DtoClass)`-style validation, `npm install ajv` for `compileSchema()`, `npm install joi` for `@Sanitize`/`SANITIZER`). Each is loaded lazily on first use; if it's missing, the first call throws a clear error naming the package instead of installing unconditionally for every app regardless of whether it validates anything.
+
+### Minor Changes
+
+- Added `compileSchema()` (`@heliosjs/core/utils`) — compiles a JSON Schema into a fast Ajv validator, wrapped so it plugs straight into `@Body`, `@Params`, `@QueryParam`, `@Headers`, `@Cookies`, `@Files`, same as any DTO class. Skips class-transformer/class-validator's per-request reflection entirely; in the validation benchmark suite this closes the gap with Fastify's native JSON Schema validation (~41k to ~68k req/s on the same route). See the "Fast path" section of the validation docs.
+
 ## 3.2.11
 
 ### Patch Changes

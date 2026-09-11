@@ -18,26 +18,22 @@ type RolesArg = string | string[];
  * @internal `true` when `userRoles` satisfies `required` under `mode` (`'all'`:
  * every required role present; otherwise: at least one).
  */
-export function matchRoles(
-  required: string[],
-  userRoles: string[],
-  mode: RoleMode,
-): boolean {
+export function matchRoles(required: string[], userRoles: string[], mode: RoleMode): boolean {
   return mode === 'all'
     ? required.every((role) => userRoles.includes(role))
     : required.some((role) => userRoles.includes(role));
 }
 
 /** @internal Splits `@Roles(...)`'s variadic arguments into a flat role list plus the trailing options object, if any. */
-export function normalizeArgs(
-  args: (RolesArg | RolesOptions)[],
-): { roles: string[]; options: RolesOptions } {
+export function normalizeArgs(args: (RolesArg | RolesOptions)[]): {
+  roles: string[];
+  options: RolesOptions;
+} {
   let options: RolesOptions = {};
   let roleArgs = args;
 
   const last = args[args.length - 1];
-  const isOptions =
-    typeof last === 'object' && last !== null && !Array.isArray(last);
+  const isOptions = typeof last === 'object' && last !== null && !Array.isArray(last);
 
   if (isOptions) {
     options = last as RolesOptions;
@@ -54,19 +50,14 @@ export function normalizeArgs(
 }
 
 /** @internal Builds the `GuardFunction` `@Roles` registers via `@Guard`, using the configured `RolesExtractor`. */
-export function createRolesGuard(
-  required: string[],
-  options: RolesOptions,
-): GuardFunction {
+export function createRolesGuard(required: string[], options: RolesOptions): GuardFunction {
   const mode = options.mode ?? 'any';
   const message = options.message ?? 'Insufficient role';
 
   return async (req) => {
     const extractor = getRolesExtractor();
     if (!extractor) {
-      throw new InvalidStateError(
-        'RBAC extractor not set; configure rbac.getRoles in @Server',
-      );
+      throw new InvalidStateError('RBAC extractor not set; configure rbac.getRoles in @Server');
     }
 
     const raw = await extractor(req);
@@ -95,6 +86,7 @@ export function Roles(...args: (RolesArg | RolesOptions)[]) {
   const { roles, options } = normalizeArgs(args);
   const guard = createRolesGuard(roles, options);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ guard }];
 

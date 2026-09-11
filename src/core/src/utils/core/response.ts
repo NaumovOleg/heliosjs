@@ -129,6 +129,7 @@ export class Res implements Response {
   }
 
   removeHeader(name: string): this {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this._headers[name.toLowerCase()];
     if (this.raw?.removeHeader) {
       this.raw.removeHeader(name.toLowerCase());
@@ -319,6 +320,7 @@ export class Res implements Response {
       meta: this.meta,
     };
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error(error: any): this {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',

@@ -31,6 +31,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * class MyController {}
  */
 export function Pipe(pipe: Pipe) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ pipe }];
 

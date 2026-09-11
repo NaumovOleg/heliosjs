@@ -1,5 +1,13 @@
-import * as Joi from 'joi';
+/* eslint-disable no-useless-escape */
+import type * as Joi from 'joi';
 import type { Request, SanitizerConfig } from '../../types/core';
+import { lazyPeer } from '../shared/peer';
+
+// SANITIZER's helpers are the only things here that need the real `joi`
+// module (they build schemas); `applyJoiSanitization` only ever calls
+// `.validate()` on a schema an app already built, so it needs joi's *types*
+// only (erased at compile time, imported above as `import type`).
+const getJoi = lazyPeer<typeof Joi>('joi', 'SANITIZER / @Sanitize');
 
 /**
  * Ready-made Joi schema builders for use inside `@Sanitize` configs and DTO
@@ -20,51 +28,56 @@ import type { Request, SanitizerConfig } from '../../types/core';
  */
 export const SANITIZER = {
   string: {
-    trim: () => Joi.string().trim(),
-    email: () => Joi.string().email().trim().lowercase(),
+    trim: () => getJoi().string().trim(),
+    email: () => getJoi().string().email().trim().lowercase(),
     name: () =>
-      Joi.string()
+      getJoi()
+        .string()
         .trim()
         .min(2)
         .max(50)
         .pattern(/^[a-zA-Z\s-]+$/),
     slug: () =>
-      Joi.string()
+      getJoi()
+        .string()
         .trim()
         .lowercase()
         .pattern(/^[a-z0-9-]+$/),
     phone: () =>
-      Joi.string()
+      getJoi()
+        .string()
         .trim()
         .pattern(/^[\d\s\+\-\(\)]+$/),
   },
 
   number: {
-    integer: () => Joi.number().integer(),
-    positive: () => Joi.number().positive(),
-    range: (min: number, max: number) => Joi.number().min(min).max(max),
+    integer: () => getJoi().number().integer(),
+    positive: () => getJoi().number().positive(),
+    range: (min: number, max: number) => getJoi().number().min(min).max(max),
   },
 
   object: {
-    stripUnknown: (schema: Joi.Schema) => Joi.object(schema).unknown(false),
-    withDefaults: (schema: Joi.Schema) => Joi.object(schema).options({ stripUnknown: true }),
+    stripUnknown: (schema: Joi.Schema) => getJoi().object(schema).unknown(false),
+    withDefaults: (schema: Joi.Schema) => getJoi().object(schema).options({ stripUnknown: true }),
   },
 
   date: {
-    iso: () => Joi.date().iso(),
-    timestamp: () => Joi.date().timestamp(),
+    iso: () => getJoi().date().iso(),
+    timestamp: () => getJoi().date().timestamp(),
   },
 
   xss: () =>
-    Joi.string().custom(value => {
-      if (typeof value !== 'string') return value;
-      const sanitized = value
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+=/gi, '')
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/data:/gi, '');
-      return sanitized;
-    }, 'XSS sanitization'),
+    getJoi()
+      .string()
+      .custom((value) => {
+        if (typeof value !== 'string') return value;
+        const sanitized = value
+          .replace(/javascript:/gi, '')
+          .replace(/on\w+=/gi, '')
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/data:/gi, '');
+        return sanitized;
+      }, 'XSS sanitization'),
 };
 
 /**
@@ -75,7 +88,8 @@ export const SANITIZER = {
  */
 export function applyJoiSanitization(
   value: unknown,
-  config: SanitizerConfig,
+  config: SanitizerConfig
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): { value: any; error?: Joi.ValidationError } {
   if (!['headers', 'body', 'params', 'query'].includes(config.type)) {
     return { value };

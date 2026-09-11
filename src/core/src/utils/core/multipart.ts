@@ -18,6 +18,7 @@ export class MultipartProcessor {
    *   is missing/invalid.
    */
   static parse(request: Pick<Request, 'headers' | 'isBase64Encoded' | 'body'>): {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fields: Record<string, any>;
     files: Record<string, MultipartFile | MultipartFile[]>;
   } {
@@ -52,9 +53,11 @@ export class MultipartProcessor {
 
     const parts = multipart.parse(bodyBuffer, boundaryMatch);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fields: Record<string, any> = {};
     const files: Record<string, MultipartFile | MultipartFile[]> = {};
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     parts.forEach((part: any) => {
       if (part.filename) {
         const fieldName = part.name || 'file';

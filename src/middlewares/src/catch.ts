@@ -29,6 +29,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * class MyController {}
  */
 export function Catch(handler: ErrorHandler) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const data = [{ errorHandler: handler }];
 

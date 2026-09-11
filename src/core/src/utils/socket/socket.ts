@@ -17,6 +17,7 @@ export class Socket {
    * @param controllers - Controller instances with websocket metadata.
    * @returns Current socket facade for chaining.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public registerWebSocketControllers(controllers: any[]) {
     if (!this.wss) {
       getGlobalLogger().warn(

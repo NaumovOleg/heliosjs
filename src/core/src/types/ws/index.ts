@@ -77,6 +77,7 @@ export interface IWebSocketService {
    * @param data - Payload.
    * @param exclude - Client ids to skip (e.g. the originating sender).
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   publishToTopic(topic: string, data: any, exclude?: string[]): void;
   /**
    * Sends `message` to every connected client.
@@ -97,6 +98,7 @@ export interface IWebSocketServer {
   /** Sends `message` to one client. @returns `true` if delivered. */
   sendToClient(clientId: string, message: unknown): boolean;
   /** Publishes `data` to `topic` subscribers, skipping ids in `exclude`. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   publishToTopic(topic: string, data: any, exclude: string[]): void;
   /** Sends `message` to all clients, optionally skipping `excludeClientId`. */
   broadcast(message: unknown, excludeClientId?: string): void;
@@ -107,5 +109,6 @@ export interface IWebSocketServer {
   /** Removes `client` from `topic`. */
   unsubscribeFromTopic(client: WebSocketClient, topic: string): void;
   /** Scans the given controller classes for `@OnWS` / `@Subscribe` handlers and registers them. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registerControllers(controllers: (new (...args: any[]) => any)[]): void;
 }

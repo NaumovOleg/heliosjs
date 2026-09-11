@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { type Options } from '@grpc/proto-loader';
 import type { Observable } from 'rxjs';
 
@@ -29,6 +30,7 @@ export interface GrpcBaseOptions {
   /** Proto-loader tuning; see {@link GrpcLoaderOptions}. */
   loader?: GrpcLoaderOptions;
   /** Pre-loaded package definition to use instead of reading `protoPath`. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   packageDefinition?: any;
 }
 
@@ -72,7 +74,11 @@ export interface ClientGrpc {
  * Shape of a service proxy returned by `getService()`: every RPC becomes a
  * `(data, metadata?) => Observable | Promise` function.
  */
-export type GrpcServiceClient = Record<string, (data: any, metadata?: any) => Observable<any> | Promise<any>>;
+export type GrpcServiceClient = Record<
+  string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (data: any, metadata?: any) => Observable<any> | Promise<any>
+>;
 
 /** Proto-location options for `@GrpcService` (see also {@link GrpcBaseOptions}). */
 export interface ServiceOptions {

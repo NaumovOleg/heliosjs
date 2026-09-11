@@ -1,5 +1,11 @@
 # Change Log
 
+## 10.0.9
+
+### Patch Changes
+
+- Widen the `@heliosjs/core` peer dependency range to `>=3.2.11 <5.0.0` so it accepts `@heliosjs/core@4.0.0` — the previous `^3.2.11` range rejected it, which would have made `npm install` fail with an unresolvable peer dependency conflict for anyone installing this package alongside the new core major.
+
 ## 10.0.8
 
 ### Patch Changes

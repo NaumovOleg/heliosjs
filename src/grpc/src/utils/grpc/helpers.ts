@@ -11,6 +11,7 @@ import { status } from '@grpc/grpc-js';
  * @param error - The caught value.
  * @returns The gRPC status code and message to send to the client.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeError(error: any): { code: number; message: string } {
   if (error.code && typeof error.code === 'number' && error.message) {
     return { code: error.code, message: error.message };
@@ -57,6 +58,7 @@ function mapHttpStatusToGrpc(httpStatus: number): number {
  * @example
  * const user = await toPromise(userService.findById({ id: '42' }));
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toPromise<T>(observable: any): Promise<T> {
   if (observable instanceof Promise) {
     return observable;
@@ -72,6 +74,7 @@ export function toPromise<T>(observable: any): Promise<T> {
           subscription.unsubscribe();
         }
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       error: (err: any) => {
         if (!resolved) {
           resolved = true;

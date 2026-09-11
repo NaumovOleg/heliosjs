@@ -6,6 +6,16 @@ description: Validate and clean request data with Joi schemas using @Sanitize an
 
 The `@Sanitize` decorator applies Joi-based sanitization to request data.
 
+## Installation
+
+`joi` is an optional peer dependency — only apps that use `@Sanitize`/`SANITIZER` need it installed:
+
+```bash
+npm install joi
+```
+
+Without it, the first `SANITIZER.*` call (or the first request through a route using `@Sanitize`) throws a clear error naming the missing package instead of a cryptic module-not-found.
+
 ## Purpose
 
 Sanitization cleans incoming data (trim whitespace, strip unknown fields, apply defaults) before it reaches your handler. HeliosJS provides a built-in `SANITIZER` utility with common Joi schemas.

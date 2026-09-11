@@ -49,12 +49,14 @@ export function defineControllerMeta(meta: Partial<ControllerMeta>, target: obje
     }
 
     return acc;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, existed as any);
   Reflect.defineMetadata(DECORATOR.controller, merged, target);
 }
 
 /** @internal Reads the raw `MiddlewaresMetadataItem[]` stored on a class (or method) by `defineMiddlewaresMeta`. */
 export function reflectMiddlewaresMetadata(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   target: any,
   property?: string
 ): MiddlewaresMetadataItem[] {
@@ -141,6 +143,7 @@ export function defineRouteMeta(meta: Partial<RouteMetadata>, target: object, pr
     }
 
     return acc;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, existed as any);
 
   Reflect.defineMetadata(DECORATOR.route, merged, target, property);

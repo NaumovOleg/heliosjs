@@ -17,8 +17,10 @@ export interface GrpcServerOptions extends GrpcBaseOptions {
 
 /** Internal: proto definitions + bound handlers grouped by `protoPath|package`. */
 export interface ProtoGroup {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   definition: any;
   /** fullServicePath → handlers */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handlers: Map<string, any>;
   protoPath: string;
   package: string;

@@ -28,8 +28,9 @@ export function createParamDecorator(
   type: ParamDecoratorType,
   nameOrDto?: Dto | string,
   nameOrOptions?: ValidatorOptions | string,
-  options?: ValidatorOptions,
+  options?: ValidatorOptions
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey: string, index: number) {
     const param = { index, type };
     if (options) {
@@ -38,14 +39,14 @@ export function createParamDecorator(
     if (nameOrDto) {
       Object.assign(
         param,
-        typeof nameOrDto === 'string' ? { name: nameOrDto } : { dto: nameOrDto },
+        typeof nameOrDto === 'string' ? { name: nameOrDto } : { dto: nameOrDto }
       );
     }
 
     if (nameOrOptions) {
       Object.assign(
         param,
-        typeof nameOrOptions === 'string' ? { name: nameOrOptions } : { options: nameOrOptions },
+        typeof nameOrOptions === 'string' ? { name: nameOrOptions } : { options: nameOrOptions }
       );
     }
     const data = { parameters: [param] };

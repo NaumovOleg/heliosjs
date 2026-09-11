@@ -28,7 +28,9 @@ export type MiddlewareCB<
 > = (
   request: Request<B, Q, P>,
   response: Response,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   next: (err?: HeliosError) => Promise<any> | any
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 ) => void | Promise<Request> | Request | Promise<void>;
 
 /**
@@ -42,6 +44,7 @@ export type MiddlewareCB<
  * @returns The new payload.
  */
 export type InterceptorCB<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   B = any,
   Q = Record<string, string | string[]>,
   P = Record<string, string>

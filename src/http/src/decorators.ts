@@ -31,6 +31,7 @@ import type { ServerConfig } from './types/http';
  * await app.listen();
  */
 export function Server(config: Omit<ServerConfig, 'interceptors'> = {}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any) {
     const existingConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, target) || {};
 
@@ -67,6 +68,7 @@ export function Server(config: Omit<ServerConfig, 'interceptors'> = {}) {
  * Uses Reflect Metadata API to store the port under the `SERVER_CONFIG_KEY` metadata key.
  */
 export function Port(port: number) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any) {
     const existingConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, target) || {};
 
@@ -76,7 +78,7 @@ export function Port(port: number) {
         ...existingConfig,
         port,
       },
-      target,
+      target
     );
 
     return target;
@@ -101,6 +103,7 @@ export function Port(port: number) {
  * Uses Reflect Metadata API to store the host under the `SERVER_CONFIG_KEY` metadata key.
  */
 export function Host(host: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any) {
     const existingConfig = Reflect.getMetadata(SERVER_CONFIG_KEY, target) || {};
 
@@ -110,7 +113,7 @@ export function Host(host: string) {
         ...existingConfig,
         host,
       },
-      target,
+      target
     );
 
     return target;

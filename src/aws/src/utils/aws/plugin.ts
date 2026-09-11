@@ -21,6 +21,7 @@ export class Plugin {
       }
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async callPluginMethod(hookName: PluginKeys, ...args: any): Promise<void> {
     for (const plugin of this.plugins) {
       const hook = plugin?.[hookName];

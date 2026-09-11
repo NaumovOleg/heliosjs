@@ -13,7 +13,8 @@ export class GrpcError extends Error {
   constructor(
     public code: number,
     message: string,
-    public metadata?: Record<string, any>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public metadata?: Record<string, any>
   ) {
     super(message);
     this.name = 'GrpcError';

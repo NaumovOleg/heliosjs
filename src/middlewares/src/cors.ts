@@ -1,4 +1,4 @@
-import type { CORSConfig} from '@heliosjs/core/types';
+import type { CORSConfig } from '@heliosjs/core/types';
 import { HTTP_METHODS } from '@heliosjs/core/types';
 import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
 /**
@@ -40,6 +40,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * class ApiController {}
  */
 export function Cors(config: CORSConfig = {}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const defaultConfig: CORSConfig = {
       origin: '*',

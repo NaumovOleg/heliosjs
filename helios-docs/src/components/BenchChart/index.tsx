@@ -9,17 +9,25 @@ import { useColorMode } from '@docusaurus/theme-common';
  * awareness instead.
  */
 
-const ORDER = ['Helios', 'Express', 'Fastify', 'NestJS'] as const;
+const ORDER = ['Helios', 'Express', 'Fastify', 'NestJS', 'Helios (Ajv)'] as const;
 
 // Fixed categorical colors, by entity, never by rank — same mapping in every
 // chart. Slots 1-4 of the validated default palette (dataviz skill,
 // references/palette.md): passes the adjacent-pair CVD/contrast checks for a
-// 4-series bar chart in both light and dark mode.
+// 4-series bar chart in both light and dark mode. Slot 5 (magenta, added for
+// the validation benchmark's 5th series) does not clear the all-pairs check
+// at 5 series — the palette doc says no ordering does past 3. Mitigated the
+// way the doc allows: every bar and legend entry here already carries a
+// direct text label (name + value), so identity is never color-alone.
+// ponytail: 5-series bar charts on this page rely on that label mitigation
+// instead of a validated palette; if a 6th series shows up, facet instead of
+// adding slot 6.
 const COLORS: Record<(typeof ORDER)[number], { light: string; dark: string }> = {
   Helios: { light: '#2a78d6', dark: '#3987e5' },
   Express: { light: '#eb6834', dark: '#d95926' },
   Fastify: { light: '#1baf7a', dark: '#199e70' },
   NestJS: { light: '#eda100', dark: '#c98500' },
+  'Helios (Ajv)': { light: '#e87ba4', dark: '#d55181' },
 };
 
 const PLOT_X0 = 96; // after the left framework-name label
@@ -59,7 +67,10 @@ function niceScale(maxValue: number, targetTicks = 6): { max: number; step: numb
 
 interface BenchChartProps {
   title: string;
-  data: Record<(typeof ORDER)[number], number>;
+  // Partial: not every page's chart has every framework (e.g. only the
+  // validation page has a "Helios (Ajv)" series) — present keys render,
+  // absent ones are skipped, in the fixed ORDER above either way.
+  data: Partial<Record<(typeof ORDER)[number], number>>;
 }
 
 export default function BenchChart({ title, data }: BenchChartProps) {
@@ -70,7 +81,10 @@ export default function BenchChart({ title, data }: BenchChartProps) {
   const text = isDark ? '#ffffff' : '#0b0b0b';
   const text2 = isDark ? '#c3c2b7' : '#52514e';
 
-  const rows = ORDER.map((name) => ({ name, value: data[name] })).sort((a, b) => b.value - a.value);
+  const present = ORDER.filter((name) => data[name] !== undefined);
+  const rows = present
+    .map((name) => ({ name, value: data[name] as number }))
+    .sort((a, b) => b.value - a.value);
   const plotH = rows.length * ROW_STEP - (ROW_STEP - ROW_H);
   const height = TOP_PAD + plotH + AXIS_H;
 
@@ -90,7 +104,7 @@ export default function BenchChart({ title, data }: BenchChartProps) {
           color: text2,
         }}
       >
-        {ORDER.map((name) => (
+        {present.map((name) => (
           <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <i
               style={{

@@ -21,6 +21,7 @@ export type SSEHandlerType = 'connection' | 'close' | 'error';
  * onConnect(@InjectSSE() sse: SSEService) {}
  */
 export function OnSSE(type: SSEHandlerType) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const handlers = Reflect.getMetadata(SSE_METADATA_KEY, target.constructor) || [];
     handlers.push({ type, method: propertyKey });

@@ -62,7 +62,7 @@ curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d 
 | ------------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
 | Controllers         | `@heliosjs/core`        | `@Controller`, `@Get`, `@Post`, `@Put`, `@Patch`, `@Delete`                              |
 | Parameter Injection | `@heliosjs/core`        | `@Body`, `@Params`, `@QueryParam`, `@Headers`, `@Req`, `@Res`, `@Cookies`, `@Fingerprint` |
-| Validation          | `@heliosjs/core`        | DTO classes with `class-validator` decorators                                            |
+| Validation          | `@heliosjs/core`        | DTO classes with `class-validator` decorators, or `compileSchema()` (JSON Schema / Ajv) for a faster hot-route path |
 | Error Handling      | `@heliosjs/core`        | `NotFoundError`, `ValidationError`, `ForbiddenError`, etc.                               |
 | Middleware          | `@heliosjs/middlewares` | `@Use`, `@Guard`, `@Roles`, `@Catch`, `@Intercept`, `@Pipe`, `@Sanitize`, `@Cors`        |
 | Rate Limiting       | `@heliosjs/core`        | `@RateLimit` with fixed window, sliding window, token bucket strategies                  |

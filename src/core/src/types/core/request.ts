@@ -41,6 +41,7 @@ export interface RequestOptions {
   /** Parsed query string; repeated keys become arrays. */
   query: Record<string, string | string[]>;
   /** Parsed body (JSON object, string, Buffer, or multipart fields). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any;
   /** Route params extracted from the matched path pattern. */
   params: Record<string, string>;
@@ -86,7 +87,7 @@ export interface RequestOptions {
 export interface Request<
   B = unknown,
   Q = Record<string, string | string[]>,
-  P = Record<string, string>,
+  P = Record<string, string>
 > {
   /** HTTP method, upper-case (`'GET'`, `'POST'`, …). */
   method: string;
@@ -119,6 +120,7 @@ export interface Request<
   /** Origin of the request; see {@link RequestSource}. */
   source: RequestSource;
   /** Underlying transport object (Node `IncomingMessage`, etc.). Escape hatch. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any;
   /** Lambda `Context` when running serverless, else `undefined`. */
   context: unknown;

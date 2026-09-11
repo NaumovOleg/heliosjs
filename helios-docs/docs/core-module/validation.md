@@ -6,11 +6,17 @@ sidebar_position: 5
 
 HeliosJS validates request data using DTO classes with `class-validator` decorators. Validation runs automatically before your handler executes.
 
+Prefer a JSON Schema and raw throughput over decorated classes? See [Fast path: JSON Schema with compileSchema](#fast-path-json-schema-with-compileschema) further down — same `@Body`/`@Params`/etc., a different validator underneath.
+
 ## Installation
+
+`class-validator` and `class-transformer` are optional peer dependencies — install them yourself:
 
 ```bash
 npm install class-validator class-transformer
 ```
+
+Without them, the first `@Body(SomeDtoClass)` (or `@Params`/`@QueryParam`/…) call throws a clear error naming the missing package, instead of a cryptic module-not-found.
 
 ## Basic Validation
 
@@ -249,6 +255,72 @@ export class OrderController {
   }
 }
 ```
+
+## Fast path: JSON Schema with compileSchema
+
+`class-validator` + `class-transformer` re-run reflection on every request.
+For a hot route, `compileSchema()` builds a fast Ajv validator function from a
+plain JSON Schema, compiled once on the first request and reused after that,
+wrapped as the same `from()` shape the framework already checks for above —
+so it plugs into `@Body`, `@Params`, `@QueryParam`, `@Headers`, `@Cookies`,
+`@Files` with no other change. In the [validation
+benchmark](../benchmarks-validation), this is the difference between ~41k and
+~68k req/s on the same route, on par with Fastify's own native schema
+validation.
+
+`ajv` is an optional peer dependency — `npm install ajv`. Without it, the
+first request through a `compileSchema()`'d route throws a clear error naming
+the missing package.
+
+```typescript
+import { Controller, Post, Body } from "@heliosjs/core";
+import { compileSchema } from "@heliosjs/core/utils";
+
+// Declare once, at module scope — the schema compiles lazily on first use,
+// not per request.
+const CreateOrderSchema = compileSchema<{ product: string; quantity: number }>({
+  type: "object",
+  required: ["product", "quantity"],
+  properties: {
+    product: { type: "string", minLength: 2 },
+    quantity: { type: "integer", minimum: 1, maximum: 1000 },
+  },
+});
+
+@Controller("/orders")
+export class OrderController {
+  @Post("/")
+  create(@Body(CreateOrderSchema) data: { product: string; quantity: number }) {
+    // data matched the schema (and was type-coerced, e.g. "3" -> 3)
+    return { id: 1, ...data };
+  }
+}
+```
+
+A failed check throws the same `ValidationError` (HTTP 400) as the
+class-validator path, with one `details` entry per Ajv error:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "status": 400,
+    "message": "Validation failed",
+    "details": [
+      { "field": "product", "constraint": "must NOT have fewer than 2 characters" }
+    ]
+  }
+}
+```
+
+Trade-offs versus a DTO class:
+
+- No `class-transformer` instance — `data` comes back as a plain object matching the schema, not a class instance.
+- No nested `@ValidateNested` nesting or custom `@ValidatorConstraint` decorators — express nested shapes as nested JSON Schema (`type: 'array', items: {...}`) instead.
+- One shared Ajv instance for the whole process (`allErrors`, `coerceTypes`, and `useDefaults` on) — there's no per-schema options argument; if you need a schema-specific Ajv option, that's a small addition to `compileSchema` itself, not something to work around.
+
+Use `@Body(DtoClass)` for everyday routes — the decorator-based DX is worth the reflection cost there. Reach for `compileSchema()` on the routes that actually show up hot in a profiler.
 
 ## Complete Example: User Registration
 
