@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-HeliosJS is a decorator-based Node.js API framework published as five npm packages from one Yarn 1.x workspace monorepo. It is ESM-only and needs Node 20 or newer.
+HeliosJS is a decorator-based Node.js API framework published as five npm packages from one Yarn 1.x workspace monorepo. It needs Node 20 or newer (each package's `package.json` declares `engines.node`). Source is written with ESM `import`/`export` syntax, but none of the five package.json files set `"type": "module"`, so `tsc`'s `nodenext` mode compiles `dist/` to CommonJS — the published packages are CJS under the hood, reachable via both `require` and `import` through the dual `exports` map. Don't assume ESM-only when touching build/publish config.
 
 ## Commands
 
