@@ -47,6 +47,10 @@ export class Helios extends Plugin implements IHttpServer {
   private readonly logger: Logger;
   private isRunning = false;
   private listenPromise?: Promise<http.Server>;
+  /** Bound once so `process.on`/`removeListener` target the same reference. */
+  private readonly handleShutdownSignal = () => {
+    void this.close();
+  };
   private readonly sse?: SSEServer;
   private websocket?: WebSocketServer;
   controllers: ControllerType[] = [];
@@ -180,13 +184,23 @@ export class Helios extends Plugin implements IHttpServer {
     }
 
     this.isRunning = true;
+    // SIGTERM/SIGINT -> stop accepting connections and drain in-flight
+    // requests via the existing close(); removed again in close() so
+    // repeated listen()/close() cycles (tests) don't accumulate listeners.
+    process.once('SIGTERM', this.handleShutdownSignal);
+    process.once('SIGINT', this.handleShutdownSignal);
     this.listenPromise = new Promise<http.Server>((resolve, reject) => {
       const server = this.app.listen(listenPort, listenHost, async () => {
         this.logger.log(`Server started successfully! http://${listenHost}:${listenPort}`);
         await this.callPluginMethod('onStart', this.app);
         resolve(server);
       });
-      server.on('error', reject);
+      server.on('error', (err) => {
+        this.isRunning = false;
+        process.removeListener('SIGTERM', this.handleShutdownSignal);
+        process.removeListener('SIGINT', this.handleShutdownSignal);
+        reject(err);
+      });
     });
     return this.listenPromise;
   }
@@ -200,6 +214,8 @@ export class Helios extends Plugin implements IHttpServer {
    * @returns Promise that resolves once shutdown is complete.
    */
   public async close(): Promise<void> {
+    process.removeListener('SIGTERM', this.handleShutdownSignal);
+    process.removeListener('SIGINT', this.handleShutdownSignal);
     return new Promise((resolve, reject) => {
       if (!this.isRunning) {
         resolve();
@@ -247,6 +263,9 @@ export class Helios extends Plugin implements IHttpServer {
       if (!res.headersSent) {
         res.statusCode = status;
         res.setHeader('Content-Type', 'application/json');
+        // The request body may be unread/oversized at this point; don't reuse
+        // this socket for a pipelined request.
+        res.setHeader('Connection', 'close');
         res.end(JSON.stringify({ code, status, message }));
       }
       return;

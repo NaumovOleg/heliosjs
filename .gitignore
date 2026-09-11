@@ -1,5 +1,8 @@
 node_modules/
 dist/
+# this repo uses yarn (packageManager in package.json); don't let a stray npm
+# install commit a second, drifting lockfile
+package-lock.json
 .env
 .DS_Store
 coverage/

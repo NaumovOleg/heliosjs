@@ -27,6 +27,7 @@
     "publish:major": "yarn version --major --no-git-tag-version && yarn publish --access public"
   },
   "dependencies": {
+    "graphql-yoga": "^5.18.1",
     "type-graphql": "^2.0.0-rc.3"
   },
   "peerDependencies": {

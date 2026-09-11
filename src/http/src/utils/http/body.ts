@@ -21,7 +21,11 @@ export const collectRawBody = (
     const fail = (err: Error) => {
       if (done) return;
       done = true;
-      req.destroy();
+      // Don't destroy the socket: req/res share it, and destroying it here
+      // resets the connection before the caller can write a 413 response.
+      // Stop buffering (chunks are dropped below once `done`) and let the
+      // caller reply, then close the connection normally.
+      req.resume();
       reject(err);
     };
 

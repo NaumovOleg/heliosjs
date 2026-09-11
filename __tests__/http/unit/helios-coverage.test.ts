@@ -412,4 +412,49 @@ describe('Helios coverage gaps', () => {
     const res = await fetch(`${base}/test`);
     expect(res.headers.get('x-response-time')).toBeDefined();
   });
+
+  it('SIGTERM/SIGINT handler closes a running server', async () => {
+    @Server({ port: makePort() })
+    class App {}
+    app = new Helios(App as any);
+    await app.listen(makePort(), '127.0.0.1');
+    expect(app.status().running).toBe(true);
+
+    (app as any).handleShutdownSignal();
+    // close() is async; give the close() promise a tick to settle.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(app.status().running).toBe(false);
+    app = undefined as any;
+  });
+
+  it('close() removes the SIGTERM/SIGINT listeners registered by listen()', async () => {
+    @Server({ port: makePort() })
+    class App {}
+    app = new Helios(App as any);
+    const before = process.listenerCount('SIGTERM');
+    await app.listen(makePort(), '127.0.0.1');
+    expect(process.listenerCount('SIGTERM')).toBe(before + 1);
+    await app.close();
+    expect(process.listenerCount('SIGTERM')).toBe(before);
+    app = undefined as any;
+  });
+
+  it('listen() bind failure resets isRunning and removes shutdown listeners', async () => {
+    const port = makePort();
+    @Server({ port })
+    class Blocker {}
+    const blocker = new Helios(Blocker as any);
+    await blocker.listen(port, '127.0.0.1');
+
+    @Server({ port })
+    class App {}
+    app = new Helios(App as any);
+    const before = process.listenerCount('SIGTERM');
+    await expect(app.listen(port, '127.0.0.1')).rejects.toBeDefined();
+    expect(app.status().running).toBe(false);
+    expect(process.listenerCount('SIGTERM')).toBe(before);
+
+    await blocker.close();
+    app = undefined as any;
+  });
 });

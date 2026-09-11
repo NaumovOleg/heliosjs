@@ -13,6 +13,9 @@ function makeReq(headers: Record<string, string> = {}) {
   req.destroy = () => {
     req.destroyed = true;
   };
+  req.resume = () => {
+    req.resumed = true;
+  };
   return req;
 }
 
@@ -31,18 +34,22 @@ describe("collectRawBody", () => {
     await expect(p).resolves.toEqual(Buffer.from("hello"));
   });
 
-  it("rejects early when content-length exceeds the limit", async () => {
+  it("rejects early when content-length exceeds the limit, without killing the socket", async () => {
     const req = makeReq({ "content-length": "999" });
     await expect(collectRawBody(req, 100)).rejects.toBeInstanceOf(PayloadTooLargeError);
-    expect(req.destroyed).toBe(true);
+    // req/res share a socket — destroying it here would reset the connection
+    // before the caller can write a 413 response.
+    expect(req.destroyed).toBe(false);
+    expect(req.resumed).toBe(true);
   });
 
-  it("rejects mid-stream when actual bytes exceed the limit (no content-length)", async () => {
+  it("rejects mid-stream when actual bytes exceed the limit (no content-length), without killing the socket", async () => {
     const req = makeReq();
     const p = collectRawBody(req, 4);
     req.emit("data", Buffer.from("abcde")); // 5 bytes > 4
     await expect(p).rejects.toBeInstanceOf(PayloadTooLargeError);
-    expect(req.destroyed).toBe(true);
+    expect(req.destroyed).toBe(false);
+    expect(req.resumed).toBe(true);
   });
 
   it("disables the limit when maxBytes is 0", async () => {

@@ -23,7 +23,32 @@ export interface RateLimitState {
   resetAt: number;
 }
 
-/** Low-level pluggable backend: a generic per-key state store with TTL eviction. */
+/**
+ * Low-level pluggable backend: a generic per-key state store with TTL
+ * eviction. The built-in {@link MemoryStore} is per-process only — running
+ * more than one instance behind a load balancer needs a shared store like
+ * this instead, so every instance sees the same counters.
+ *
+ * @example
+ * class RedisStore implements RateLimitStore {
+ *   constructor(private redis: { get(k: string): Promise<string | null>;
+ *     set(k: string, v: string, ttlMs: number): Promise<unknown>;
+ *     del(k: string): Promise<unknown> }) {}
+ *
+ *   async get(key: string) {
+ *     const raw = await this.redis.get(key);
+ *     return raw ? (JSON.parse(raw) as RateLimitState) : undefined;
+ *   }
+ *
+ *   async set(key: string, state: RateLimitState, ttlMs: number) {
+ *     await this.redis.set(key, JSON.stringify(state), ttlMs);
+ *   }
+ *
+ *   async reset(key: string) {
+ *     await this.redis.del(key);
+ *   }
+ * }
+ */
 export interface RateLimitStore {
   get(key: string): Promise<RateLimitState | undefined>;
   set(key: string, state: RateLimitState, ttlMs: number): Promise<void>;

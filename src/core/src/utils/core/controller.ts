@@ -23,6 +23,7 @@ import { getHeaderCI } from './headers';
 import { getBodyAndMultipart } from './helper';
 import { enforceRateLimit } from './ratelimit';
 import { extractRouteParams, routeSpecificity } from './match';
+import { getGlobalLogger } from './logger';
 import { sanitizeRequest } from './sanitize';
 
 /**
@@ -213,9 +214,12 @@ export const execute = async (route: Route, request: Request, response: Response
       return response;
     }
 
-    // No handler and not a self-resolving code: an Error propagates, a raw
-    // non-Error throw is swallowed (historical behaviour).
+    // No handler and not a self-resolving code: an Error propagates. A raw
+    // non-Error throw has no message/stack to rethrow usefully (historical
+    // behaviour keeps it from crashing the process) but is logged so it isn't
+    // silently lost.
     if (error instanceof Error) throw error;
+    getGlobalLogger().error('Non-Error value thrown with no @Catch handler', error);
     return response;
   }
 };

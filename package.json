@@ -75,6 +75,9 @@
     "@docusaurus/types": "3.10.2",
     "@eslint/js": "10.0.1",
     "@mdx-js/react": "^3.0.0",
+    "@nestjs/common": "12.0.1",
+    "@nestjs/core": "12.0.1",
+    "@nestjs/platform-express": "12.0.1",
     "@types/autocannon": "^7.12.7",
     "@types/aws-lambda": "8.10.161",
     "@types/node": "25.5.0",
@@ -83,7 +86,6 @@
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "^4",
     "autocannon": "^7.15.0",
-    "aws-lambda": "1.0.7",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "clsx": "^2.0.0",
@@ -121,13 +123,13 @@
   },
   "resolutions": {
     "@grpc/grpc-js": "1.14.3",
-    "aws-lambda": "1.0.7",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "parse-multipart-data": "1.5.0",
+    "protobufjs": "7.6.6",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "type-graphql": "2.0.0-rc.3",
-    "ws": "8.19.0"
+    "ws": "8.21.3"
   }
 }

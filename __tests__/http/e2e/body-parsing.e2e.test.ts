@@ -51,7 +51,7 @@ describe('E2E body parsing (trust boundary)', () => {
     expect(await res.json()).toEqual({ got: 7 });
   });
 
-  it('oversized body is rejected (connection dropped by collectRawBody)', async () => {
+  it('oversized body -> clean 413, socket not reset', async () => {
     @Controller('/u')
     class C {
       @Post('/') create(@Body() b: unknown) {
@@ -60,14 +60,14 @@ describe('E2E body parsing (trust boundary)', () => {
     }
     ctx = await startE2E([C], { bodyLimit: 16 });
 
-    // collectRawBody destroys the socket on overflow, so fetch sees a network
-    // error rather than a 413. Documents current behaviour.
-    await expect(
-      fetch(`${ctx.base}/u`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ big: 'x'.repeat(1000) }),
-      })
-    ).rejects.toThrow();
+    const res = await fetch(`${ctx.base}/u`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ big: 'x'.repeat(1000) }),
+    });
+
+    expect(res.status).toBe(413);
+    expect(res.headers.get('connection')).toBe('close');
+    expect(await res.json()).toMatchObject({ status: 413 });
   });
 });

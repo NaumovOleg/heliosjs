@@ -25,7 +25,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * }
  */
 export function Use(middleware: MiddlewareCB | MiddlewareCB[]) {
-  return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+  return function (target: any, propertyKey?: string, _descriptor?: PropertyDescriptor) {
     const middlewares = Array.isArray(middleware) ? middleware : [middleware];
 
     const data = middlewares.map((middleware) => ({ middleware }));
