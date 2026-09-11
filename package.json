@@ -38,7 +38,11 @@
     "docs:build": "yarn workspace docs build",
     "docs:serve": "yarn workspace docs serve",
     "benchmark:build": "cd benchmarks && npx tsc -p tsconfig.json --skipLibCheck",
-    "benchmark": "yarn benchmark:build && node benchmarks/dist/run.js"
+    "benchmark": "yarn benchmark:build && node benchmarks/dist/run.js",
+    "benchmark:soak": "yarn benchmark:build && node benchmarks/dist/soak.js",
+    "benchmark:middleware": "yarn benchmark:build && node benchmarks/dist/run-middleware.js",
+    "benchmark:validation": "yarn benchmark:build && node benchmarks/dist/run-validation.js",
+    "benchmark:serialize": "yarn benchmark:build && node benchmarks/dist/run-serialize.js"
   },
   "workspaces": [
     "src/core",
@@ -115,7 +119,7 @@
     "typescript": "6.0.2",
     "typescript-eslint": "8.59.1",
     "vitest": "^4.1.9",
-    "ws": "8.19.0"
+    "ws": "8.21.3"
   },
   "dependencies": {
     "@grpc/grpc-js": "1.14.3",

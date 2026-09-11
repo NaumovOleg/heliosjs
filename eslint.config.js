@@ -64,6 +64,12 @@ export default defineConfig([
       '**/dist/',
       '**/build/',
       '**/coverage/',
+      // Docusaurus's own generated cache/bundle (gitignored, but not
+      // previously excluded here) — building the docs locally makes it
+      // appear on disk and its bundled JS then gets linted as if it were
+      // hand-written source, inflating the error count for everyone until
+      // the next `docs:clear`.
+      '**/.docusaurus/',
       '.env',
       '**/*.config.js',
       '**/temp-*/**',

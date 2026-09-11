@@ -38,6 +38,7 @@ export class Req implements Request {
   // paying for a Map on every request.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _state?: Map<string, any>;
+  private _signal?: AbortSignal;
 
   constructor(options: RequestOptions) {
     this.method = options.method.toUpperCase();
@@ -151,6 +152,28 @@ export class Req implements Request {
    */
   getHttpRequest(): IncomingHttpHeaders | undefined {
     return this.isHttp() ? this.raw : undefined;
+  }
+
+  /**
+   * Aborts once the underlying connection is gone before a response was
+   * sent. `undefined` off `node:http` — Lambda's `raw` is the event, not a
+   * live connection to abort on. Built lazily on first access: nothing is
+   * allocated or listened to for requests that never read this.
+   *
+   * `'aborted'` is Node's documented-but-soft-deprecated event for exactly
+   * this (the alternative is `res.on('close')` plus checking
+   * `!res.writableEnded`, which needs a reference to the Response object
+   * that doesn't exist yet when `Req` is constructed) — still emitted on
+   * every currently-supported Node line; revisit if that ever changes.
+   */
+  get signal(): AbortSignal | undefined {
+    if (!this.isHttp() || typeof this.raw?.once !== 'function') return undefined;
+    if (!this._signal) {
+      const controller = new AbortController();
+      this.raw.once('aborted', () => controller.abort());
+      this._signal = controller.signal;
+    }
+    return this._signal;
   }
 
   /**

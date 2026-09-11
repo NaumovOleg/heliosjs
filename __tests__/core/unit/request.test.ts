@@ -257,6 +257,47 @@ describe('Req.toJSON', () => {
   });
 });
 
+describe('Req.signal', () => {
+  function makeRawIncomingMessage() {
+    const listeners: Record<string, (() => void)[]> = {};
+    return {
+      once: (event: string, cb: () => void) => {
+        (listeners[event] ??= []).push(cb);
+      },
+      emit: (event: string) => {
+        listeners[event]?.forEach((cb) => cb());
+      },
+    };
+  }
+
+  it('is undefined off http (e.g. lambda)', () => {
+    expect(makeReq({ source: 'lambda' }).signal).toBeUndefined();
+  });
+
+  it('is undefined when raw has no event emitter (e.g. constructed by hand in a test)', () => {
+    expect(makeReq({ raw: undefined }).signal).toBeUndefined();
+  });
+
+  it('returns the same AbortSignal on repeated access (lazy, not rebuilt each time)', () => {
+    const req = makeReq({ raw: makeRawIncomingMessage() });
+    expect(req.signal).toBe(req.signal);
+  });
+
+  it('aborts when the underlying request emits "aborted"', () => {
+    const raw = makeRawIncomingMessage();
+    const req = makeReq({ raw });
+    const signal = req.signal!;
+    expect(signal.aborted).toBe(false);
+    raw.emit('aborted');
+    expect(signal.aborted).toBe(true);
+  });
+
+  it('never aborts for a request that completes normally', () => {
+    const req = makeReq({ raw: makeRawIncomingMessage() });
+    expect(req.signal!.aborted).toBe(false);
+  });
+});
+
 describe('Req.base64Encoded', () => {
   it('returns true when content-encoding is base64', () => {
     const req = makeReq({ headers: { 'content-encoding': 'base64' } });

@@ -1,5 +1,87 @@
 # Change Log
 
+## 3.2.11
+
+### Patch Changes
+
+- 61b4c76: Bug-fix and cleanup pass across the request pipeline (see `.planning/audit-fixes-2026-09.md`
+  for the full list). Some of these are user-visible behavior changes, not just internal fixes:
+
+  - `res.stream()` now actually pipes a readable instead of `JSON.stringify`-ing it; `res.buffer()`
+    and Buffer response bodies are no longer corrupted (Lambda responses are base64-encoded when
+    the body is binary).
+  - Lambda: responses now emit `response.cookies` (previously echoed the request's cookies).
+  - Malformed JSON request bodies now reply `400` instead of passing the raw string through to the
+    handler.
+  - `HEAD` requests now fall back to the matching `GET` handler (body suppressed) instead of 404ing
+    when no explicit `@Head` route exists.
+  - New `trustProxy` option (`http` default `false`, `aws` default `true`): `X-Forwarded-*` headers
+    are only trusted when explicitly enabled — previously always trusted, which let a client spoof
+    its IP into rate-limit/fingerprint keys.
+  - `@Headers`/`@Cookies`/`@Files` accept a DTO for validation; header lookups (including CORS) are
+    case-insensitive.
+  - Route-array middlewares (`@Use([a, b])`) now run in declared order (previously reversed).
+  - Multipart text fields keep their original string type instead of being blanket `JSON.parse`d.
+  - `MemoryStore` (rate limiting) is now bounded (default 10k entries, drop-oldest) instead of
+    growing unboundedly under a large/hostile key space.
+
+  Plus perf work (single request pipeline, O(n²)→O(n) param resolution, shared MIME table) and
+  dead-code removal with no behavior change.
+
+- 461d686: Hot-path perf pass (~5-7% throughput on the routing benchmark — see
+  `.planning/codebase/BENCHMARK-AUDIT-PHASE2.md`) plus two small additions,
+  both covered by the new comparative benchmark suites (middleware/validation/
+  serialization — see `.planning/codebase/BENCHMARK-SUITE-PLAN.md`):
+
+  - **New**: `request.signal` (`AbortSignal`, HTTP only — `undefined` on
+    Lambda/`@heliosjs/aws`, which has no live connection to abort on). Aborts
+    if the client disconnects before a response was sent; pass it straight
+    into `fetch()` or most DB drivers to stop wasted work once nobody's
+    listening for the result. Lazy — nothing is allocated or listened to
+    unless a handler actually reads it.
+  - **New**: a route with an inline regex param (`:id(pattern)`) now gets a
+    one-time warning at registration (not per-request) if the pattern looks
+    like it risks catastrophic backtracking (ReDoS) — a heuristic nudge, not
+    a hard block. `looksReDoSRisky` is exported from `@heliosjs/core/utils`
+    if you want to run the same check yourself.
+  - **Behavior change, `@heliosjs/http` only**: `Request.requestId` is no
+    longer a `crypto.randomUUID()` — it's now a fast per-process counter
+    (`<random-tag>-<n>`). Still unique per request and fine for log
+    correlation, but no longer parses as a UUID. Calling this out explicitly
+    since it's the one change here that could break something depending on
+    the old format; `@heliosjs/aws` (Lambda) is untouched.
+  - Perf, no behavior change: `execute()` skips its own pre-handler pass
+    entirely for routes with no guards/pipes/sanitizers/middlewares/rate
+    limits (previously walked four empty arrays every request); a handler's
+    return value is only `await`-ed when it's actually a promise; `Req`'s
+    per-request state `Map` is now allocated lazily instead of on every
+    request; `Helios.sendResponse` no longer sets `Content-Type` a second
+    time with the value it's already set to.
+
+- 61b4c76: Pre-production audit fixes:
+
+  - **`@heliosjs/aws`**: dropped the `aws-lambda` runtime dependency (a CLI deploy tool that pulls
+    in AWS SDK v2 and a vulnerable transitive `uuid`) — all imports from `'aws-lambda'` in this
+    package are type-only, so the correct dependency is `@types/aws-lambda`, which now replaces it.
+    No code change; smaller install, one less vulnerable dependency.
+  - **`@heliosjs/http`**: `graphql-yoga` is now a declared dependency. The GraphQL integration
+    already did `import('graphql-yoga')` at runtime, but the package was never listed — enabling
+    GraphQL crashed with a module-not-found error on a clean install.
+  - **`@heliosjs/grpc`**: declares `@heliosjs/core` as a peer dependency (it already imports
+    `Logger` and shared types from it at runtime).
+  - **`@heliosjs/http`**: `Helios.listen()` now closes the server on `SIGTERM`/`SIGINT`, draining
+    in-flight requests via the existing `close()` instead of the process being killed mid-request
+    on a container/orchestrator shutdown.
+  - **`@heliosjs/http`**: a request body over `bodyLimit` no longer resets the TCP connection —
+    the client now gets a proper `413` JSON response (`Connection: close` to avoid reusing a socket
+    with an undrained body) instead of `ECONNRESET`.
+  - **`@heliosjs/core`**: a thrown non-`Error` value with no `@Catch` handler is now logged instead
+    of being silently dropped.
+
+  Also bumped the `ws` and `protobufjs` transitive versions (via `resolutions`) to clear a high and
+  a critical advisory; removed a stray, git-tracked `package-lock.json` that didn't match this
+  yarn-only workspace and was making `npm audit` report already-fixed versions as vulnerable.
+
 ## 3.2.10
 
 ### Patch Changes

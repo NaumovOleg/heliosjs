@@ -1,0 +1,5 @@
+date,commit,node,os,framework,library,reqPerSec,latencyAvgMs,latencyP99Ms
+"2026-09-11T12:48:02.608Z","408d1e2","v24.14.0","Darwin 25.6.0","Helios","class-validator","41112","2.03","4.00"
+"2026-09-11T12:48:02.608Z","408d1e2","v24.14.0","Darwin 25.6.0","Express","class-validator (manual)","36428","2.05","3.00"
+"2026-09-11T12:48:02.608Z","408d1e2","v24.14.0","Darwin 25.6.0","Fastify","JSON Schema / Ajv","70520","1.12","4.00"
+"2026-09-11T12:48:02.608Z","408d1e2","v24.14.0","Darwin 25.6.0","NestJS","class-validator","32734","2.60","5.00"

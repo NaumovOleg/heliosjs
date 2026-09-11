@@ -9,6 +9,7 @@ export * from './match';
 export * from './multipart';
 export * from './rbac';
 export * from './ratelimit';
+export * from './redos';
 export * from './request';
 export * from './response';
 export * from './sanitize';

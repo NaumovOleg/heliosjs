@@ -6,6 +6,9 @@
 
 👉 **[Full Documentation](https://naumovoleg.github.io/heliosjs/)**
 
+See [`STABILITY.md`](./STABILITY.md) for the versioning policy — what counts
+as a breaking change, support windows, and which packages version together.
+
 ## Packages
 
 | Package                                                                                              | Version | Description             |
@@ -24,10 +27,11 @@ npm install @heliosjs/core @heliosjs/http reflect-metadata
 
 ## Benchmarks
 
-| Framework   | Req/sec     | Latency (avg) | Latency (max) | Throughput |
-| ----------- | ----------- | ------------- | ------------- | ---------- |
-| **Fastify** | **102,861** | 9.31 ms       | 280 ms        | 20.21 MB/s |
-| **Helios**  | 81,242      | 11.68 ms      | 383 ms        | 16.43 MB/s |
-| Express     | 67,653      | 14.32 ms      | 434 ms        | 15.94 MB/s |
+| Framework   | Req/sec     | Latency (avg) | Throughput |
+| ----------- | ----------- | -------------- | ---------- |
+| **Fastify** | **113,560** | 0.05 ms        | 22.31 MB/s |
+| **Helios**  | 89,184      | 0.94 ms        | 18.03 MB/s |
+| Express     | 70,936      | 1.02 ms        | 16.71 MB/s |
+| NestJS      | 64,156      | 1.02 ms        | 16.52 MB/s |
 
-> 100 connections, pipelining 10, 10s duration. [Full benchmarks & methodology](https://naumovoleg.github.io/heliosjs/docs/benchmarks)
+> `GET /users`, 100 connections, 3×8s runs (median), no pipelining. [Full benchmarks & methodology](https://naumovoleg.github.io/heliosjs/docs/benchmarks) — including middleware, validation, and serialization suites.

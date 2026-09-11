@@ -21,6 +21,17 @@ machine on one day — run the benchmark yourself before relying on it for a
 real decision.
 :::
 
+This page covers plain routing/dispatch — no guards, validation, or
+middleware in the way. Three more pages measure those specifically:
+
+- **[Middleware pipeline](./benchmarks-middleware)** — per-layer cost of
+  guards/pipes/middleware, each framework's own idiom.
+- **[Validation](./benchmarks-validation)** — request-body validation cost,
+  `class-validator` vs Fastify's native JSON Schema.
+- **[Serialization](./benchmarks-serialization)** — JSON response cost at
+  1/100/2,000-item payloads, including a result that runs against the
+  routing page's own Fastify-wins framing.
+
 ## Methodology
 
 Naive same-process, single-sample benchmarks are noisy and easy to game by
@@ -45,10 +56,7 @@ frameworks on one machine, not an absolute number to plan capacity around.
 
 Captured 2026-09-11 on Darwin 25.6.0, Node v24.14.0, Apple M4 (10 cores),
 after a hot-path perf pass on Helios (see below). Config: 100 connections,
-3 runs × 8s per scenario (+2s discarded warmup), no pipelining. Every run's
-raw numbers (not just the latest) live in
-[`benchmarks/results.csv`](https://github.com/NaumovOleg/heliosjs/blob/master/packages/benchmarks/results.csv) —
-see [Running It](#running-it) below.
+3 runs × 8s per scenario (+2s discarded warmup), no pipelining.
 
 **`GET /users` (static route)**
 
@@ -92,62 +100,21 @@ see [Running It](#running-it) below.
   `Content-Type` header write, and a `crypto.randomUUID()` call for the
   request-correlation id. None of that was routing cost — routing itself was
   already cheap (see below) — it was fixed overhead paid on every request
-  regardless of route shape. Full writeup:
-  [`.planning/codebase/BENCHMARK-AUDIT-PHASE2.md`](https://github.com/NaumovOleg/heliosjs/blob/master/packages/.planning/codebase/BENCHMARK-AUDIT-PHASE2.md)
-  in the repo.
+  regardless of route shape.
 - The param route still costs Helios relatively little over the static one
   (83,678 vs 89,184 req/s, ~6%) despite doing real extra work — a regex
   capture group plus a lookup instead of a static string compare. That
   tracks with the architecture: `@Controller` precompiles every route into a
   regex and a dedicated param extractor at construction time (see
   `collectRoutes` in `src/core/src/utils/core/controller.ts`), so per-request
-  routing is a regex match plus a lookup, not a fresh parse.
+  routing is a regex match plus a lookup, not a fresh parse. That
+  construction-time compile pass itself is cheap and one-time, not something
+  that scales into request latency: building a 50-route tree across 10
+  nested sub-controllers takes well under 1ms even on a cold (unoptimized,
+  first-call) run — negligible against everything else an app does at boot.
 - **NestJS is the slowest**, including behind plain Express, on both routes.
   This is expected, not a bug in the test: Nest's default adapter *is*
   Express, plus its own dependency-injection and module-resolution layer on
   top of it. You're paying Express's routing cost either way and adding
   Nest's on top — this benchmark isolates exactly that delta.
 
-## Running It
-
-From the repository root:
-
-```bash
-yarn benchmark
-```
-
-This runs `benchmark:build` (compiles `benchmarks/` with `tsc`) and then
-`benchmarks/dist/run.js`, which for each framework:
-
-1. Forks it as its own child process on its own port.
-2. Runs a discarded 2s warmup, then 3 measured runs per scenario.
-3. Kills that process before moving to the next framework.
-4. Prints a median-of-3 results table per scenario.
-5. Appends one row per framework/scenario to `benchmarks/results.csv`
-   (date, commit, Node version, OS, scenario, framework, req/s, latency,
-   throughput). This file is committed, not gitignored — it's meant to
-   accumulate across runs so `git log -p benchmarks/results.csv` shows the
-   trend over time instead of only ever having the latest run's numbers.
-
-Override the defaults with environment variables:
-
-```bash
-BENCH_DURATION=15 BENCH_CONNECTIONS=200 BENCH_RUNS=5 yarn benchmark
-```
-
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `BENCH_DURATION` | `8` | Seconds per measured run |
-| `BENCH_CONNECTIONS` | `100` | Concurrent connections |
-| `BENCH_RUNS` | `3` | Measured runs per scenario (reported as median) |
-
-## Customizing
-
-- Each framework's server lives in its own file under `benchmarks/servers/`
-  (`helios.ts`, `express.ts`, `fastify.ts`, `nestjs.ts`). It reads its port
-  from `process.env.PORT`, starts listening, and calls `process.send('ready')`.
-- To add a framework, add a new `benchmarks/servers/<name>.ts` following that
-  pattern and add `{ name, file }` to the `FRAMEWORKS` array in
-  `benchmarks/run.ts`.
-- To add a scenario, add `{ name, path }` to the `SCENARIOS` array — it runs
-  against every framework automatically.

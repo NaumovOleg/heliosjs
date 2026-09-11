@@ -24,6 +24,7 @@ import { getBodyAndMultipart } from './helper';
 import { enforceRateLimit } from './ratelimit';
 import { extractRouteParams, routeSpecificity } from './match';
 import { getGlobalLogger } from './logger';
+import { looksReDoSRisky } from './redos';
 import { sanitizeRequest } from './sanitize';
 
 /**
@@ -442,6 +443,14 @@ function compileRouteRegex(route: string): RegExp | undefined {
     }
     const regexMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\((.+)\)$/);
     if (regexMatch) {
+      // Runs once per route at registration time (here, not per-request) —
+      // a heuristic nudge for a route author, never a gate. See redos.ts for
+      // what this can and can't catch.
+      if (looksReDoSRisky(regexMatch[2])) {
+        getGlobalLogger().warn(
+          `Route "${route}" param ":${regexMatch[1]}(${regexMatch[2]})" looks like it could be vulnerable to catastrophic backtracking (ReDoS) on attacker-controlled input — consider simplifying the pattern.`
+        );
+      }
       pattern += '/(' + regexMatch[2] + ')';
     } else if (seg.endsWith('?')) {
       pattern += '(?:/([^/]+))?';

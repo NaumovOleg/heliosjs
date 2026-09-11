@@ -92,4 +92,6 @@ Core also owns cross-cutting singletons that adapters configure: `setRolesExtrac
 
 ## Releasing
 
-Releases use Changesets. `http`, `aws`, and `middlewares` are version-linked, while `core` and `grpc` are versioned independently. Run `yarn changeset` to record a change. A push to `master` runs `.github/workflows/publish.yml`, which does `yarn build` and then `changeset publish`.
+Releases use Changesets. `http`, `aws`, and `middlewares` are version-linked, while `core` and `grpc` are versioned independently. Run `yarn changeset` to record a change. A push to `master` runs `.github/workflows/publish.yml`, which does `yarn build`, `yarn test:coverage`, and then `changeset publish`.
+
+For what counts as a breaking change, support windows, and which surfaces (if any) are exempt from semver — not release mechanics, the actual guarantees — see `STABILITY.md`.

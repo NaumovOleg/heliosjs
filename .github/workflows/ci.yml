@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Node 20/22/24 cover the LTS lines within CLAUDE.md's stated "Node 20
+        # or newer" floor, plus the current version already used by the other
+        # workflows in this repo.
+        node-version: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build (typecheck)
+        run: yarn build
+
+      - name: Test + coverage thresholds
+        run: yarn test:coverage
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Non-blocking: master currently carries ~186 by-design `any`/
+      # `Function`-type errors on decorator signatures (tracked, not
+      # accidental — see the repo's own project memory on this). Flip to
+      # blocking once that's cleaned up; until then this job still runs and
+      # reports on every PR, it just doesn't fail the check.
+      - name: Lint (informational — see comment above)
+        run: yarn lint
+        continue-on-error: true
+
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Non-blocking: shared CI runners are noisier than a quiet dev
+      # machine, so the RSS-growth and reset-rate heuristics here are more
+      # prone to false positives under contention than on real hardware —
+      # this is a smoke signal to watch, not a gate. SOAK_STRICT (unset here)
+      # already makes soak.ts itself only warn, not fail, on a bad reading;
+      # continue-on-error is the second layer in case the process itself
+      # errors out (e.g. a hung shutdown, which exits 1 regardless of STRICT).
+      - name: Soak smoke test (informational)
+        run: yarn benchmark:soak
+        env:
+          SOAK_DURATION: '20'
+        continue-on-error: true

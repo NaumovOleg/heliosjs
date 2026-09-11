@@ -54,7 +54,16 @@ const sidebars: SidebarsConfig = {
       label: 'GRPC',
       items: ['grpc/module', 'grpc/usage', 'grpc/api', 'grpc/examples'],
     },
-    'benchmarks',
+    {
+      type: 'category',
+      label: 'Benchmarks',
+      items: [
+        'benchmarks',
+        'benchmarks-middleware',
+        'benchmarks-validation',
+        'benchmarks-serialization',
+      ],
+    },
   ],
 };
 

@@ -39,6 +39,9 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Test + coverage thresholds
+        run: yarn test:coverage
+
       - name: Clean up .npmrc
         run: find . -name ".npmrc" -type f -delete
 

@@ -128,6 +128,16 @@ export interface Request<
   isBase64Encoded: boolean;
   /** High-resolution start time, for measuring handler duration. */
   startTime: number;
+  /**
+   * Aborts when the underlying connection is gone before a response was
+   * sent (client navigated away, timed out, or dropped the connection) —
+   * `undefined` off `node:http` (Lambda has no live connection to abort on).
+   * Pass straight through to anything that accepts one (`fetch`, most DB
+   * drivers) to stop wasted work once nobody is listening for the result;
+   * lazily wired up on first access, so requests that never read this pay
+   * nothing for it.
+   */
+  readonly signal: AbortSignal | undefined;
 
   /**
    * Returns one header's value (case-insensitive), or `undefined`.

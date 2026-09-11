@@ -22,8 +22,6 @@ const COLORS: Record<(typeof ORDER)[number], { light: string; dark: string }> = 
   NestJS: { light: '#eda100', dark: '#c98500' },
 };
 
-const MAX_TICK = 120_000;
-const TICK_STEP = 20_000;
 const PLOT_X0 = 96; // after the left framework-name label
 const PLOT_W = 380;
 const ROW_H = 20; // bar thickness (<=24px spec)
@@ -32,12 +30,31 @@ const TOP_PAD = 8;
 const AXIS_H = 26;
 const WIDTH = PLOT_X0 + PLOT_W + 64; // + room for the value label past the longest bar
 
-function scaleX(v: number): number {
-  return Math.round(((v / MAX_TICK) * PLOT_W + Number.EPSILON) * 10) / 10;
+function scaleX(v: number, maxTick: number): number {
+  return Math.round(((v / maxTick) * PLOT_W + Number.EPSILON) * 10) / 10;
 }
 
 function fmt(n: number): string {
   return n.toLocaleString('en-US');
+}
+
+/**
+ * "Nice" axis scale from a data max — an axis top and tick step that are
+ * round numbers (1/2/5 × a power of ten), not an arbitrary fraction of the
+ * peak value. Charts here span ~2.6k (serialization, large payload) to
+ * ~115k (routing) req/s, too wide a range for one fixed scale to fit all of
+ * them well, so this is computed per chart from its own data instead of
+ * hardcoded. Verified against the two existing routing-suite charts' old
+ * hardcoded values (120000/20000): this reproduces them exactly, so
+ * switching to auto-scale changed nothing about how those already look.
+ */
+function niceScale(maxValue: number, targetTicks = 6): { max: number; step: number } {
+  if (maxValue <= 0) return { max: 1, step: 1 };
+  const rawStep = maxValue / targetTicks;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const residual = rawStep / magnitude;
+  const niceStep = residual > 5 ? 10 * magnitude : residual > 2 ? 5 * magnitude : residual > 1 ? 2 * magnitude : magnitude;
+  return { max: Math.ceil(maxValue / niceStep) * niceStep, step: niceStep };
 }
 
 interface BenchChartProps {
@@ -57,8 +74,9 @@ export default function BenchChart({ title, data }: BenchChartProps) {
   const plotH = rows.length * ROW_STEP - (ROW_STEP - ROW_H);
   const height = TOP_PAD + plotH + AXIS_H;
 
+  const { max: maxTick, step: tickStep } = niceScale(rows[0]?.value ?? 0);
   const ticks: number[] = [];
-  for (let t = 0; t <= MAX_TICK; t += TICK_STEP) ticks.push(t);
+  for (let t = 0; t <= maxTick; t += tickStep) ticks.push(t);
 
   return (
     <div style={{ background: surface, borderRadius: 8, padding: '16px 12px', margin: '1rem 0' }}>
@@ -98,14 +116,14 @@ export default function BenchChart({ title, data }: BenchChartProps) {
           .join(', ')}.`}
       >
         {ticks.map((t) => {
-          const x = PLOT_X0 + scaleX(t);
+          const x = PLOT_X0 + scaleX(t, maxTick);
           return (
             <line key={t} x1={x} y1={TOP_PAD} x2={x} y2={TOP_PAD + plotH} stroke={grid} strokeWidth={1} />
           );
         })}
         {rows.map((r, i) => {
           const y = TOP_PAD + i * ROW_STEP;
-          const w = scaleX(r.value);
+          const w = scaleX(r.value, maxTick);
           const cy = y + ROW_H / 2;
           return (
             <g key={r.name}>
@@ -139,10 +157,10 @@ export default function BenchChart({ title, data }: BenchChartProps) {
           );
         })}
         {ticks.map((t) => {
-          const x = PLOT_X0 + scaleX(t);
+          const x = PLOT_X0 + scaleX(t, maxTick);
           return (
             <text key={t} x={x} y={TOP_PAD + plotH + 18} textAnchor="middle" fontSize={11} fill={text2}>
-              {t === 0 ? '0' : `${t / 1000}k`}
+              {t === 0 ? '0' : t < 1000 ? fmt(t) : `${t / 1000}k`}
             </text>
           );
         })}

@@ -1,10 +1,16 @@
-import type { ChildProcess } from 'node:child_process';
-import { execSync, fork } from 'node:child_process';
-import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import autocannon from 'autocannon';
+import {
+  appendCsvRows,
+  csvField,
+  getCommit,
+  median,
+  runAutocannon,
+  startServer,
+  stopServer,
+  type BenchResult,
+} from './lib/harness.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This file runs compiled from benchmarks/dist/run.js (dist/ is gitignored),
@@ -25,7 +31,6 @@ const CONNECTIONS = Number(process.env.BENCH_CONNECTIONS ?? 100);
 const RUNS = Number(process.env.BENCH_RUNS ?? 3);
 const WARMUP_DURATION = 2;
 const BASE_PORT = 4100;
-const READY_TIMEOUT = 10_000;
 
 const FRAMEWORKS = [
   { name: 'Helios', file: 'helios.js' },
@@ -39,12 +44,6 @@ const SCENARIOS = [
   { name: 'GET /users/:id (param route)', path: '/users/42' },
 ] as const;
 
-interface BenchResult {
-  requests: { average: number };
-  latency: { average: number; p99: number };
-  throughput: { average: number };
-}
-
 interface FrameworkSummary {
   name: string;
   reqPerSec: number;
@@ -53,68 +52,19 @@ interface FrameworkSummary {
   throughputMBs: number;
 }
 
-function startServer(file: string, port: number): Promise<ChildProcess> {
-  return new Promise((resolve, reject) => {
-    const child = fork(path.join(__dirname, 'servers', file), {
-      env: { ...process.env, PORT: String(port) },
-      silent: true,
-    });
-    child.stderr?.pipe(process.stderr);
-    const timer = setTimeout(() => {
-      child.kill();
-      reject(new Error(`${file} did not signal ready within ${READY_TIMEOUT}ms`));
-    }, READY_TIMEOUT);
-    child.once('message', (msg) => {
-      if (msg === 'ready') {
-        clearTimeout(timer);
-        resolve(child);
-      }
-    });
-    child.once('error', reject);
-    child.once('exit', (code) => {
-      if (code !== 0 && code !== null) {
-        clearTimeout(timer);
-        reject(new Error(`${file} exited with code ${code}`));
-      }
-    });
-  });
-}
-
-function stopServer(child: ChildProcess): Promise<void> {
-  return new Promise((resolve) => {
-    child.once('exit', () => resolve());
-    child.kill();
-  });
-}
-
-function runAutocannon(url: string, duration: number): Promise<BenchResult> {
-  return new Promise((resolve, reject) => {
-    autocannon(
-      { url, connections: CONNECTIONS, duration },
-      (err: Error | null, result: BenchResult) => (err ? reject(err) : resolve(result))
-    );
-  });
-}
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
 async function benchmarkFramework(
   file: string,
   port: number
 ): Promise<Record<string, FrameworkSummary>> {
-  const child = await startServer(file, port);
+  const child = await startServer(path.join(__dirname, 'servers', file), port);
   try {
     const byScenario: Record<string, FrameworkSummary> = {};
     for (const scenario of SCENARIOS) {
       const url = `http://127.0.0.1:${port}${scenario.path}`;
-      await runAutocannon(url, WARMUP_DURATION); // discarded
+      await runAutocannon(url, WARMUP_DURATION, CONNECTIONS); // discarded
       const samples: BenchResult[] = [];
       for (let i = 0; i < RUNS; i++) {
-        samples.push(await runAutocannon(url, DURATION));
+        samples.push(await runAutocannon(url, DURATION, CONNECTIONS));
       }
       byScenario[scenario.name] = {
         name: scenario.name,
@@ -152,27 +102,9 @@ function printTable(scenarioName: string, rows: FrameworkSummary[]) {
   console.log('─'.repeat(72));
 }
 
-function getCommit(): string {
-  try {
-    return execSync('git rev-parse --short HEAD', {
-      cwd: __dirname,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-      .toString()
-      .trim();
-  } catch {
-    return 'unknown';
-  }
-}
-
-function csvField(value: unknown): string {
-  return `"${String(value).replace(/"/g, '""')}"`;
-}
-
 function appendResults(perScenario: Record<string, FrameworkSummary[]>) {
-  const isNew = !fs.existsSync(RESULTS_FILE);
   const date = new Date().toISOString();
-  const commit = getCommit();
+  const commit = getCommit(__dirname);
   const node = process.version;
   const platform = `${os.type()} ${os.release()}`;
 
@@ -195,13 +127,11 @@ function appendResults(perScenario: Record<string, FrameworkSummary[]>) {
     )
   );
 
-  if (isNew) {
-    fs.writeFileSync(
-      RESULTS_FILE,
-      'date,commit,node,os,scenario,framework,reqPerSec,latencyAvgMs,latencyP99Ms,throughputMBs\n'
-    );
-  }
-  fs.appendFileSync(RESULTS_FILE, rows.join('\n') + '\n');
+  appendCsvRows(
+    RESULTS_FILE,
+    'date,commit,node,os,scenario,framework,reqPerSec,latencyAvgMs,latencyP99Ms,throughputMBs',
+    rows
+  );
   console.log(`\nAppended ${rows.length} rows to ${path.relative(process.cwd(), RESULTS_FILE)}`);
 }
 

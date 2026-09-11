@@ -1,0 +1,13 @@
+date,commit,node,os,framework,method,scenario,reqPerSec,latencyAvgMs,throughputMBs
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Helios","JSON.stringify","small (1 object, 5 fields)","87328","0.99","21.23"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Helios","JSON.stringify","medium (100-item array)","33116","2.39","262.91"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Helios","JSON.stringify","large (2,000-item array)","2616","37.63","428.78"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Express","JSON.stringify (res.json)","small (1 object, 5 fields)","68416","1.02","18.92"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Express","JSON.stringify (res.json)","medium (100-item array)","27538","3.10","219.58"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Express","JSON.stringify (res.json)","large (2,000-item array)","2376","41.48","389.56"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Fastify","fast-json-stringify (schema)","small (1 object, 5 fields)","115760","0.03","27.48"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Fastify","fast-json-stringify (schema)","medium (100-item array)","30084","3.03","238.63"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","Fastify","fast-json-stringify (schema)","large (2,000-item array)","2107","46.85","345.38"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","NestJS","JSON.stringify","small (1 object, 5 fields)","64144","1.02","19.15"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","NestJS","JSON.stringify","medium (100-item array)","26634","3.15","212.94"
+"2026-09-11T12:56:36.661Z","408d1e2","v24.14.0","Darwin 25.6.0","NestJS","JSON.stringify","large (2,000-item array)","2346","42.03","384.59"
