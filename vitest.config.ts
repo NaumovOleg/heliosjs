@@ -24,11 +24,6 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     include: ['__tests__/**/*.test.ts'],
-    exclude: [
-      '**/grpc/unit/server-extended.test.ts',
-      '**/http/unit/factories.test.ts',
-      '**/core/unit/socket/server.test.ts',
-    ],
     coverage: {
       provider: 'v8',
       include: [

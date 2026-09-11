@@ -56,11 +56,11 @@ describe('HTTP RequestFactory', () => {
     expect(result.cookies?.session).toBe('abc123');
   });
 
-  it('extracts sourceIp from x-forwarded-for', async () => {
+  it('sourceIp ignores x-forwarded-for (spoofable; getClientIp() applies it when trustProxy is on)', async () => {
     const result = await RequestFactory.create(makeReq({
       headers: { 'x-forwarded-for': '10.0.0.1, 10.0.0.2', host: 'localhost:3000' },
     }));
-    expect(result.sourceIp).toBe('10.0.0.1');
+    expect(result.sourceIp).toBe('127.0.0.1');
   });
 
   it('falls back to remoteAddress', async () => {
@@ -70,12 +70,21 @@ describe('HTTP RequestFactory', () => {
     expect(result.sourceIp).toBe('127.0.0.1');
   });
 
-  it('uses protocol from x-forwarded-proto', async () => {
+  it('uses protocol from x-forwarded-proto when trustProxy is enabled', async () => {
+    const result = await RequestFactory.create(
+      makeReq({ url: '/test', headers: { host: 'example.com', 'x-forwarded-proto': 'https' } }),
+      undefined,
+      true
+    );
+    expect(result.requestUrl?.protocol).toBe('https:');
+  });
+
+  it('ignores x-forwarded-proto when trustProxy is off (default)', async () => {
     const result = await RequestFactory.create(makeReq({
       url: '/test',
       headers: { host: 'example.com', 'x-forwarded-proto': 'https' },
     }));
-    expect(result.requestUrl?.protocol).toBe('https:');
+    expect(result.requestUrl?.protocol).toBe('http:');
   });
 
   it('defaults to http protocol', async () => {
@@ -102,9 +111,14 @@ describe('HTTP RequestFactory', () => {
     expect(result.userAgent).toBe('unknown');
   });
 
-  it('sets rawBody', async () => {
-    const result = await RequestFactory.create(makeReq());
+  it('sets rawBody for methods that carry a body', async () => {
+    const result = await RequestFactory.create(makeReq({ method: 'POST' }));
     expect(result.rawBody).toBeDefined();
+  });
+
+  it('leaves rawBody undefined for GET (no body read)', async () => {
+    const result = await RequestFactory.create(makeReq());
+    expect(result.rawBody).toBeUndefined();
   });
 });
 

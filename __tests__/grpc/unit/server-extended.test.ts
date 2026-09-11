@@ -7,16 +7,22 @@ vi.mock('@grpc/proto-loader', () => ({
   loadSync: vi.fn(() => ({ definition: true })),
 }));
 
-vi.mock('@grpc/grpc-js', () => {
+vi.mock('@grpc/grpc-js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@grpc/grpc-js')>();
   const mockBindAsync = vi.fn((_addr: any, _creds: any, cb: any) => cb(null, 50051));
   const mockTryShutdown = vi.fn((cb: any) => cb(null));
   const mockAddService = vi.fn();
-  const MockServer = vi.fn().mockImplementation(() => ({
-    bindAsync: mockBindAsync,
-    tryShutdown: mockTryShutdown,
-    addService: mockAddService,
-  }));
+  // Must be a real `function`, not an arrow: arrow functions have no [[Construct]],
+  // so `new Server()` below would throw "is not a constructor" on every call.
+  const MockServer = vi.fn().mockImplementation(function () {
+    return {
+      bindAsync: mockBindAsync,
+      tryShutdown: mockTryShutdown,
+      addService: mockAddService,
+    };
+  });
   return {
+    ...actual,
     Server: MockServer,
     ServerCredentials: { createInsecure: vi.fn(() => 'insecure') },
     loadPackageDefinition: vi.fn(() => ({

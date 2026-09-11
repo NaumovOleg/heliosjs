@@ -75,9 +75,14 @@ describe('WebSocketServer', () => {
 
   it('handles upgrade event for matching path', () => {
     const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    // The real handshake (reading headers, writing the 101 response) is `ws`'s own
+    // job and out of scope here; this test only covers WebSocketServer's routing.
+    const handleUpgrade = vi.spyOn(wss.wss, 'handleUpgrade').mockImplementation(() => {});
     const fakeSocket = { __wsHandled: false, destroy: vi.fn() };
-    mockServer.emit('upgrade', { url: '/ws' }, fakeSocket, Buffer.alloc(0));
+    const fakeReq = { url: '/ws' };
+    mockServer.emit('upgrade', fakeReq, fakeSocket, Buffer.alloc(0));
     expect(fakeSocket.__wsHandled).toBe(true);
+    expect(handleUpgrade).toHaveBeenCalledWith(fakeReq, fakeSocket, expect.any(Buffer), expect.any(Function));
   });
 
   it('destroys socket for non-matching path', () => {
