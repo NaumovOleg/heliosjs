@@ -17,6 +17,23 @@ describe('Socket facade', () => {
     consoleSpy.mockRestore();
   });
 
+  it('registerWebSocketControllers delegates to wss when initialized', () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const registerControllers = vi.fn();
+    const socket = new (class extends Socket {
+      constructor() {
+        super();
+        (this as any).wss = { registerControllers };
+      }
+    })();
+    const controllers = [{}, {}];
+    const result = socket.registerWebSocketControllers(controllers);
+    expect(registerControllers).toHaveBeenCalledWith(controllers);
+    expect(logSpy).toHaveBeenCalled();
+    expect(result).toBe(socket);
+    logSpy.mockRestore();
+  });
+
   it('sendToClient delegates to WebSocketService', () => {
     const socket = new Socket();
     const spy = vi.spyOn(WebSocketService.getInstance(), 'sendToClient').mockReturnValue(true);

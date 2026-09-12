@@ -1,14 +1,16 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GrpcServer } from '../../../src/grpc/src/server';
 import { GRPC_SERVICE_METADATA, GRPC_METHOD_METADATA, GRPC_CLIENT_METADATA } from '../../../src/grpc/src/constants';
 import { Observable } from 'rxjs';
+import { loadSync } from '@grpc/proto-loader';
+import type * as GrpcJs from '@grpc/grpc-js';
 
 vi.mock('@grpc/proto-loader', () => ({
   loadSync: vi.fn(() => ({ definition: true })),
 }));
 
 vi.mock('@grpc/grpc-js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@grpc/grpc-js')>();
+  const actual = await importOriginal<typeof GrpcJs>();
   const mockBindAsync = vi.fn((_addr: any, _creds: any, cb: any) => cb(null, 50051));
   const mockTryShutdown = vi.fn((cb: any) => cb(null));
   const mockAddService = vi.fn();
@@ -33,10 +35,6 @@ vi.mock('@grpc/grpc-js', async (importOriginal) => {
   };
 });
 
-function makeMeta(serviceName: string, methods: { name: string; handler: string; isStream?: boolean }[]) {
-  return { serviceName, options: { protoPath: './test.proto', package: 'test' } };
-}
-
 function makeMethodMeta(methodName: string, handler: string, isStream = false) {
   return { methodName, handler, isStream };
 }
@@ -56,6 +54,11 @@ describe('GrpcServer', () => {
     const clients = new Map();
     const server = new GrpcServer({ url: '0.0.0.0:50051' }, clients);
     expect(server).toBeDefined();
+  });
+
+  it('creates with logging disabled', () => {
+    const server = new GrpcServer({ url: '0.0.0.0:50051', log: false });
+    expect((server as any).logger.getLevel()).toBe('silent');
   });
 
   it('registerService throws for undecorated class', () => {
@@ -112,6 +115,65 @@ describe('GrpcServer', () => {
     server.registerService(ServiceWithDeps);
   });
 
+  it('registerService leaves gaps undefined for indices with no client metadata', () => {
+    const clients = new Map();
+    clients.set('myClient', { name: 'mock' } as any);
+    const server = new GrpcServer({ url: '0.0.0.0:50051' }, clients);
+    const captured: any[] = [];
+    class ServiceWithGap {
+      constructor(...args: any[]) {
+        captured.push(...args);
+      }
+    }
+    Reflect.defineMetadata(GRPC_SERVICE_METADATA, {
+      serviceName: 'Package',
+      options: { protoPath: './test.proto', package: 'test' },
+    }, ServiceWithGap);
+    Reflect.defineMetadata(GRPC_METHOD_METADATA, [], ServiceWithGap);
+    // Client metadata only at index 1 — index 0 has no matching param.
+    Reflect.defineMetadata(GRPC_CLIENT_METADATA, [
+      { index: 1, name: 'myClient' },
+    ], ServiceWithGap);
+
+    server.registerService(ServiceWithGap);
+    expect(captured[0]).toBeUndefined();
+    expect(captured[1]).toEqual({ name: 'mock' });
+  });
+
+  it('reuses a cached proto group for a repeated protoPath/package pair', () => {
+    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    class ServiceA {
+      myMethod = vi.fn();
+    }
+    class ServiceB {
+      myMethod = vi.fn();
+    }
+    for (const Ctrl of [ServiceA, ServiceB]) {
+      Reflect.defineMetadata(GRPC_SERVICE_METADATA, {
+        serviceName: 'Package',
+        options: { protoPath: './same.proto', package: 'test' },
+      }, Ctrl);
+      Reflect.defineMetadata(GRPC_METHOD_METADATA, [makeMethodMeta('FindById', 'myMethod')], Ctrl);
+    }
+    vi.mocked(loadSync).mockClear();
+    server.registerService(ServiceA);
+    server.registerService(ServiceB);
+    // Second call with the same protoPath+package hits the proto-group cache
+    // instead of calling loadSync again.
+    expect(loadSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('registerService throws when a package segment is missing', () => {
+    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    class FakeService {}
+    Reflect.defineMetadata(GRPC_SERVICE_METADATA, {
+      serviceName: 'Package',
+      // 'test' exists in the mocked proto definition, 'deeper' does not.
+      options: { protoPath: './test.proto', package: 'test.deeper' },
+    }, FakeService);
+    expect(() => server.registerService(FakeService)).toThrow('not found');
+  });
+
   it('registerService throws when injected client not found', () => {
     const server = new GrpcServer({ url: '0.0.0.0:50051' });
     class ServiceWithMissingDep {
@@ -134,9 +196,25 @@ describe('GrpcServer', () => {
     await server.start();
   });
 
+  it('start rejects when bindAsync errors', async () => {
+    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    vi.spyOn((server as any).server, 'bindAsync').mockImplementationOnce(
+      (_addr: any, _creds: any, cb: any) => cb(new Error('bind failed'))
+    );
+    await expect(server.start()).rejects.toThrow('bind failed');
+  });
+
   it('stop shuts down gracefully', async () => {
     const server = new GrpcServer({ url: '0.0.0.0:50051' });
     await server.stop();
+  });
+
+  it('stop rejects when tryShutdown errors', async () => {
+    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    vi.spyOn((server as any).server, 'tryShutdown').mockImplementationOnce((cb: any) =>
+      cb(new Error('shutdown failed'))
+    );
+    await expect(server.stop()).rejects.toThrow('shutdown failed');
   });
 
   it('executeHandler calls callback with result', async () => {

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { WebSocketServer } from '../../../../src/core/src/utils/socket/server';
-import http from 'node:http';
 import { EventEmitter } from 'node:events';
 
 function createMockServer(): any {
@@ -47,9 +46,16 @@ describe('WebSocketServer', () => {
     // No clients, so no error
   });
 
-  it('broadcast with excludeClientId skips that client', () => {
+  it('broadcast with excludeClientId skips that client but reaches others', () => {
     const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    const excluded = createMockWsSocket();
+    const other = createMockWsSocket();
+    (wss as any).clients.set('excluded-id', { id: 'excluded-id', socket: excluded, topics: new Set(), data: {}, connectedAt: new Date() });
+    (wss as any).clients.set('other-id', { id: 'other-id', socket: other, topics: new Set(), data: {}, connectedAt: new Date() });
+
     wss.broadcast({ event: 'test' }, 'excluded-id');
+    expect(excluded.send).not.toHaveBeenCalled();
+    expect(other.send).toHaveBeenCalledWith(JSON.stringify({ event: 'test' }));
   });
 
   it('publishToTopic does nothing when topic has no subscribers', () => {
@@ -85,15 +91,33 @@ describe('WebSocketServer', () => {
     expect(handleUpgrade).toHaveBeenCalledWith(fakeReq, fakeSocket, expect.any(Buffer), expect.any(Function));
   });
 
-  it('destroys socket for non-matching path', () => {
+  it('wires a real ws "connection" event through to handleConnection', () => {
     const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    const socket = createMockWsSocket();
+    wss.wss.emit('connection', socket);
+    expect(wss.getStats().clients).toBe(1);
+  });
+
+  it('handleUpgrade callback re-emits "connection" on the internal wss', () => {
+    const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    const fakeWs = createMockWsSocket();
+    vi.spyOn(wss.wss, 'handleUpgrade').mockImplementation((_req: any, _socket: any, _head: any, cb: any) => {
+      cb(fakeWs);
+    });
+    const fakeSocket = { __wsHandled: false, destroy: vi.fn() };
+    mockServer.emit('upgrade', { url: '/ws' }, fakeSocket, Buffer.alloc(0));
+    expect(wss.getStats().clients).toBe(1);
+  });
+
+  it('destroys socket for non-matching path', () => {
+    const _wss = new WebSocketServer(mockServer as any, { path: '/ws' });
     const fakeSocket = { __wsHandled: false, destroy: vi.fn() };
     mockServer.emit('upgrade', { url: '/other' }, fakeSocket, Buffer.alloc(0));
     expect(fakeSocket.destroy).toHaveBeenCalled();
   });
 
   it('skips already-handled upgrade', () => {
-    const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    const _wss = new WebSocketServer(mockServer as any, { path: '/ws' });
     const fakeSocket = { __wsHandled: true, destroy: vi.fn() };
     mockServer.emit('upgrade', { url: '/ws' }, fakeSocket, Buffer.alloc(0));
     expect(fakeSocket.destroy).not.toHaveBeenCalled();
@@ -261,5 +285,86 @@ describe('WebSocketServer', () => {
 
     await (wss as any).handleConnection(socket);
     expect(wss.getStats().clients).toBe(1);
+  });
+
+  it('handleConnection wires the socket message/close/error events', async () => {
+    const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    const socket = createMockWsSocket();
+
+    await (wss as any).handleConnection(socket);
+    expect(wss.getStats().clients).toBe(1);
+
+    socket.emit('message', JSON.stringify({ type: 'message', data: 'hi' }));
+    // handleMessage is async; give its promise a tick before asserting close/error.
+    await Promise.resolve();
+
+    socket.emit('close');
+    expect(wss.getStats().clients).toBe(0);
+
+    // handleError only logs — just confirm it doesn't throw.
+    socket.emit('error', new Error('boom'));
+  });
+
+  describe('triggerHandlers', () => {
+    function makeController(overrides: any = {}) {
+      return { name: 'ctrl', websocket: { handlers: {}, topics: [], ...overrides } } as any;
+    }
+
+    it('invokes matching event handlers with no topic filter', async () => {
+      const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+      const fn = vi.fn();
+      wss.registerControllers([
+        makeController({ handlers: { connection: [{ type: 'connection', method: 'onConn', fn }] } }),
+      ]);
+      const socket = createMockWsSocket();
+      await (wss as any).handleConnection(socket);
+      expect(fn).toHaveBeenCalledWith(expect.objectContaining({ type: 'connection' }));
+    });
+
+    it('skips handlers registered for a different topic', async () => {
+      const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+      const fn = vi.fn();
+      wss.registerControllers([
+        makeController({ handlers: { message: [{ type: 'message', topic: 'other', method: 'onMsg', fn }] } }),
+      ]);
+      const client = { id: 'c1', socket: createMockWsSocket(), topics: new Set(['chat']), data: {}, connectedAt: new Date() };
+      (wss as any).clients.set('c1', client);
+      (wss as any).topics.set('chat', new Set(['c1']));
+      await (wss as any).handleMessage(client, JSON.stringify({ type: 'topic_message', topic: 'chat', data: 'hi' }));
+      expect(fn).not.toHaveBeenCalled();
+    });
+
+    it('logs and continues when a handler throws', async () => {
+      const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+      const failing = vi.fn().mockRejectedValue(new Error('handler failed'));
+      wss.registerControllers([
+        makeController({ handlers: { connection: [{ type: 'connection', method: 'onConn', fn: failing }] } }),
+      ]);
+      const socket = createMockWsSocket();
+      await expect((wss as any).handleConnection(socket)).resolves.toBeUndefined();
+      expect(failing).toHaveBeenCalled();
+    });
+
+    it('invokes matching topic subscriptions and logs when one throws', async () => {
+      const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+      const sub = vi.fn();
+      const failingSub = vi.fn().mockRejectedValue(new Error('sub failed'));
+      wss.registerControllers([
+        makeController({
+          topics: [
+            { topic: 'chat', method: 'onChat', fn: sub },
+            { topic: 'chat', method: 'onChatFail', fn: failingSub },
+            { topic: 'other', method: 'onOther', fn: vi.fn() },
+          ],
+        }),
+      ]);
+      const client = { id: 'c1', socket: createMockWsSocket(), topics: new Set(['chat']), data: {}, connectedAt: new Date() };
+      (wss as any).clients.set('c1', client);
+      (wss as any).topics.set('chat', new Set(['c1']));
+
+      await (wss as any).handleMessage(client, JSON.stringify({ type: 'topic_message', topic: 'chat', data: 'hi' }));
+      expect(sub).toHaveBeenCalledOnce();
+      expect(failingSub).toHaveBeenCalledOnce();
+    });
   });
 });
