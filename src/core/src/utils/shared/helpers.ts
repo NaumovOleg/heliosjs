@@ -28,6 +28,20 @@ let requestIdCounter = 0;
  */
 export const generateFastRequestId = () => `${REQUEST_ID_PROCESS_TAG}-${requestIdCounter++}`;
 
+const SENSITIVE_FIELD_PATTERN =
+  /pass(word|wd)?|secret|token|api[-_]?key|authorization|credit[-_]?card|\bssn\b|\bcvv\b|\bpin\b/i;
+
+/**
+ * @internal Replaces `value` with a placeholder when `field` looks like it
+ * holds a secret (password, token, API key, …). Used before a validation
+ * error's offending value is logged or echoed back in an HTTP response —
+ * without this, a failed `@MinLength(8) password` check would log and return
+ * the submitted password in cleartext.
+ */
+export function redactIfSensitive(field: string | undefined, value: unknown): unknown {
+  return field && SENSITIVE_FIELD_PATTERN.test(field) ? '[REDACTED]' : value;
+}
+
 /** @internal Reads the `@Controller` config stored on a class prototype by `defineControllerMeta`. */
 export function reflectControllerMeta(target: object): ControllerMeta {
   const data = Reflect.getMetadata(DECORATOR.controller, target) ?? {};

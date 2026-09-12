@@ -121,7 +121,11 @@ export const parseBody = (request: {
 
 const parseCookie = (cookies: string) => {
   return (cookies as string).split(';').reduce((acc, cookie) => {
-    const [name, value] = cookie.trim().split('=');
+    const trimmed = cookie.trim();
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) return acc;
+    const name = trimmed.slice(0, eq);
+    const value = trimmed.slice(eq + 1);
     if (name && value) {
       acc[name] = decodeURIComponent(value);
     }

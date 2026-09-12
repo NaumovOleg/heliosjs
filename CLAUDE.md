@@ -18,7 +18,7 @@ yarn benchmark            # autocannon: Helios vs Express vs Fastify (benchmarks
 yarn docs:start           # Docusaurus site in helios-docs/
 ```
 
-Use `yarn build` as the typecheck. Running `tsc` against the root `tsconfig.json` shows pre-existing errors, so that result isn't useful.
+Use `yarn build` as the typecheck (it's what enforces per-package `tsconfig` boundaries and build order). `npx tsc --noEmit -p tsconfig.json` against the root config also currently passes cleanly and is a fast whole-repo sanity check — re-verify before trusting it if this claim looks stale again.
 
 ## Layout
 

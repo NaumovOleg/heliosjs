@@ -17,6 +17,12 @@ class NameOnlyDto {
   name!: string;
 }
 
+class PasswordDto {
+  @IsString()
+  @MinLength(8)
+  password!: string;
+}
+
 describe('validate', () => {
   it('returns data as-is if dtoClass is null', async () => {
     const data = { name: 'John' };
@@ -112,6 +118,31 @@ describe('compileSchema', () => {
       expect(Array.isArray(error.details)).toBe(true);
       expect(error.details.length).toBeGreaterThan(0);
       expect(error.details[0]).toHaveProperty('constraint');
+    }
+  });
+
+  it('regression: redacts a sensitive field value in ajv error details instead of leaking it', async () => {
+    const SecretSchema = compileSchema<{ password: string }>({
+      type: 'object',
+      required: ['password'],
+      properties: { password: { type: 'string', minLength: 8 } },
+    });
+    try {
+      await heliosValidate(SecretSchema, { password: 'hunter2' });
+      expect.fail('should have thrown');
+    } catch (error: any) {
+      expect(error.details[0].value).toBe('[REDACTED]');
+    }
+  });
+});
+
+describe('regression: redacts sensitive field values in class-validator error details', () => {
+  it('does not leak the submitted password in cleartext', async () => {
+    try {
+      await heliosValidate(PasswordDto, { password: 'short' });
+      expect.fail('should have thrown');
+    } catch (error: any) {
+      expect(error.details[0].value).toBe('[REDACTED]');
     }
   });
 });

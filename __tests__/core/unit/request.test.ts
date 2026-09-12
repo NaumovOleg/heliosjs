@@ -184,12 +184,22 @@ describe('Req.isSecure', () => {
 });
 
 describe('Req.getClientIp', () => {
-  it('returns first IP from x-forwarded-for when trustProxy', () => {
+  it('returns the last IP from x-forwarded-for when trustProxy (the hop closest to the trusted proxy)', () => {
     const req = makeReq({
       headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
       trustProxy: true,
     });
-    expect(req.getClientIp()).toBe('1.2.3.4');
+    expect(req.getClientIp()).toBe('5.6.7.8');
+  });
+
+  it('regression: a client-forged leading x-forwarded-for entry cannot spoof the resolved IP', () => {
+    // The single trusted proxy appends the real client IP as the last hop;
+    // anything a client prepends itself must be ignored.
+    const req = makeReq({
+      headers: { 'x-forwarded-for': '9.9.9.9, 203.0.113.7' },
+      trustProxy: true,
+    });
+    expect(req.getClientIp()).toBe('203.0.113.7');
   });
 
   it('ignores x-forwarded-for when trustProxy is off (default)', () => {

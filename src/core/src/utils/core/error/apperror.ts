@@ -223,7 +223,7 @@ export class ApplicationError {
       timestamp: this.timestamp ?? new Date(),
       requestId: this.requestId,
       path: this.path,
-      stack: this.stack,
+      stack: this.config.includeStack ? this.stack : undefined,
     };
   }
 }

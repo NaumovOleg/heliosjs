@@ -125,7 +125,22 @@ describe('ApplicationError', () => {
       meta,
       config: { logErrors: false, includeStack: false },
     });
-    // stack is derived from cause.stack, includeStack only affects logging
+    // stack is derived from cause.stack unconditionally (used for logging),
+    // but the client-facing toJSON() payload must still honor includeStack.
     expect(withoutStack.stack).toBeDefined();
+  });
+
+  it('omits stack from the client-facing toJSON() payload when includeStack is false', () => {
+    const withoutStack = new ApplicationError(new Error('x'), {
+      meta,
+      config: { logErrors: false, includeStack: false },
+    });
+    expect(withoutStack.toJSON().stack).toBeUndefined();
+
+    const withStack = new ApplicationError(new Error('x'), {
+      meta,
+      config: { logErrors: false, includeStack: true },
+    });
+    expect(withStack.toJSON().stack).toBeDefined();
   });
 });

@@ -228,7 +228,7 @@ export class GrpcServer {
 
       if (result instanceof Observable) {
         if (methodMeta.isStream) {
-          result.subscribe({
+          const subscription = result.subscribe({
             next: (value) => call.write(value),
             error: (err) => {
               const normalized = normalizeError(err);
@@ -236,6 +236,9 @@ export class GrpcServer {
             },
             complete: () => call.end(),
           });
+          // Without this, a client cancelling mid-stream leaves whatever the
+          // Observable wraps (an interval, a DB change-stream, …) running forever.
+          call.on('cancelled', () => subscription.unsubscribe());
         } else {
           const resolved = await firstValueFrom(result);
           callback(null, resolved);

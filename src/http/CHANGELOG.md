@@ -1,5 +1,38 @@
 # Change Log
 
+## 11.0.2
+
+### Patch Changes
+
+- 417fee1: Fix two bugs that together made `@Server({ graphql: {...} })` break the
+  entire application, not just GraphQL:
+
+  - The GraphQL route was registered as a global middleware that never called
+    `next()`, for any path. Since it ran last in the global-middleware chain,
+    every non-GraphQL request (every REST route) silently stalled once GraphQL
+    was configured — confirmed live: a working `GET /api/ping` route started
+    returning an empty body as soon as `graphql` was added to `@Server`.
+  - Separately, Helios always drains the request body itself before any
+    middleware runs. For an actual GraphQL POST (the standard transport),
+    `graphql-yoga` was then handed an already-consumed stream and could never
+    read the operation body, independent of the bug above.
+
+  The GraphQL middleware now calls `next()` on non-matching paths, and body
+  collection is skipped for requests addressed to the configured GraphQL path
+  so `graphql-yoga` can read them itself.
+
+- 417fee1: Fix `app.listen()` (and `@Server({ port: 0 })`/`{ host: '' }`) silently
+  falling back to port `3000`/`'localhost'` instead of honoring an explicit
+  `0` or `''`. `port || this.config.port || 3000` treats `0` as falsy, so the
+  standard Node idiom for "let the OS pick an ephemeral port" — commonly used
+  in tests to avoid port collisions — was never actually applied. Switched to
+  `??` so only a missing value falls through to the default.
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+  - @heliosjs/core@4.0.3
+
 ## 11.0.1
 
 ### Patch Changes

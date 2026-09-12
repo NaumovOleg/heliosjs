@@ -19,6 +19,7 @@ type RolesArg = string | string[];
  * every required role present; otherwise: at least one).
  */
 export function matchRoles(required: string[], userRoles: string[], mode: RoleMode): boolean {
+  if (required.length === 0) return false;
   return mode === 'all'
     ? required.every((role) => userRoles.includes(role))
     : required.some((role) => userRoles.includes(role));

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ValidationError } from 'class-validator';
 import type { SerializedError } from '../../../types/core/error';
+import { redactIfSensitive } from '../../shared/helpers';
 
 function formatValidationError(error: ValidationError): any {
   const result: any = {
     property: error.property,
-    value: error.value,
+    value: redactIfSensitive(error.property, error.value),
   };
 
   if (error.constraints) {

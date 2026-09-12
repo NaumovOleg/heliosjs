@@ -338,7 +338,7 @@ describe('request coverage', () => {
 
   it('Req getClientIp from x-forwarded-for (trusted proxy)', () => {
     const req = makeReq({ headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' }, trustProxy: true });
-    expect(req.getClientIp()).toBe('1.1.1.1');
+    expect(req.getClientIp()).toBe('2.2.2.2');
   });
 
   it('Req base64Encoded from transfer-encoding', () => {

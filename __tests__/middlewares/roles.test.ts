@@ -16,6 +16,10 @@ describe('matchRoles', () => {
   it('ALL fails when one required role is missing', () => {
     expect(matchRoles(['admin', 'editor'], ['admin'], 'all')).toBe(false);
   });
+  it('regression: ALL fails closed with an empty required-roles list instead of vacuously passing', () => {
+    expect(matchRoles([], ['anyone'], 'all')).toBe(false);
+    expect(matchRoles([], [], 'all')).toBe(false);
+  });
 });
 
 describe('normalizeArgs', () => {

@@ -1,5 +1,43 @@
 # Change Log
 
+## 4.0.3
+
+### Patch Changes
+
+- 417fee1: Fix `ApplicationError.toJSON()` including the full stack trace in every
+  error response regardless of `includeStack`/`NODE_ENV`. The constructor
+  always populated `this.stack` from the cause, and `logError()` correctly
+  gated logging it on `config.includeStack` — but `toJSON()`, which becomes
+  the HTTP response body, returned `this.stack` unconditionally. In
+  production (`includeStack` defaults to `false` there), every unhandled
+  exception was returning internal file paths and library internals to the
+  API caller. `toJSON()` now omits `stack` when `includeStack` is off.
+- 417fee1: Fix cookie parsing silently truncating any value containing `=` (base64
+  padding, JWT-style tokens). `cookie.split('=')` followed by `const [name,
+value] = ...` dropped everything after the first `=`, e.g.
+  `session=YWJjZGVm==` parsed to `{ session: 'YWJjZGVm' }`. Now splits only on
+  the first `=`, keeping the rest of the value intact.
+- 417fee1: Redact known-sensitive field values (`password`, `token`, `secret`,
+  `apiKey`, `authorization`, `creditCard`, `ssn`, `cvv`, `pin`, matched
+  case-insensitively) before they're attached to a validation error's
+  `details[].value`. That value is both logged (via `ApplicationError`'s
+  `logError`) and returned to the client in the error response body, so a
+  DTO like `@MinLength(8) password: string` failing validation was logging
+  and echoing the submitted password in cleartext — for both the
+  class-validator and ajv (`compileSchema`) validation paths.
+- 417fee1: Fix `Req.getClientIp()` returning the **first** `X-Forwarded-For` entry when
+  `trustProxy` is on, which a client can freely prepend to spoof its own IP
+  (the trusted proxy in front of the app appends the real client address as
+  the _last_ hop; it doesn't strip anything the client already sent). This
+  defeated IP-based rate limiting, allowlists, and audit logging. `trustProxy`
+  models exactly one trusted hop, so the last entry is now used instead.
+
+  `@heliosjs/aws` is affected in practice since its Lambda adapter defaults
+  `trustProxy` to `true` (API Gateway/ALB always sit in front of it), and its
+  event normalizers already compute a trustworthy `sourceIp` independently —
+  this fix makes `getClientIp()` agree with that trustworthy value instead of
+  trusting attacker-controlled header content.
+
 ## 4.0.2
 
 ### Patch Changes

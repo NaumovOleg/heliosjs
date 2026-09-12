@@ -1,5 +1,22 @@
 # Change Log
 
+## 11.0.2
+
+### Patch Changes
+
+- 417fee1: Fix `@Roles(..., { mode: 'all' })` authorizing **any** user, authenticated
+  or not, when the required-roles list is empty (e.g. `@Roles({ mode: 'all'
+})`, or a role list computed at runtime that ends up empty). `[].every(...)`
+  is vacuously `true`, so an empty requirement passed the check instead of
+  denying it — the opposite of `'any'` mode, which already failed closed in
+  the same situation (`[].some(...)` is `false`). `matchRoles` now denies
+  whenever the required-roles list is empty, regardless of mode.
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+  - @heliosjs/core@4.0.3
+
 ## 10.0.9
 
 ### Patch Changes

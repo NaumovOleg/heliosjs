@@ -264,6 +264,37 @@ describe('GrpcServer', () => {
     expect(call.end).toHaveBeenCalled();
   });
 
+  it('regression: executeHandler unsubscribes a streaming Observable when the client cancels', async () => {
+    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    let unsubscribed = false;
+    const handler = vi.fn().mockReturnValue(
+      new Observable(() => {
+        // Never emits/completes on its own — stands in for a long-lived
+        // upstream source (interval, DB change-stream, queue subscription).
+        return () => {
+          unsubscribed = true;
+        };
+      })
+    );
+    const cancelHandlers: (() => void)[] = [];
+    const call = {
+      write: vi.fn(),
+      end: vi.fn(),
+      destroy: vi.fn(),
+      request: {},
+      metadata: {},
+      on: vi.fn((event: string, cb: () => void) => {
+        if (event === 'cancelled') cancelHandlers.push(cb);
+      }),
+    };
+    const methodMeta = makeMethodMeta('Watch', 'handler', true);
+
+    await (server as any).executeHandler(handler, methodMeta, call, vi.fn());
+    expect(unsubscribed).toBe(false);
+    cancelHandlers.forEach((cb) => cb());
+    expect(unsubscribed).toBe(true);
+  });
+
   it('executeHandler handles stream Observable error', async () => {
     const server = new GrpcServer({ url: '0.0.0.0:50051' });
     const handler = vi.fn().mockReturnValue(new Observable((sub) => {

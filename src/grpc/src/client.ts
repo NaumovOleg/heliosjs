@@ -19,9 +19,13 @@ import type { ClientGrpc, GrpcClientOptions } from './types/grpc';
  */
 export class GrpcClient implements ClientGrpc {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private client: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private protoDefinition: any;
+  // Real grpc-js client instances, keyed by service name — needed so close()
+  // can shut down every channel, and so a wrapped method always calls the
+  // client it was created for rather than whichever service was loaded most
+  // recently.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly realClients = new Map<string, any>();
   private readonly options: GrpcClientOptions;
 
   /**
@@ -97,17 +101,18 @@ export class GrpcClient implements ClientGrpc {
       throw new Error(`Service "${serviceName}" not found`);
     }
 
-    this.client = new serviceDefinition(this.options.url, credentials);
+    const client = new serviceDefinition(this.options.url, credentials);
+    this.realClients.set(serviceName, client);
 
     // Wrap methods to return Observables
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrapped: any = {};
-    for (const methodName in this.client) {
+    for (const methodName in client) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       wrapped[methodName] = (...args: any[]) => {
         return new Observable((observer) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.client[methodName](...args, (error: any, response: any) => {
+          client[methodName](...args, (error: any, response: any) => {
             if (error) {
               observer.error(error);
             } else {
@@ -124,14 +129,15 @@ export class GrpcClient implements ClientGrpc {
   }
 
   /**
-   * Closes the active service client channel.
+   * Closes every service client channel opened via `getService()`.
    */
   close(): void {
-    for (const client of this.serviceClients.values()) {
+    for (const client of this.realClients.values()) {
       if (client && typeof client.close === 'function') {
         client.close();
       }
     }
+    this.realClients.clear();
     this.serviceClients.clear();
   }
 }

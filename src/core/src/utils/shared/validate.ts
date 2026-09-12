@@ -3,6 +3,7 @@ import type { plainToInstance as PlainToInstanceFn } from 'class-transformer';
 import type { validate as ValidateFn, ValidationError, ValidatorOptions } from 'class-validator';
 import type { ErrorDetails } from '../../types';
 import { ValidationError as ValidationFailed } from '../core';
+import { redactIfSensitive } from './helpers';
 import { lazyPeer } from './peer';
 
 const getClassTransformer = lazyPeer<{ plainToInstance: typeof PlainToInstanceFn }>(
@@ -101,11 +102,15 @@ export function compileSchema<T = unknown>(schema: object): { from(data: unknown
 
       if (!run(data)) {
         throw new ValidationFailed(
-          (run.errors ?? []).map(error => ({
-            field: error.instancePath.replace(/^\//, '') || error.params?.missingProperty || '(root)',
-            value: error.data,
-            constraint: error.message,
-          }))
+          (run.errors ?? []).map(error => {
+            const field =
+              error.instancePath.replace(/^\//, '') || error.params?.missingProperty || '(root)';
+            return {
+              field,
+              value: redactIfSensitive(field, error.data),
+              constraint: error.message,
+            };
+          })
         );
       }
 
@@ -125,7 +130,7 @@ function formatValidationErrors(errors: ValidationError[]): ErrorDetails[] {
 
     return {
       property: error.property,
-      value: error.value,
+      value: redactIfSensitive(error.property, error.value),
       constraints: Object.values(constraints),
       children,
     };

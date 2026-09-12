@@ -15,7 +15,8 @@ export class RequestFactory {
   static async create(
     req: IncomingMessage,
     maxBytes?: number,
-    trustProxy = false
+    trustProxy = false,
+    skipBody = false
   ): Promise<Req> {
     const fwdProto = trustProxy ? req.headers['x-forwarded-proto'] : undefined;
     const protoStr = Array.isArray(fwdProto) ? fwdProto[0] : fwdProto;
@@ -34,7 +35,10 @@ export class RequestFactory {
     let rawBody: Buffer | undefined;
     let body: unknown;
 
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    // skipBody: GraphQL requests hand `req.raw` to graphql-yoga, which reads
+    // the body stream itself — draining it here first would leave yoga nothing.
+
+    if (!skipBody && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
       rawBody = await collectRawBody(req, maxBytes);
       body = parseBody({
         body: rawBody,

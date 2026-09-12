@@ -281,9 +281,27 @@ describe('Helios coverage - requestHandler paths', () => {
     expect(matchingRes.raw.end).toHaveBeenCalled();
 
     const nonMatchingRes = { raw: { writeHead: vi.fn(), end: vi.fn() } };
-    await gqlMiddleware({ requestUrl: { pathname: '/other' }, raw: {} }, nonMatchingRes);
+    const next = vi.fn();
+    await gqlMiddleware({ requestUrl: { pathname: '/other' }, raw: {} }, nonMatchingRes, next);
     expect(nonMatchingRes.raw.end).not.toHaveBeenCalled();
+    // Regression: a non-matching path must fall through via `next()`, or
+    // every non-GraphQL route stalls forever once GraphQL is configured.
+    expect(next).toHaveBeenCalledOnce();
 
+    await a.close();
+  });
+
+  it('regression: REST routes keep working end-to-end once graphql is enabled', async () => {
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return { ok: true }; }
+    }
+    const a = buildApp([TestCtrl], { graphql: { path: '/graphql', resolvers: [class {}] } });
+    const port = makePort();
+    await a.listen(port, '127.0.0.1');
+    const res = await fetch(`http://127.0.0.1:${port}/test`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     await a.close();
   });
 

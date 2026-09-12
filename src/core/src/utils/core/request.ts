@@ -214,13 +214,19 @@ export class Req implements Request {
   /**
    * Get client IP. Honours `X-Forwarded-For` only when `trustProxy` is set;
    * otherwise returns the direct socket address.
+   *
+   * `trustProxy` models exactly one trusted hop in front of the app (the
+   * reverse proxy / load balancer / API Gateway) — so the last entry is used,
+   * since that's the one appended by that trusted hop itself. A client can
+   * prepend arbitrary values to the header, so the first entry is never
+   * trustworthy.
    */
   getClientIp(): string {
     if (this.trustProxy) {
       const forwarded = this.getHeader('x-forwarded-for');
       if (forwarded) {
         const ips = Array.isArray(forwarded) ? forwarded : forwarded.split(',');
-        return ips[0].trim();
+        return ips[ips.length - 1].trim();
       }
     }
     return this.sourceIp;

@@ -177,8 +177,8 @@ export class Helios extends Plugin implements IHttpServer {
       return this.app;
     }
 
-    const listenPort = port || this.config.port || 3000;
-    const listenHost = host || this.config.host || 'localhost';
+    const listenPort = port ?? this.config.port ?? 3000;
+    const listenHost = host ?? this.config.host ?? 'localhost';
 
     if (this.config.graphql) {
       await this.setupGraphQL();
@@ -255,7 +255,15 @@ export class Helios extends Plugin implements IHttpServer {
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
     let request: Request;
     try {
-      request = await RequestFactory.create(req, this.config.bodyLimit, this.config.trustProxy);
+      const graphqlPath = this.config.graphql?.path ?? '/graphql';
+      const isGraphQLRequest =
+        !!this.config.graphql && (req.url?.split('?')[0] ?? '').startsWith(graphqlPath);
+      request = await RequestFactory.create(
+        req,
+        this.config.bodyLimit,
+        this.config.trustProxy,
+        isGraphQLRequest
+      );
     } catch (error) {
       // Body too large / malformed JSON / bad URL — reply before we have a Request.
       const status = (error as { status?: number })?.status ?? 400;
@@ -512,10 +520,11 @@ export class Helios extends Plugin implements IHttpServer {
         graphqlWsServer.wss
       );
     }
-    this.use(async (req, res) => {
-      if (req.requestUrl.pathname?.startsWith(this.config.graphql?.path ?? '/graphql')) {
-        yoga(req.raw, res.raw);
+    this.use(async (req, res, next) => {
+      if (!req.requestUrl.pathname?.startsWith(this.config.graphql?.path ?? '/graphql')) {
+        return next();
       }
+      await yoga(req.raw, res.raw);
     });
   }
 

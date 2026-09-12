@@ -92,6 +92,14 @@ describe('GrpcClient', () => {
     client.close();
   });
 
+  it('regression: close() actually closes the underlying grpc channel, not just the wrapper cache', () => {
+    mockClientInstance.close.mockClear();
+    const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
+    client.getService<any>('Package');
+    client.close();
+    expect(mockClientInstance.close).toHaveBeenCalledOnce();
+  });
+
   it('close handles empty clients map', () => {
     const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
     client.close();

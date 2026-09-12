@@ -120,6 +120,10 @@ describe("parseRequestCookie", () => {
   it("merges an array of cookie headers", () => {
     expect(parseRequestCookie(["a=1", "b=2"])).toEqual({ a: "1", b: "2" });
   });
+
+  it("keeps everything after the first '=' (base64/JWT-style values often embed one)", () => {
+    expect(parseRequestCookie("session=YWJjZGVm==")).toEqual({ session: "YWJjZGVm==" });
+  });
 });
 
 describe("parseHeaders", () => {

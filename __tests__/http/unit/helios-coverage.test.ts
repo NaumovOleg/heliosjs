@@ -252,6 +252,17 @@ describe('Helios coverage gaps', () => {
     await a.close();
   });
 
+  it('regression: config.port 0 binds an OS-assigned ephemeral port, not the 3000 fallback', async () => {
+    @Server({ port: 0, host: '127.0.0.1' })
+    class App {}
+    const a = new Helios(App as any);
+    const server = await a.listen();
+    const addr = server.address() as { port: number };
+    expect(addr.port).not.toBe(3000);
+    expect(addr.port).toBeGreaterThan(0);
+    await a.close();
+  });
+
   it('status returns config', () => {
     @Server({ port: 3000 })
     class App {}

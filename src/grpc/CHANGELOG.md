@@ -1,5 +1,36 @@
 # @heliosjs/grpc
 
+## 2.1.18
+
+### Patch Changes
+
+- 417fee1: Fix `GrpcClient` tracking only a single grpc-js client instance in a field
+  that every `getService()` call overwrote. Two bugs from this:
+
+  - `close()` iterated the wrapped observable-returning proxies (which don't
+    have a `.close` method) instead of the real grpc-js clients, so it never
+    actually closed any channel — every `getService()` call opened a
+    connection that was never released.
+  - Calling more than one service from the same `GrpcClient` was worse than a
+    leak: after `getService('B')` overwrote the shared field, a previously
+    returned wrapper for service `A` would silently start invoking its method
+    names against `B`'s underlying client instead.
+
+  Real client instances are now tracked per service name, so `close()` shuts
+  down every channel and each service's methods always call the client they
+  were created for.
+
+- 417fee1: Fix a server-streaming RPC's `Observable` subscription never being torn
+  down when the client cancels or disconnects. Any upstream resource behind
+  it (an interval, a DB change-stream, a queue subscription) kept running
+  indefinitely per cancelled call. The subscription is now unsubscribed on
+  the call's `'cancelled'` event.
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+- Updated dependencies [417fee1]
+  - @heliosjs/core@4.0.3
+
 ## 2.1.17
 
 ### Patch Changes
