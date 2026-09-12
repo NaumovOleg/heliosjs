@@ -94,7 +94,7 @@
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "clsx": "^2.0.0",
-    "conventional-changelog-conventionalcommits": "9.3.0",
+    "conventional-changelog-conventionalcommits": "10.4.0",
     "eslint": "10.3.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-unused-imports": "4.4.1",
