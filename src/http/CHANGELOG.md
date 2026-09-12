@@ -1,5 +1,52 @@
 # Change Log
 
+## 11.0.0
+
+### Major Changes
+
+- 7579f24: `graphql-yoga` and `type-graphql` move from regular `dependencies` to optional
+  `peerDependencies`, alongside `graphql-ws` which is newly declared there.
+
+  All three were already loaded lazily via dynamic `import()` only when
+  `config.graphql` is set, so nothing changes for consumers who don't use the
+  GraphQL feature. Consumers who do enable it now need to install
+  `graphql-yoga`, `type-graphql`, and `graphql-ws` themselves — `graphql-ws`
+  was never actually declared as a dependency of this package (it only worked
+  inside this monorepo by accident, hoisted from the workspace root); a
+  standalone install of `@heliosjs/http` with GraphQL enabled would throw
+  `Cannot find module 'graphql-ws/use/ws'` at runtime.
+
+  This matches the peer-optional pattern `@heliosjs/core` already uses for its
+  own optional validators (`ajv`, `class-validator`, `joi`).
+
+### Patch Changes
+
+- 7543b73: Fix `Helios.collectControllers` never discovering nested controllers declared
+  via `@Controller({ controllers: [Child] })`. It read sub-controllers from a
+  standalone `CONTROLLERS` metadata key that nothing in the codebase ever
+  writes to — `@Controller` actually stores nested controllers alongside its
+  other config, read via `reflectControllerMeta` (the same helper core itself
+  uses). The practical effect: SSE handlers (`@OnSSE`) declared on a nested
+  child controller were never registered, since `SSEServer.registerControllers`
+  is fed from this same flat list. Route dispatch itself was unaffected — the
+  core request pipeline builds its own nested `children` independently.
+- 7543b73: Fix `sendResponse`'s error path never actually marking the response `500`
+  when the final `response.end()` write throws (e.g. a destroyed socket).
+  `Response.end()` sets its own `headersSent` flag `true` before attempting
+  the write (so a concurrent call short-circuits), so by the time `.end()`
+  throws, `response.headersSent` already reads `true` — the `if
+(!response.headersSent)` guard around `response.status = 500` could never
+  pass. It now checks the raw transport's own `headersSent` flag instead,
+  which only becomes true once bytes actually went out.
+- 7543b73: Fix `@Server({ sanitizers: [...] })` being silently ignored. `resolveConfig`
+  read global sanitizers from `Reflect.getMetadata(SANITIZE, ...)`, a metadata
+  key nothing in this codebase ever writes to — the `@Sanitize` decorator uses
+  a different mechanism entirely — so the documented `ServerConfig.sanitizers`
+  option had no effect regardless of what was passed. It now reads directly
+  from the resolved config object, like `cors` and `controllers` already do.
+- Updated dependencies [7543b73]
+  - @heliosjs/core@4.0.1
+
 ## 10.0.9
 
 ### Patch Changes

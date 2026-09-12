@@ -28,18 +28,24 @@
 - Workaround (per project memory): lint only touched files with `npx eslint <files>`
   (no `--fix`), compare against the pre-existing `any` noise.
 
-**`yarn test:coverage` fails — thresholds not met on master:**
-- Current: statements 94.01% (thr 95), branches 86.26% (thr 88), functions 94.94%
-  (thr 96), lines 94.52% (thr 96). All four below. Original doc's numbers were stale.
-- Files: `vitest.config.ts` (`test.coverage.thresholds`).
-- The `coverage.exclude` list hides `**/socket/server.ts`, `**/socket/socket.ts`,
-  `**/sse/server.ts`, and nearly all of `src/grpc/src/**` (`server.ts`, `client.ts`,
-  `module.ts`, `utils/**`). Real coverage of the shipped surface is lower than the
-  numbers imply. Biggest measured gap: `src/http/src/Helios.ts` at 79.89% stmts /
-  66.18% branches (uncovered: server `listen`/`close`, WS/SSE/GraphQL wiring).
-- Fix approach: lower thresholds to the current floor to make the gate meaningful
-  again, or add tests for `Helios.ts` lifecycle and `src/core/src/utils/core/error/apperror.ts`
-  (94%), then ratchet up.
+**`yarn test:coverage` — RESOLVED with real margin, was stale (2026-09-12):**
+- The `coverage.exclude` entries for `socket/server.ts`, `socket/socket.ts`,
+  `sse/server.ts`, and `src/grpc/src/**` were removed from `vitest.config.ts` entirely
+  (not just loosened) and real tests added for the newly-exposed gaps: `logger.ts`
+  (67%→100%), `socket/server.ts` (76%→99% stmts), `sse/server.ts` (85%→97% stmts),
+  `grpc/module.ts` and `grpc/server.ts` (92%→99% stmts), plus most of `Helios.ts`'s
+  lifecycle (listen/close, GraphQL wiring — 83%→90%+ stmts). Current:
+  statements 97.6%, branches 90.1%, functions 98.6%, lines 98.1% — all comfortably
+  above the 95/88/96/96 thresholds, not razor-thin like before.
+- This work also found and fixed 3 real bugs the missing coverage had been hiding
+  (see Known Bugs): `@Server({ sanitizers })` silently ignored, nested
+  `@Controller({ controllers })` never discovered by the http adapter (so
+  `@OnSSE` on a child controller never registered), and `SSEServer.triggerHandlers`
+  crashing on a synchronous (non-async) handler.
+- Remaining smaller gaps (lower priority, not chased further): a handful of
+  `Helios.ts` branches (constructor `log: false`, `close()`'s bind-error path,
+  plugin-hook-throws mid-pipeline, static-middleware-ends-response), `aws/lambda.ts`
+  branch coverage, `http/utils/http/static.ts`/`request.factory.ts`.
 
 **Gates that DO work:** `yarn test` and `yarn build` (per-package `tsc`). Use these.
 
@@ -85,6 +91,39 @@
   test per event shape (REST, HTTP API, function URL).
 
 ## Known Bugs
+
+**Three metadata-key mismatches silently dropped documented config — FIXED 2026-09-12:**
+- All three share one shape: a reader (`Reflect.getMetadata(SOME_KEY, ...)`) pointed at
+  a metadata key that nothing in the codebase ever wrote to via `Reflect.defineMetadata`
+  — dead code that always returned the default, found only once coverage on the
+  containing functions stopped being excluded and a test asserted an actual side effect
+  instead of just "didn't throw."
+  1. `@Server({ sanitizers: [...] })` was silently ignored — `resolveConfig`
+     (`src/http/src/utils/http/server.ts`) read a standalone `SANITIZE` constant instead
+     of the resolved config object, unlike `cors`/`controllers`/`middlewares` which
+     correctly read from it. Now reads `decoratorConfig.sanitizers`.
+  2. `@Controller({ controllers: [Child] })` nested controllers were never discovered by
+     `Helios.collectControllers` (`src/http/src/Helios.ts`) — it read a `CONTROLLERS`
+     constant (`'app:controllers'`) but `@Controller` actually stores nested controllers
+     via `defineControllerMeta` under `DECORATOR.controller`. Practical impact: `@OnSSE`
+     handlers on a nested child controller never got registered, since
+     `SSEServer.registerControllers` is fed from this same flat list (WS is unaffected —
+     it uses a separate `config.websocket.controllers` list). Now uses
+     `reflectControllerMeta` from `@heliosjs/core/utils`, the same helper core itself uses.
+  3. `SSEServer.triggerHandlers` (`src/core/src/utils/sse/server.ts`) called
+     `handler.fn(event).catch(...)`, assuming every `@OnSSE` handler is async. A
+     synchronous handler (or one returning a plain value) threw
+     `Cannot read properties of undefined (reading 'catch')`, crashing the connection/
+     close event dispatch. Now wraps in `Promise.resolve(...)` first, matching the
+     equivalent WebSocket code path's `try/catch` and the `Promise.resolve(...)` idiom
+     already used for interceptors in `src/core/src/utils/core/controller.ts`.
+- Existing tests for #1 and #2 existed but were false positives: they asserted
+  `res.status === 200` / array length, or manually wrote metadata under a *different*
+  wrong key than the one being tested — none of them actually checked the documented
+  behavior occurred. All three now have regression tests asserting the real side effect.
+- Changesets: `@heliosjs/http` patch (both http fixes, `fix-server-config-sanitizers.md`
+  and `fix-nested-controller-collection.md`), `@heliosjs/core` patch for the SSE fix
+  (`fix-sse-sync-handler-crash.md`).
 
 **Route-matching specificity — FIXED in `20b5099`, watch for regressions:**
 - Previously: wildcard declared before a specific route always won (specificity sort
@@ -152,20 +191,18 @@
 
 ## Fragile Areas
 
-**Request pipeline has parallel compiled / uncompiled branches:**
-- Files: `src/core/src/utils/core/controller.ts` (`execute`, `beforeRequest`,
-  `buildCompiledMiddleware`, `collectRoutes`).
-- Why fragile: nearly every stage (interceptors, error handlers, status, params) has a
-  `route.compiled?.X ?? extractMiddlewares(route.functions, 'x')` fallback. `20b5099`
-  reworked both: interceptors always apply in reverse; `runErrorHandlers` unifies
-  newest-first error-handler execution; the FORBIDDEN/NOT_FOUND/RATE_LIMIT/UNAUTHORIZED
-  short-circuit now fires only when `handlerCount === 0` (an explicit `@Catch` overrides
-  it). Any behavior change must be mirrored in both branches or the compiled and
-  uncompiled paths diverge silently.
-- Safe modification: change both branches together; assert parity in
-  `__tests__/core/pipeline-execute.test.ts` and `pipeline-before-request.test.ts`.
-- Test coverage: `src/core/src/utils/core/controller.ts` is well covered by the pipeline
-  suites; the uncompiled fallback path is less exercised than the compiled one.
+**~~Request pipeline has parallel compiled / uncompiled branches~~ — RESOLVED, was stale:**
+- Re-checked 2026-09-11 against current `src/core/src/utils/core/controller.ts`: there
+  is exactly one fallback site per function — `const compiled = route.compiled ??
+  buildCompiledMiddleware(route.functions)` in `execute` (line 87) and `beforeRequest`
+  (line 339) — not a parallel branch per pipeline stage. Every stage after that line
+  reads uniformly from the single `compiled` object; there's nothing to diverge.
+  `collectRoutes`, the only path that builds a real `Route` in production, always sets
+  `compiled` (line 427), so the fallback only fires for hand-built `Route` objects
+  (tests calling `execute`/`beforeRequest` directly). Both call sites are exercised:
+  `__tests__/helpers/http.ts`'s `makeRoute()` never sets `compiled`, so most unit tests
+  already hit the fallback branch; e2e/integration tests hit the `collectRoutes` path.
+  No fix needed.
 
 **`Helios.ts` (496 lines, largest file):**
 - Files: `src/http/src/Helios.ts`.
@@ -211,7 +248,17 @@
 **`type-graphql` 2.0.0-rc.3:**
 - Risk: release candidate; API may shift.
 - Impact: GraphQL integration in `@heliosjs/http`.
-- Migration plan: pin exact version, gate GraphQL as clearly experimental.
+- Mitigated 2026-09-11: `type-graphql`, `graphql-yoga`, and `graphql-ws` moved from
+  regular `dependencies` to optional `peerDependencies` in `src/http/package.json`
+  (`@heliosjs/http` major, changeset `graphql-optional-peers.md`) — matches the
+  peer-optional pattern `@heliosjs/core` already uses for `ajv`/`class-validator`/`joi`.
+  This also fixed a real bug: `graphql-ws` was never declared as a dependency of
+  `@heliosjs/http` at all (it only resolved in this monorepo by accident, hoisted from
+  the root); a standalone install with GraphQL enabled would have thrown `Cannot find
+  module 'graphql-ws/use/ws'` at runtime. Consumers now pin their own compatible
+  version instead of being force-fed the RC transitively.
+- Remaining: still an RC by upstream; STABILITY.md doesn't carve out GraphQL as
+  experimental (deliberate, per that doc) — the RC-ness itself isn't this repo's to fix.
 
 **`@grpc/grpc-js` pinned via `resolutions`:**
 - Risk: forced single version repo-wide; can mask peer conflicts and lag security fixes.
@@ -230,41 +277,46 @@
 - Problem: no built-in `/health` or `/ready`.
 - Blocks: k8s probes, load-balancer checks without hand-rolling a controller.
 
-**No graceful shutdown:**
-- Problem: `Helios.close()` exists (`src/http/src/Helios.ts:206`) but nothing installs
-  `SIGTERM` / `SIGINT` handlers or drains in-flight requests.
-- Blocks: clean container termination; risk of dropped requests on deploy.
+**~~No graceful shutdown~~ — RESOLVED, was stale:**
+- Re-checked 2026-09-11: `Helios.listen()` (`src/http/src/Helios.ts:190-191`) registers
+  `process.once('SIGTERM'/'SIGINT', this.handleShutdownSignal)`, which calls `close()`;
+  `close()` removes those listeners and drains via `http.Server.close()` plus the
+  `onStop` plugin hook. This was fixed by the production-audit pass referenced in
+  project memory; this doc just wasn't updated to match. No fix needed.
 
 ## Test Coverage Gaps
 
-**`src/http/src/Helios.ts` lifecycle & optional servers:**
-- What's not tested: `listen()` real bind, `close()`, WS/SSE server startup, GraphQL
-  wiring, plugin hook ordering.
-- Files: `src/http/src/Helios.ts` (79.89% stmts, 66.18% branches).
-- Risk: startup/shutdown and transport-wiring regressions escape to deploy.
-- Priority: High.
+**`src/http/src/Helios.ts` lifecycle & optional servers — mostly closed 2026-09-12:**
+- Now tested: `listen()` real bind, `close()`, GraphQL wiring (`setupGraphQL` end to
+  end — schema build, yoga creation, the graphql-path routing middleware, the
+  `useServer`/pubSub branch), nested-controller collection.
+- Files: `src/http/src/Helios.ts`, now 90%+ stmts / 77%+ branches (was 79.89%/66.18%).
+- Still open: constructor `log: false`, `close()`'s bind-error path, a plugin hook
+  throwing mid-`requestHandler`, static-middleware-ends-response. Lower risk than what
+  got closed (startup/shutdown/GraphQL); pick up if touching this file again.
+- Priority: Low (was High).
 
-**gRPC server/client — excluded from coverage entirely:**
-- What's not tested (per `vitest.config.ts` `coverage.exclude`): `src/grpc/src/server.ts`,
-  `client.ts`, `module.ts`, `utils/**`. Unit tests exist
-  (`__tests__/grpc/unit/*`) but `server-extended.test.ts` is excluded from the run.
-- Risk: service registration, method dispatch, rxjs streaming regressions invisible to
-  the coverage gate.
-- Priority: Medium.
+**gRPC server/client — now covered, was excluded from coverage entirely:**
+- `coverage.exclude` no longer excludes `src/grpc/src/**`; `server.ts` is at 99% stmts /
+  98% branches (was excluded), `module.ts` similarly closed from a previously-thin
+  existing test file that never exercised `clients`/`server` config or `start`/`stop`.
+- Priority: Done — watch for regressions as the gate now actually measures this.
 
 **Lambda adapter:**
 - What's not tested end to end: `app.handler` dispatch, response formatting, CORS on
   Lambda, base64/binary handling.
 - Files: `src/aws/src/lambda.ts`, `src/aws/src/utils/aws/*.ts`.
 - Risk: deploy-only failures.
-- Priority: Medium.
+- Priority: Medium. (Untouched by the 2026-09-12 pass — still open.)
 
-**WebSocket / SSE servers:**
-- What's not tested: connection lifecycle, broadcast, backpressure. Server files are in
-  both the test `exclude` and `coverage.exclude` lists.
-- Files: `src/core/src/utils/socket/server.ts`, `src/core/src/utils/sse/server.ts`.
-- Risk: real-time feature regressions.
-- Priority: Low.
+**WebSocket / SSE servers — now covered, was excluded from both exclude lists:**
+- `socket/server.ts` 76%→99% stmts (added: real `ws` "connection" event wiring, the
+  `handleUpgrade` callback, socket message/close/error event wiring, `triggerHandlers`'
+  full handler/topic-subscription loop including the error-catch branches).
+- `sse/server.ts` 85%→97% stmts (added: the `res.on('close', ...)` cleanup path,
+  `triggerHandlers` dispatch/error-catch, `sendToClient`'s catch branch) — this is also
+  where the synchronous-handler crash bug (Known Bugs) was found.
+- Priority: Done.
 
 **Uncompiled pipeline fallback:**
 - What's not tested thoroughly: the `route.compiled` absent branch of `execute` and the
