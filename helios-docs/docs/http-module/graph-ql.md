@@ -11,8 +11,10 @@ Helios supports GraphQL integration using `type-graphql` and `graphql-yoga` pack
 To use GraphQL in Helios, install the following dependencies:
 
 ```bash
-yarn add graphql graphql-yoga type-graphql  graphql-scalars
+yarn add graphql graphql-yoga type-graphql graphql-ws graphql-scalars
 ```
+
+`graphql-yoga`, `type-graphql`, and `graphql-ws` are optional peer dependencies of `@heliosjs/http` — `graphql-ws` specifically is required for subscriptions over WebSocket.
 
 Ensure you have `reflect-metadata` imported at the entry point of your application:
 

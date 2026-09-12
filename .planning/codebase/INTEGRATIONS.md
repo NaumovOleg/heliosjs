@@ -20,12 +20,12 @@
 - `GrpcServer` (`src/grpc/src/server.ts`), `GrpcClient` (`src/grpc/src/client.ts`) over `@grpc/grpc-js` ^1.14.3.
 - Proto files loaded at runtime with `@grpc/proto-loader` `loadSync` (`^0.8.0`, undeclared dependency - resolves transitively via `@grpc/grpc-js`).
 - Streaming exposed as `rxjs` ^7.8.2 observables.
-- Mostly separate from the HTTP pipeline; imports `Logger`/types from core but does not declare `@heliosjs/core` as a peer dependency.
+- Mostly separate from the HTTP pipeline; imports `Logger`/types from core and declares `@heliosjs/core` as a peer dependency (`>=3.2.11 <5.0.0`, fixed in `ac10d74`).
 
 **GraphQL (`@heliosjs/http`, optional):**
 - Wired in `src/http/src/Helios.ts` (~line 429) via dynamic `import()` of `graphql-yoga` (`createYoga`, `createPubSub`), `type-graphql` (`buildSchema`), and `graphql-ws/use/ws` (`useServer`).
 - Served at `/graphql`; subscriptions over WebSocket (`graphql-ws`).
-- Only `type-graphql` is a declared dependency of `@heliosjs/http`; `graphql`, `graphql-yoga`, `graphql-ws`, `graphql-scalars` are root devDependencies and must be installed by the consumer.
+- `type-graphql`, `graphql-yoga`, and `graphql-ws` are optional `peerDependencies` of `@heliosjs/http`; `graphql` and `graphql-scalars` are root devDependencies only. All must be installed by the consumer to use GraphQL.
 - Cannot be enabled together with the raw WebSocket server.
 
 **WebSocket (`@heliosjs/core` + `@heliosjs/http`):**

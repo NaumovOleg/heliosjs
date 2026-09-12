@@ -40,7 +40,7 @@ requests into the same compiled controllers.
 - Purpose: `node:http` runtime, request/response factories, static file serving, plugin
   system, optional WebSocket / SSE / GraphQL servers.
 - Location: `src/http/src/`; entry `src/http/src/Helios.ts`.
-- Depends on: `@heliosjs/core`, optional `type-graphql` + `graphql-yoga` + `graphql-ws`.
+- Depends on: `@heliosjs/core`, optional peer deps `type-graphql` + `graphql-yoga` + `graphql-ws`.
 
 **AWS (`@heliosjs/aws`):**
 - Purpose: Lambda adapter. Normalizes API Gateway REST, HTTP API, and Function URL events

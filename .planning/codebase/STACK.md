@@ -55,11 +55,10 @@
 - `@grpc/grpc-js` ^1.14.3 - gRPC transport. Direct dep of `@heliosjs/grpc` (and a root dependency + resolution).
 - `@grpc/proto-loader` ^0.8.0 - proto parsing, used directly in `src/grpc/src/server.ts` and `src/grpc/src/client.ts` but NOT declared in `src/grpc/package.json`; resolves only as a transitive dep of `@grpc/grpc-js`.
 - `rxjs` ^7.8.2 - observables for gRPC streaming. Direct dep of `@heliosjs/grpc` + root.
-- `type-graphql` ^2.0.0-rc.3 - only declared runtime dep of `@heliosjs/http`; loaded via dynamic `import()` in `Helios.ts` alongside `graphql-yoga` / `graphql-ws`.
 - `aws-lambda` ^1.0.7 - event/context types for `@heliosjs/aws`.
 
 **Optional / peer-style (needed only when a feature is enabled):**
-- `graphql-yoga` 5.18.1, `graphql-ws` 6.0.7, `graphql` 16.13.1, `graphql-scalars` 1.25.0 - GraphQL. Present only as root devDependencies; dynamically imported in `src/http/src/Helios.ts` (~line 429). Consumers must install these to use GraphQL. WebSocket and GraphQL cannot be enabled together.
+- `type-graphql` ^2.0.0-rc.3, `graphql-yoga` ^5.18.1, `graphql-ws` ^6.0.7 - optional `peerDependencies` (with `peerDependenciesMeta.optional`) of `@heliosjs/http`, loaded via dynamic `import()` in `Helios.ts`. Consumers must install all three themselves to use GraphQL; `graphql-ws` was previously undeclared entirely (worked only by accident, hoisted from the workspace root) until it was added alongside this peer-optional migration. `graphql` 16.13.1 and `graphql-scalars` 1.25.0 remain root devDependencies only, still to be installed by the consumer. WebSocket and GraphQL cannot be enabled together.
 
 **Standard library only:**
 - `node:http`, `node:crypto` (`createHash`/`createHmac` for request fingerprint in `src/core/src/utils/core/fingerprint.ts`), `node:url`, `node:path`.
