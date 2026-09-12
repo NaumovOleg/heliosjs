@@ -175,6 +175,9 @@ export class GrpcServer {
    */
   async start(): Promise<void> {
     const [host, port] = this.options.url.split(':');
+    if (!this.options.credentials) {
+      this.logger.warn('No gRPC credentials provided — binding with createInsecure() (no TLS).');
+    }
     const credentials = this.options.credentials || ServerCredentials.createInsecure();
 
     return new Promise((resolve, reject) => {

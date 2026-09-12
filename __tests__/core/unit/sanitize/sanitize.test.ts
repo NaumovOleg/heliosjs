@@ -143,22 +143,36 @@ describe('SANITIZER presets', () => {
   describe('xss', () => {
     it('removes script tags', () => {
       const schema = SANITIZER.xss();
-      expect(schema.validate('<script>alert(1)</script>').value).not.toContain('<script>');
+      expect(schema.validate('<script>alert(1)</script>hello').value).toBe('hello');
     });
 
-    it('removes javascript: protocol', () => {
+    it('strips javascript: from an href attribute', () => {
       const schema = SANITIZER.xss();
-      expect(schema.validate('javascript:alert(1)').value).not.toContain('javascript:');
+      expect(schema.validate('<a href="javascript:alert(1)">click</a>').value).toBe('click');
     });
 
-    it('removes on* event handlers', () => {
+    it('removes on* event handlers along with their tag', () => {
       const schema = SANITIZER.xss();
-      expect(schema.validate('onclick=alert(1)').value).not.toContain('onclick=');
+      expect(schema.validate('<img src=x onerror=alert(1)>').value).toBe('');
     });
 
-    it('removes data: protocol', () => {
+    it('strips data: URIs', () => {
       const schema = SANITIZER.xss();
-      expect(schema.validate('data:text/html').value).not.toContain('data:');
+      expect(schema.validate('<img src="data:text/html,<script>alert(1)</script>">').value).toBe(
+        ''
+      );
+    });
+
+    // Regression: the old hand-rolled regex blocklist (`/javascript:/gi`,
+    // `/on\w+=/gi`) missed these — a real HTML parser doesn't.
+    it('is not bypassed by a tab inside the javascript: scheme', () => {
+      const schema = SANITIZER.xss();
+      expect(schema.validate('<a href="java\tscript:alert(1)">click</a>').value).toBe('click');
+    });
+
+    it('is not bypassed by whitespace around the event handler `=`', () => {
+      const schema = SANITIZER.xss();
+      expect(schema.validate('<img src=x onerror = alert(1)>').value).toBe('');
     });
 
     it('passes through clean strings', () => {

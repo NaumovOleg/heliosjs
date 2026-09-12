@@ -1,5 +1,20 @@
 # Change Log
 
+## 11.0.1
+
+### Patch Changes
+
+- 9ba9f48: Fix `rawBody` always being decoded as base64 in the API Gateway (v1/v2), ALB,
+  and CloudFront event normalizers, regardless of the event's actual
+  `isBase64Encoded` flag. A plain-text (non-base64) request body — the common
+  case for JSON payloads through most of these integrations — got its
+  `rawBody` silently corrupted, which matters for anything reading `rawBody`
+  directly (e.g. webhook signature verification). `rawBody` now decodes as
+  base64 only when the event says the body is base64-encoded, utf-8 otherwise.
+- Updated dependencies [9ba9f48]
+- Updated dependencies [9ba9f48]
+  - @heliosjs/core@4.0.2
+
 ## 10.0.9
 
 ### Patch Changes

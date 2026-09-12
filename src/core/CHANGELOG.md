@@ -1,5 +1,25 @@
 # Change Log
 
+## 4.0.2
+
+### Patch Changes
+
+- 9ba9f48: Fix a mid-route wildcard (`/admin/*/danger`) compiling to a bare `.*` with no
+  `/` boundary, so it could absorb into a prefix-matching sibling segment —
+  `/admin/*/danger` incorrectly matched `/administrator/danger`. The wildcard
+  now requires a leading `/` and matches one or more full path segments, same
+  as before for the intended cases (`/admin/x/danger`, `/admin/x/y/danger`).
+- 9ba9f48: Replace `SANITIZER.xss()`'s hand-rolled regex blocklist (`/javascript:/gi`,
+  `/on\w+=/gi`, a `<script>` regex, `/data:/gi`) with the `sanitize-html`
+  library — the regex approach is a well-known OWASP anti-pattern and was
+  bypassable (e.g. a tab inside `java\tscript:`, or whitespace around an event
+  handler's `=`). `sanitize-html` is a new **optional** peer dependency,
+  following the same lazy-peer pattern already used for `joi`/`ajv`/
+  `class-validator` — only apps that call `SANITIZER.xss()` need to install
+  it. Behavior change: `xss()` now strips _all_ HTML tags/attributes rather
+  than a specific blocklist, so e.g. `<b>bold</b>` becomes `bold` — if you need
+  some tags preserved, use `sanitize-html` directly instead of this helper.
+
 ## 4.0.1
 
 ### Patch Changes

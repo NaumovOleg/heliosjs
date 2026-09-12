@@ -102,11 +102,15 @@ export function staticMiddleware(
       }
 
       const filename = path.basename(filePath);
-      if (filename.startsWith('.') && opts.dotfiles === 'deny') {
-        res.status = 403;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('Forbidden');
-        return;
+      if (filename.startsWith('.') && opts.dotfiles !== 'allow') {
+        if (opts.dotfiles === 'deny') {
+          res.status = 403;
+          res.setHeader('Content-Type', 'text/plain');
+          res.end('Forbidden');
+          return;
+        }
+        // 'ignore' (default): act as if the file doesn't exist.
+        return next();
       }
 
       const mimeType = getMimeType(filePath) || 'application/octet-stream';

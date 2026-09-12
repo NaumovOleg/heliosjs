@@ -511,12 +511,12 @@ export class Helios extends Plugin implements IHttpServer {
         { schema, context: () => ({ pubSub: this.config.graphql?.pubSub }) },
         graphqlWsServer.wss
       );
-      this.use(async (req, res) => {
-        if (req.requestUrl.pathname?.startsWith(this.config.graphql?.path ?? '/graphql')) {
-          yoga(req.raw, res.raw);
-        }
-      });
     }
+    this.use(async (req, res) => {
+      if (req.requestUrl.pathname?.startsWith(this.config.graphql?.path ?? '/graphql')) {
+        yoga(req.raw, res.raw);
+      }
+    });
   }
 
   /**

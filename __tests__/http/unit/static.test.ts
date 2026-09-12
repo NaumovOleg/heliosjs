@@ -170,6 +170,30 @@ describe('staticMiddleware', () => {
     expect(res.status).toBe(403);
   });
 
+  it('serves dotfiles when dotfiles is allow', async () => {
+    await fs.promises.writeFile(path.join(tmpDir, '.env'), 'SECRET=key');
+    const next = vi.fn();
+    const res = makeRes();
+    vi.spyOn(fs, 'createReadStream').mockReturnValue(new Readable({ read() { this.push('SECRET=key'); this.push(null); } }) as any);
+    const mw = staticMiddleware(realRoot, { dotfiles: 'allow' });
+    await mw(makeReq('/.env'), res, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.headers['Content-Type']).toBeDefined();
+  });
+
+  it('dotfiles default (ignore) falls through instead of serving the file', async () => {
+    // Regression: 'ignore' used to be treated the same as 'allow' — only
+    // '=== deny' was ever checked, so dotfiles were served by default.
+    await fs.promises.writeFile(path.join(tmpDir, '.env'), 'SECRET=key');
+    const next = vi.fn();
+    const res = makeRes();
+    const createReadStreamSpy = vi.spyOn(fs, 'createReadStream');
+    const mw = staticMiddleware(realRoot);
+    await mw(makeReq('/.env'), res, next);
+    expect(next).toHaveBeenCalled();
+    expect(createReadStreamSpy).not.toHaveBeenCalled();
+  });
+
   it('forbids path traversal', async () => {
     const next = vi.fn();
     const res = makeRes();

@@ -437,8 +437,9 @@ function compileRouteRegex(route: string): RegExp | undefined {
   segments.forEach((seg, i) => {
     if (seg === '*') {
       // A trailing `*` captures the remaining path (exposed as @Params('*'));
-      // a mid-route `*` only matches, it captures nothing.
-      pattern += i === segments.length - 1 ? '(?:/(.*))?' : '.*';
+      // a mid-route `*` only matches, it captures nothing. Both require a `/`
+      // boundary so `/admin/*/danger` can't absorb into `/administrator/danger`.
+      pattern += i === segments.length - 1 ? '(?:/(.*))?' : '/[^/]+(?:/[^/]+)*';
       return;
     }
     const regexMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)\((.+)\)$/);

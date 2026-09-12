@@ -137,4 +137,23 @@ describe('router fuzzing (adversarial path corpus)', () => {
     expect(performance.now() - start).toBeLessThan(200);
     expect(match).toBeUndefined();
   });
+
+  it('a mid-route wildcard does not absorb a prefix-matching sibling segment', () => {
+    // Regression: `/admin/*/danger` used to compile its mid-route `*` to a
+    // bare `.*` with no `/` boundary, so the route matched
+    // `/administrator/danger` too — the wildcard ate into "administrator"
+    // instead of requiring a full path segment.
+    @Controller('/admin')
+    class AdminController {
+      @Get('/*/danger')
+      danger() {
+        return {};
+      }
+    }
+    const instance = new AdminController(root as never) as unknown as {
+      [CONTROLLER_PRECOMPILED]: never;
+    };
+    expect(findRoute(instance[CONTROLLER_PRECOMPILED], '/administrator/danger', 'GET')).toBeUndefined();
+    expect(findRoute(instance[CONTROLLER_PRECOMPILED], '/admin/x/danger', 'GET')).toBeDefined();
+  });
 });

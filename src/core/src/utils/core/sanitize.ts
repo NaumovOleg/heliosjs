@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-escape */
 import type * as Joi from 'joi';
 import type { Request, SanitizerConfig } from '../../types/core';
 import { lazyPeer } from '../shared/peer';
@@ -9,6 +8,11 @@ import { lazyPeer } from '../shared/peer';
 // only (erased at compile time, imported above as `import type`).
 const getJoi = lazyPeer<typeof Joi>('joi', 'SANITIZER / @Sanitize');
 
+// Only the slice of sanitize-html's signature SANITIZER.xss() actually calls
+// — avoids fighting `export =` + `consistent-type-imports` for the full type.
+type SanitizeHtmlFn = (dirty: string, options: Record<string, unknown>) => string;
+const getSanitizeHtml = lazyPeer<SanitizeHtmlFn>('sanitize-html', 'SANITIZER.xss');
+
 /**
  * Ready-made Joi schema builders for use inside `@Sanitize` configs and DTO
  * validation. Grouped by category:
@@ -17,8 +21,8 @@ const getJoi = lazyPeer<typeof Joi>('joi', 'SANITIZER / @Sanitize');
  * - `number` — `integer()`, `positive()`, `range(min, max)`.
  * - `object` — `stripUnknown(schema)`, `withDefaults(schema)`.
  * - `date` — `iso()`, `timestamp()`.
- * - `xss()` — strips `javascript:` / `data:` URIs, inline `on*=` handlers, and
- *   `<script>` blocks from a string.
+ * - `xss()` — strips all HTML tags/attributes via the optional `sanitize-html`
+ *   peer dependency, leaving plain text.
  *
  * @example
  * @Sanitize({
@@ -47,7 +51,7 @@ export const SANITIZER = {
       getJoi()
         .string()
         .trim()
-        .pattern(/^[\d\s\+\-\(\)]+$/),
+        .pattern(/^[\d\s+()-]+$/),
   },
 
   number: {
@@ -71,12 +75,10 @@ export const SANITIZER = {
       .string()
       .custom((value) => {
         if (typeof value !== 'string') return value;
-        const sanitized = value
-          .replace(/javascript:/gi, '')
-          .replace(/on\w+=/gi, '')
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/data:/gi, '');
-        return sanitized;
+        // Strips every tag/attribute rather than blocklisting known-dangerous
+        // ones — a regex blocklist here is a well-known OWASP anti-pattern,
+        // trivially bypassed (split attributes, encoded schemes, etc.).
+        return getSanitizeHtml()(value, { allowedTags: [], allowedAttributes: {} });
       }, 'XSS sanitization'),
 };
 

@@ -1,5 +1,16 @@
 # @heliosjs/grpc
 
+## 2.1.17
+
+### Patch Changes
+
+- 9ba9f48: Log a warning when `GrpcClient`/`GrpcServer` silently fall back to
+  `createInsecure()` because no `credentials` option was passed, so running
+  without TLS is a visible choice rather than a silent default.
+- Updated dependencies [9ba9f48]
+- Updated dependencies [9ba9f48]
+  - @heliosjs/core@4.0.2
+
 ## 2.1.16
 
 ### Patch Changes

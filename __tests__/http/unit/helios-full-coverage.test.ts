@@ -303,6 +303,15 @@ describe('Helios coverage - requestHandler paths', () => {
     context({ request: {} });
     expect(createPubSub).toHaveBeenCalled();
 
+    // Regression: the yoga HTTP route must still be registered without
+    // pubSub — it used to be nested inside the `if (pubSub)` branch, so
+    // GraphQL queries/mutations 404'd on any config that didn't also wire up
+    // subscriptions.
+    const gqlMiddleware = (a as any).globalMiddlewares.at(-1);
+    const matchingRes = { raw: { writeHead: vi.fn(), end: vi.fn() } };
+    await gqlMiddleware({ requestUrl: { pathname: '/gql/anything' }, raw: {} }, matchingRes);
+    expect(matchingRes.raw.end).toHaveBeenCalled();
+
     await a.close();
   });
 

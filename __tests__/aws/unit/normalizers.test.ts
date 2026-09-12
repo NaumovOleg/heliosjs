@@ -235,3 +235,56 @@ describe('normalizeAPIGatewayEvent', () => {
     expect(result.method).toBe('POST');
   });
 });
+
+describe('rawBody honors isBase64Encoded', () => {
+  // Regression: rawBody used to always decode as base64, corrupting the
+  // bytes of a plain-text (non-base64) body.
+  it('decodes a plain-text body as utf-8, not base64', () => {
+    const event = {
+      httpMethod: 'POST', path: '/create', resource: '/create',
+      headers: { host: 'api.example.com' },
+      requestContext: { apiId: 'a', httpMethod: 'POST', identity: {} },
+      queryStringParameters: {}, pathParameters: {},
+      body: '{"name":"test"}', isBase64Encoded: false,
+    } as any;
+    const result = normalizeAPIGatewayEvent(event, makeCtx());
+    expect((result.rawBody as Buffer).toString('utf-8')).toBe('{"name":"test"}');
+  });
+
+  it('decodes a base64 body as base64', () => {
+    const plain = '{"name":"test"}';
+    const event = {
+      httpMethod: 'POST', path: '/create', resource: '/create',
+      headers: { host: 'api.example.com' },
+      requestContext: { apiId: 'a', httpMethod: 'POST', identity: {} },
+      queryStringParameters: {}, pathParameters: {},
+      body: Buffer.from(plain).toString('base64'), isBase64Encoded: true,
+    } as any;
+    const result = normalizeAPIGatewayEvent(event, makeCtx());
+    expect((result.rawBody as Buffer).toString('utf-8')).toBe(plain);
+  });
+
+  it('handles v2, ALB plain-text bodies without corruption', () => {
+    const v2Event = {
+      version: '2.0', rawPath: '/create',
+      headers: { host: 'api.example.com' },
+      requestContext: { http: { method: 'POST' }, apiId: 'a', domainName: 'api.example.com' },
+      queryStringParameters: {}, pathParameters: {},
+      body: '{"name":"test"}', isBase64Encoded: false,
+    } as any;
+    expect((normalizeAPIGatewayV2Event(v2Event, makeCtx()).rawBody as Buffer).toString('utf-8')).toBe(
+      '{"name":"test"}'
+    );
+
+    const albEvent = {
+      httpMethod: 'POST', path: '/create',
+      headers: { host: 'alb.example.com' },
+      requestContext: { elb: { targetGroupArn: 'arn' } },
+      queryStringParameters: {},
+      body: '{"name":"test"}', isBase64Encoded: false,
+    } as any;
+    expect((normalizeALBEvent(albEvent, makeCtx()).rawBody as Buffer).toString('utf-8')).toBe(
+      '{"name":"test"}'
+    );
+  });
+});

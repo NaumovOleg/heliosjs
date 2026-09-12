@@ -68,7 +68,7 @@ export const normalizeAPIGatewayEvent = (
   const headers = parseHeaders(event.headers);
   const body = parseBody({ headers, body: event.body, isBase64Encoded: event.isBase64Encoded });
   const cookies = parseRequestCookie(headers?.Cookie || headers?.cookie || headers.cookies);
-  const rawBody = Buffer.from(event.body || '', 'base64');
+  const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
 
   const { url, requestUrl } = getUrls(event);
 
@@ -101,7 +101,7 @@ export const normalizeAPIGatewayV2Event = (
   event: APIGatewayProxyEventV2,
   context: Context
 ): RequestOptions => {
-  const rawBody = Buffer.from(event.body || '', 'base64');
+  const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
   const headers = parseHeaders(event.headers);
   const body = parseBody({ headers, body: event.body, isBase64Encoded: event.isBase64Encoded });
   const { url, requestUrl } = getUrls(event);
@@ -135,7 +135,7 @@ export const normalizeAPIGatewayV2Event = (
 // // ==================== Application Load Balancer ====================
 
 export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOptions => {
-  const rawBody = Buffer.from(event.body || '', 'base64');
+  const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
   const headers = parseHeaders(event.headers);
   const cookies = parseRequestCookie(headers?.Cookie || headers?.cookie || headers.cookies);
   const body = parseBody({ headers, body: event.body });
@@ -173,9 +173,8 @@ export const normalizeCloudFrontEvent = (
   const request = record?.cf?.request;
   const headers = parseCloudFrontHeaders(request?.headers);
   const cookies = parseRequestCookie(headers?.Cookie || headers?.cookie || headers.cookies);
-  const rawBody = Buffer.from(request.body?.data || '', 'base64');
-
   const isBase64Encoded = request.body?.encoding === 'base64';
+  const rawBody = Buffer.from(request.body?.data || '', isBase64Encoded ? 'base64' : 'utf-8');
   const body = parseBody({ headers, body: request.body, isBase64Encoded });
 
   const sourceIp =
@@ -200,7 +199,7 @@ export const normalizeCloudFrontEvent = (
     event,
     source: 'lambda',
     timestamp: new Date(),
-    isBase64Encoded: request.body?.encoding === 'base64',
+    isBase64Encoded,
     sourceIp,
     userAgent: headers['user-agent']?.toString(),
   };

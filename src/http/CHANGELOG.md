@@ -1,5 +1,24 @@
 # Change Log
 
+## 11.0.1
+
+### Patch Changes
+
+- 9ba9f48: Fix GraphQL requests 404'ing whenever `graphql.pubSub` wasn't configured.
+  `setupGraphQL` registered the yoga HTTP handler via `this.use(...)` nested
+  inside `if (this.config.graphql.pubSub)`, so a plain query/mutation API with
+  no subscriptions never got its `/graphql` route wired up at all. Only the
+  `useServer` WebSocket subscription wiring actually needs `pubSub` — the HTTP
+  handler is now registered unconditionally.
+- 9ba9f48: Fix `staticMiddleware`'s default `dotfiles: 'ignore'` behaving like `'allow'`
+  — only `dotfiles === 'deny'` was ever checked, so dotfiles (`.env`,
+  `.git/config`, etc.) placed under a static root were served like any other
+  file unless an app explicitly opted into `deny`. `'ignore'` now does what its
+  name says: the request falls through as if the file didn't exist.
+- Updated dependencies [9ba9f48]
+- Updated dependencies [9ba9f48]
+  - @heliosjs/core@4.0.2
+
 ## 11.0.0
 
 ### Major Changes

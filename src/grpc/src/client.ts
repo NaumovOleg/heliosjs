@@ -1,5 +1,6 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
+import { getGlobalLogger } from '@heliosjs/core/utils';
 import { Observable } from 'rxjs';
 import type { ClientGrpc, GrpcClientOptions } from './types/grpc';
 
@@ -74,6 +75,11 @@ export class GrpcClient implements ClientGrpc {
       return this.serviceClients.get(serviceName) as T;
     }
 
+    if (!this.options.credentials) {
+      getGlobalLogger().warn(
+        'No gRPC credentials provided — connecting with createInsecure() (no TLS).'
+      );
+    }
     const credentials = this.options.credentials || grpc.credentials.createInsecure();
 
     let current = this.protoDefinition;

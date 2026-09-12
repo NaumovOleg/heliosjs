@@ -16,6 +16,12 @@ npm install joi
 
 Without it, the first `SANITIZER.*` call (or the first request through a route using `@Sanitize`) throws a clear error naming the missing package instead of a cryptic module-not-found.
 
+`SANITIZER.xss()` specifically also needs `sanitize-html`, another optional peer dependency:
+
+```bash
+npm install sanitize-html
+```
+
 ## Purpose
 
 Sanitization cleans incoming data (trim whitespace, strip unknown fields, apply defaults) before it reaches your handler. HeliosJS provides a built-in `SANITIZER` utility with common Joi schemas.
@@ -48,7 +54,8 @@ SANITIZER.date.iso()          // ISO 8601 dates
 SANITIZER.date.timestamp()    // Unix timestamps
 
 // XSS protection
-SANITIZER.xss()               // Strip script tags, event handlers, data: URIs
+SANITIZER.xss()               // Strip all HTML tags/attributes, leaving plain text
+                               // (needs the optional `sanitize-html` peer dependency)
 ```
 
 ## Basic Usage
@@ -215,4 +222,4 @@ The decorator attaches sanitization config as metadata. The framework applies sa
 - The `SANITIZER` utility provides reusable Joi schemas for common patterns
 - Sanitization runs before validation, so validated data is already clean
 - Use `stripUnknown: true` to remove unexpected fields
-- XSS sanitization strips `<script>` tags, `on*` event handlers, and `javascript:` URLs
+- XSS sanitization (`SANITIZER.xss()`) strips every HTML tag and attribute via `sanitize-html`, so `<script>` blocks, `on*` handlers, and `javascript:`/`data:` URIs in attributes are all removed — install `sanitize-html` to use it

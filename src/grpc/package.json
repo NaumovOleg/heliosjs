@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/grpc",
-  "version": "2.1.16",
+  "version": "2.1.17",
   "description": "Grpc support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -34,7 +34,7 @@
     "rxjs": "^7.8.2"
   },
   "peerDependencies": {
-    "@heliosjs/core": ">=3.2.11 <5.0.0",
+    "@heliosjs/core": ">=4.0.2",
     "@types/node": ">=20.0.0",
     "reflect-metadata": "^0.2.2",
     "typescript": ">=5.0.0"
