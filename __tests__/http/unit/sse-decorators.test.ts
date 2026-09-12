@@ -79,7 +79,7 @@ describe('SSE decorators', () => {
   describe('@InjectSSE', () => {
     it('creates sse parameter decorator', () => {
       class Ctrl {
-        handler(@InjectSSE() sse: any) {}
+        handler(@InjectSSE() _sse: any) {}
       }
       const meta = Reflect.getMetadata('controller:route', Ctrl.prototype, 'handler');
       expect(meta.parameters).toHaveLength(1);

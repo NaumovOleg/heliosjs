@@ -1,56 +1,8 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi } from 'vitest';
-import { Req } from '../../../src/core/src/utils/core/request';
-import { Res } from '../../../src/core/src/utils/core/response';
 import { collectRawBody } from '../../../src/http/src/utils/http/body';
-import http from 'node:http';
-import { Readable, PassThrough } from 'node:stream';
-
-function makeReqOpts(overrides: any = {}) {
-  return {
-    method: 'GET',
-    path: '/',
-    url: '/',
-    requestUrl: new URL('http://localhost/'),
-    headers: {},
-    query: {},
-    body: undefined,
-    params: {},
-    cookies: {},
-    sourceIp: '127.0.0.1',
-    userAgent: 'test',
-    requestId: 'req-1',
-    stage: 'dev',
-    timestamp: new Date(),
-    source: 'http',
-    raw: {},
-    isBase64Encoded: false,
-    ...overrides,
-  };
-}
-
-function makeRes() {
-  const rawRes: any = {
-    end: vi.fn(),
-    setHeader: vi.fn(),
-    removeHeader: vi.fn(),
-    headersSent: false,
-    statusCode: 200,
-    cookies: [],
-  };
-  return new Res(
-    'http',
-    {
-      requestUrl: new URL('http://localhost/'),
-      method: 'GET',
-      requestId: 'r1',
-      sourceIp: '127.0.0.1',
-      userAgent: 'test',
-      startTime: Date.now(),
-    } as any,
-    rawRes
-  );
-}
+import type http from 'node:http';
+import { PassThrough } from 'node:stream';
 
 function makeStream(body: string): http.IncomingMessage {
   const pt = new PassThrough();
@@ -63,22 +15,6 @@ function makeStream(body: string): http.IncomingMessage {
   }) as unknown as http.IncomingMessage;
   process.nextTick(() => {
     pt.end(body);
-  });
-  return req;
-}
-
-function makeStreamError(err: Error): http.IncomingMessage {
-  const pt = new PassThrough();
-  const req = Object.assign(pt, {
-    method: 'GET',
-    url: '/',
-    headers: {},
-    httpVersion: '1.1',
-    socket: { remoteAddress: '127.0.0.1' } as any,
-    destroy: vi.fn(),
-  }) as unknown as http.IncomingMessage;
-  process.nextTick(() => {
-    pt.destroy(err);
   });
   return req;
 }

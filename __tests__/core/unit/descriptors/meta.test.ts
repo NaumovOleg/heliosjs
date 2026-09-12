@@ -1,7 +1,5 @@
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { meta } from '../../../../src/core/src/descriptors/meta';
-import { CONTROLLER_PRECOMPILED, CONTROLLER_TYPED_HANDLERS, CONTROLLER_GET_SSE_HANDLERS, CONTROLLER_GET_WS_HANDLERS, CONTROLLER_LOOKUP_WS, CONTROLLER_LOOKUP_SSE, CONTROLLER_GET_SSE_CONTROLLER, CONTROLLER_GET_WS_TOPICS } from '@heliosjs/core/constants';
 
 describe('meta descriptor', () => {
   it('merges parent prefix with controller prefix and normalizes slashes', () => {

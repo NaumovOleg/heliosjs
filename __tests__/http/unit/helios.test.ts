@@ -1,15 +1,5 @@
-import http from 'node:http';
 import { describe, expect, it, vi } from 'vitest';
-import { Helios } from '@heliosjs/http';
-
-function createMinimalServer() {
-  // Minimal decorated server class
-  @Server({ port: 0 })
-  class App {}
-  return App;
-}
-
-import { Server } from '@heliosjs/http';
+import { Helios, Server } from '@heliosjs/http';
 
 describe('Helios', () => {
   it('creates instance from decorated class', () => {

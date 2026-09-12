@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import http from 'node:http';
-import { describe, expect, it, afterEach, vi } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 import { Helios, Server } from '@heliosjs/http';
-import { Controller, Get, Post, Put, Patch, Delete, Options, Head, Body, Params, QueryParam, Req, Res, Headers, Endpoint, HTTP_METHODS } from '@heliosjs/core';
+import { Controller, Get, Post, Put, Patch, Delete, Head, Body, Params, QueryParam, Req, Res, Headers, Endpoint, HTTP_METHODS } from '@heliosjs/core';
 
 let portCounter = 23000;
 function makePort() { return portCounter++; }

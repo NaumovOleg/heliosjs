@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { request } from '../../../../src/core/src/descriptors/request';
 import { CONTROLLER_PRECOMPILED } from '../../../../src/core/src/constants';
 import { makeRequest, makeResponse, makeRoute, makeControllerMeta } from '../../../helpers/http';

@@ -16,22 +16,22 @@ export interface E2EApp {
   close: () => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export async function startE2E(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   controllers: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   serverConfig: Record<string, any> = {}
 ): Promise<E2EApp> {
   @Server({ controllers, ...serverConfig })
   class App {}
 
   const app = new Helios(App as never);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const raw = (app as any).app as http.Server;
 
   await new Promise<void>((resolve) => raw.listen(0, '127.0.0.1', () => resolve()));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const port = (raw.address() as any).port as number;
 
   return {

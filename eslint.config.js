@@ -54,6 +54,22 @@ export default defineConfig([
     },
   },
   {
+    // Type-aware rules now run on __tests__ (see __tests__/tsconfig.json) so
+    // no-floating-promises / consistent-type-imports / unused-* are actually
+    // enforced here. The rules below stay off for tests only: loose `any` on
+    // mocks/stubs and empty-body stand-ins for handlers/middleware are the
+    // normal shape of test doubles, not a real type-safety gap like the
+    // by-design decorator `any`s in `src/**`.
+    files: ['__tests__/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-useless-constructor': 'off',
+      '@typescript-eslint/no-dynamic-delete': 'off',
+    },
+  },
+  {
     ignores: [
       'node_modules',
       'dist',
@@ -65,7 +81,6 @@ export default defineConfig([
       '**/build/',
       '**/coverage/',
       '.opencode',
-      '__tests__',
       // Docusaurus's own generated cache/bundle (gitignored, but not
       // previously excluded here) — building the docs locally makes it
       // appear on disk and its bundled JS then gets linted as if it were

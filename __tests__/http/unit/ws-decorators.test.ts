@@ -126,7 +126,7 @@ describe('WebSocket decorators', () => {
   describe('@InjectWS', () => {
     it('creates ws parameter decorator', () => {
       class Ctrl {
-        handler(@InjectWS() ws: any) {}
+        handler(@InjectWS() _ws: any) {}
       }
       const meta = Reflect.getMetadata('controller:route', Ctrl.prototype, 'handler');
       expect(meta.parameters).toHaveLength(1);

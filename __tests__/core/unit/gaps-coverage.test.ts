@@ -261,7 +261,7 @@ describe('error/apperror coverage', () => {
 
   it('logError with status < 400 uses console.info', () => {
     const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
-    const err = new ApplicationError({ status: 200, message: 'ok' } as any, { meta, config: { ...config, logErrors: true } });
+    new ApplicationError({ status: 200, message: 'ok' } as any, { meta, config: { ...config, logErrors: true } });
     // status 200 gets normalized to INTERNAL_SERVER_ERROR since 200 < 500 and 200 is not a known code
     spy.mockRestore();
   });

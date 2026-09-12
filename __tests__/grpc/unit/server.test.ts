@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
 import { GrpcServer } from '../../../src/grpc/src/server';
-import { GRPC_SERVICE_METADATA, GRPC_METHOD_METADATA, GRPC_CLIENT_METADATA } from '../../../src/grpc/src/constants';
+import { GRPC_SERVICE_METADATA, GRPC_CLIENT_METADATA } from '../../../src/grpc/src/constants';
 
 describe('GrpcServer', () => {
   it('creates with default options', () => {

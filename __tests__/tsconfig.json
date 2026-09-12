@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
+    "paths": {
+      "@heliosjs/core": ["../src/core/src/index.ts"],
+      "@heliosjs/core/utils": ["../src/core/src/utils/index.ts"],
+      "@heliosjs/core/types": ["../src/core/src/types/index.ts"],
+      "@heliosjs/core/constants": ["../src/core/src/constants.ts"],
+      "@heliosjs/middlewares": ["../src/middlewares/src/index.ts"],
+      "@heliosjs/http": ["../src/http/src/index.ts"],
+      "@heliosjs/grpc": ["../src/grpc/src/index.ts"],
+      "@heliosjs/aws": ["../src/aws/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

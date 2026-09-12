@@ -46,8 +46,6 @@ const ADVERSARIAL_PATHS = [
 ] as const;
 
 describe('router fuzzing (adversarial path corpus)', () => {
-  const parentMeta = { prefix: '/', name: 'Parent', functions: [], routes: [] };
-
   @Controller('/users')
   class UsersController {
     @Get('/')

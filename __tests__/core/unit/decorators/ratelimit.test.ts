@@ -15,28 +15,28 @@ describe('@RateLimit decorator', () => {
   it('throws TypeError when max is 0', () => {
     expect(() => {
       @RateLimit({ max: 0, windowMs: 60000 })
-      class Ctrl {}
+      class _Ctrl {}
     }).toThrow(TypeError);
   });
 
   it('throws TypeError when max is negative', () => {
     expect(() => {
       @RateLimit({ max: -1, windowMs: 60000 })
-      class Ctrl {}
+      class _Ctrl {}
     }).toThrow(TypeError);
   });
 
   it('throws TypeError when windowMs is 0', () => {
     expect(() => {
       @RateLimit({ max: 10, windowMs: 0 })
-      class Ctrl {}
+      class _Ctrl {}
     }).toThrow(TypeError);
   });
 
   it('throws TypeError when windowMs is negative', () => {
     expect(() => {
       @RateLimit({ max: 10, windowMs: -1000 })
-      class Ctrl {}
+      class _Ctrl {}
     }).toThrow(TypeError);
   });
 

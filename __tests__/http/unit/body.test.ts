@@ -1,22 +1,8 @@
 import http from 'node:http';
+import net from 'node:net';
 import { describe, expect, it } from 'vitest';
 import { collectRawBody, DEFAULT_BODY_LIMIT } from '../../../src/http/src/utils/http/body';
 import { PayloadTooLargeError } from '@heliosjs/core/utils';
-
-function createMockReq(headers: Record<string, string> = {}, body?: string) {
-  const req = new http.IncomingMessage(new net.Socket() as any);
-  Object.assign(req, { headers });
-  return req;
-}
-
-import net from 'node:net';
-
-function fakeReq(headers: Record<string, string> = {}, chunks: Buffer[] = []) {
-  const socket = new net.Socket();
-  const req = new http.IncomingMessage(socket as any);
-  (req as any).headers = headers;
-  return { req, socket, chunks };
-}
 
 describe('collectRawBody', () => {
   it('collects empty body', async () => {

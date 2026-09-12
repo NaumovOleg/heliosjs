@@ -1,9 +1,8 @@
 import 'reflect-metadata';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { execute, beforeRequest, runGuard } from '../../../src/core/src/utils/core/controller';
+import { describe, it, expect, vi } from 'vitest';
+import { execute, runGuard } from '../../../src/core/src/utils/core/controller';
 import { matchRoutes } from '../../../src/core/src/utils/core/match';
-import { Endpoint, Get, Post, Any } from '../../../src/core/src/Endpoint';
-import { HTTP_METHODS } from '../../../src/core/src/types/core';
+import { Any } from '../../../src/core/src/Endpoint';
 import { TO_VALIDATE } from '../../../src/core/src/constants';
 import type { Route, Request, Response, GuardInstance } from '../../../src/core/src/types/core';
 

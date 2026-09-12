@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import type * as NodePath from 'node:path';
 // Not exported from @heliosjs/core/utils on purpose (@internal) — reach it by
 // relative path, same as validate.ts/sanitize.ts do.
 import { lazyPeer } from '../../../src/core/src/utils/shared/peer';
 
 describe('lazyPeer', () => {
   it('loads and caches a real module', () => {
-    const getPath = lazyPeer<typeof import('node:path')>('node:path', 'test feature');
+    const getPath = lazyPeer<typeof NodePath>('node:path', 'test feature');
     const first = getPath();
     const second = getPath();
     expect(first).toBe(second); // same cached instance

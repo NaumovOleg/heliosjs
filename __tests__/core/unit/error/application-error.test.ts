@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ApplicationError } from '@heliosjs/core/utils';
-import { BaseError, UnauthorizedError, NotFoundError } from '@heliosjs/core/utils';
+import { BaseError } from '@heliosjs/core/utils';
 import { ErrorCode } from '@heliosjs/core/types';
 
 const meta = {

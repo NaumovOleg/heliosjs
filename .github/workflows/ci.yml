@@ -52,14 +52,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Non-blocking: master currently carries ~186 by-design `any`/
-      # `Function`-type errors on decorator signatures (tracked, not
-      # accidental — see the repo's own project memory on this). Flip to
-      # blocking once that's cleaned up; until then this job still runs and
-      # reports on every PR, it just doesn't fail the check.
-      - name: Lint (informational — see comment above)
+      - name: Lint
         run: yarn lint
-        continue-on-error: true
 
   soak:
     runs-on: ubuntu-latest

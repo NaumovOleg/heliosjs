@@ -60,14 +60,14 @@ describe('@Controller decorator', () => {
   it('throws TypeError for non-string prefix', () => {
     expect(() => {
       @Controller({ prefix: 123 as any })
-      class BadController {}
+      class _BadController {}
     }).toThrow(TypeError);
   });
 
   it('throws TypeError for non-function sub-controllers', () => {
     expect(() => {
       @Controller({ prefix: '/api', controllers: ['not-a-function' as any] })
-      class BadController {}
+      class _BadController {}
     }).toThrow(TypeError);
   });
 

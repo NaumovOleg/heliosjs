@@ -25,7 +25,8 @@ Use `yarn build` as the typecheck. Running `tsc` against the root `tsconfig.json
 - `src/<pkg>/src/`: package sources. Every package follows the same shape: `index.ts`, `types/<pkg>/`, and `utils/<pkg>/`.
 - `__tests__/<pkg>/`: all tests are here, never inside the packages. Some live in `unit/` or `e2e/` and some sit flat in `__tests__/<pkg>/`. Shared factories are in `__tests__/helpers/http.ts` (`makeRequest`, `makeResponse`, `makeRoute`, `makeControllerMeta`).
 - Tests import `@heliosjs/*` directly from **source**, not from `dist`. The aliases are in `vitest.config.ts`, so you don't need to build before testing. `vitest.setup.ts` imports `reflect-metadata`.
-- `vitest.config.ts` excludes three tests (`grpc/unit/server-extended`, `http/unit/factories`, `core/unit/socket/server`) and several files from coverage (the socket/sse servers, most of grpc). Check both lists before you conclude a test or file is covered.
+- `vitest.config.ts` has no test-file exclusions — every `__tests__/**/*.test.ts` runs (the three that were once excluded, `grpc/unit/server-extended`, `http/unit/factories`, `core/unit/socket/server`, were re-enabled once their underlying bugs were fixed). It does exclude several files from *coverage* measurement (the socket/sse servers, most of grpc) — check `coverage.exclude` before concluding a file is covered just because its tests pass.
+- `__tests__/tsconfig.json` gives ESLint's `projectService` a project for test files (the root `tsconfig.json` only includes `src/**`), so type-aware lint rules actually run on `__tests__` too, not just `src/**`.
 - `helios-docs/`: the Docusaurus docs workspace. `helios-docs/docs/` is gitignored.
 - `.planning/codebase/*.md`: earlier analysis notes. Some of them are stale, for example the coverage numbers in CONCERNS.md.
 

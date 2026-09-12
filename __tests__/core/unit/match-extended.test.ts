@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { matchRoutes } from '../../../src/core/src/utils/core/match';
 import type { ControllerMeta } from '../../../src/core/src/types/core';
 

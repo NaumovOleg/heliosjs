@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { describe, expect, it, afterEach } from 'vitest';
 import { Helios, Server } from '@heliosjs/http';
-import { Controller, Get, Post, Body, Params, ErrorHandler } from '@heliosjs/core';
+import { Controller, Get, Post, Body, Params } from '@heliosjs/core';
 
 let portCounter = 25000;
 function makePort() { return portCounter++; }
@@ -86,7 +86,7 @@ describe('E2E: Error handler chain', () => {
     app.use(async (req: any, res: any, next: any) => {
       try {
         await next();
-      } catch (e: any) {
+      } catch {
         caught = true;
       }
     });
@@ -170,7 +170,7 @@ describe('E2E: Body parsing edge cases', () => {
     @Controller('/form')
     class FormCtrl {
       @Post('/')
-      handler(@Body() body: any) {
+      handler(@Body() _body: any) {
         return { received: true };
       }
     }

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { execute, beforeRequest, collectRoutes, runGuard, getAllMethods } from '../../../../src/core/src/utils/core/controller';
 import { ForbiddenError } from '../../../../src/core/src/utils/core/error';
-import { ErrorCode } from '../../../../src/core/src/types/core';
 
 function makeRoute(overrides: any = {}) {
   return {

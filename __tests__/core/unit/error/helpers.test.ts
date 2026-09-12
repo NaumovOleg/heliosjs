@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { serializeError, isError, getErrorType } from '@heliosjs/core/utils';
-import { BaseError, ValidationError as HeliosValidationError, UnauthorizedError } from '@heliosjs/core/utils';
+import { BaseError, UnauthorizedError } from '@heliosjs/core/utils';
 import { ErrorCode } from '@heliosjs/core/types';
 import { ValidationError } from 'class-validator';
 

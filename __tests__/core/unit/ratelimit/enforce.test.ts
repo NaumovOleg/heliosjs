@@ -38,7 +38,6 @@ describe('enforceRateLimit', () => {
   });
 
   it('throws RateLimitExceededError when limit exceeded', async () => {
-    const strategy = fixedWindow();
     const req = makeRequest({ headers: { origin: 'http://localhost' } }) as any;
     const res = makeResponse() as any;
     const route = makeRoute({

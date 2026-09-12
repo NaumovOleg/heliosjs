@@ -1,10 +1,7 @@
 import 'reflect-metadata';
-import fs from 'node:fs';
-import path from 'node:path';
-import os from 'node:os';
-import { describe, it, expect, vi, afterAll } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { collectRawBody } from '../../../src/http/src/utils/http/body';
-import http from 'node:http';
+import type http from 'node:http';
 import { PassThrough } from 'node:stream';
 
 function makeStream(body?: string, headers?: Record<string, string>) {

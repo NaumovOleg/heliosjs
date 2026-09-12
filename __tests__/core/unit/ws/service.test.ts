@@ -1,13 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { WebSocketService } from '@heliosjs/core/utils';
 
 describe('WebSocketService', () => {
-  let service: WebSocketService;
-
-  beforeEach(() => {
-    service = WebSocketService.getInstance();
-  });
-
   it('returns singleton instance', () => {
     const a = WebSocketService.getInstance();
     const b = WebSocketService.getInstance();

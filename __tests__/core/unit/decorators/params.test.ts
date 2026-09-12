@@ -13,7 +13,7 @@ describe('Parameter decorators', () => {
   describe('@Body', () => {
     it('creates body parameter decorator', () => {
       class Ctrl {
-        handler(@Body() body: any) {}
+        handler(@Body() _body: any) {}
       }
       const params = getParams(Ctrl.prototype, 'handler');
       expect(params).toHaveLength(1);
@@ -23,7 +23,7 @@ describe('Parameter decorators', () => {
     it('creates body decorator with dto', () => {
       class UserDto {}
       class Ctrl {
-        handler(@Body(UserDto) body: UserDto) {}
+        handler(@Body(UserDto) _body: UserDto) {}
       }
       const params = getParams(Ctrl.prototype, 'handler');
       expect(params[0].dto).toBe(UserDto);
@@ -31,7 +31,7 @@ describe('Parameter decorators', () => {
 
     it('creates body decorator with name string', () => {
       class Ctrl {
-        handler(@Body('name') name: string) {}
+        handler(@Body('name') _name: string) {}
       }
       const params = getParams(Ctrl.prototype, 'handler');
       expect(params[0].name).toBe('name');
@@ -41,7 +41,7 @@ describe('Parameter decorators', () => {
       class UserDto {}
       const opts = { whitelist: true };
       class Ctrl {
-        handler(@Body(UserDto, opts) body: UserDto) {}
+        handler(@Body(UserDto, opts) _body: UserDto) {}
       }
       const params = getParams(Ctrl.prototype, 'handler');
       expect(params[0].dto).toBe(UserDto);
@@ -52,7 +52,7 @@ describe('Parameter decorators', () => {
       class UserDto {}
       const opts = { whitelist: true };
       class Ctrl {
-        handler(@Body(UserDto, 'user', opts) body: UserDto) {}
+        handler(@Body(UserDto, 'user', opts) _body: UserDto) {}
       }
       const params = getParams(Ctrl.prototype, 'handler');
       expect(params[0].dto).toBe(UserDto);
@@ -64,7 +64,7 @@ describe('Parameter decorators', () => {
   describe('@Params', () => {
     it('creates params parameter decorator', () => {
       class Ctrl {
-        handler(@Params() params: any) {}
+        handler(@Params() _params: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('params');
@@ -72,7 +72,7 @@ describe('Parameter decorators', () => {
 
     it('creates params with specific name', () => {
       class Ctrl {
-        handler(@Params('id') id: string) {}
+        handler(@Params('id') _id: string) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].name).toBe('id');
@@ -81,7 +81,7 @@ describe('Parameter decorators', () => {
     it('creates params with dto', () => {
       class ParamsDto {}
       class Ctrl {
-        handler(@Params(ParamsDto) params: ParamsDto) {}
+        handler(@Params(ParamsDto) _params: ParamsDto) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].dto).toBe(ParamsDto);
@@ -91,7 +91,7 @@ describe('Parameter decorators', () => {
   describe('@QueryParam', () => {
     it('creates query parameter decorator', () => {
       class Ctrl {
-        handler(@QueryParam() query: any) {}
+        handler(@QueryParam() _query: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('query');
@@ -99,7 +99,7 @@ describe('Parameter decorators', () => {
 
     it('creates query with specific name', () => {
       class Ctrl {
-        handler(@QueryParam('search') search: string) {}
+        handler(@QueryParam('search') _search: string) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].name).toBe('search');
@@ -108,7 +108,7 @@ describe('Parameter decorators', () => {
     it('creates query with dto', () => {
       class QueryDto {}
       class Ctrl {
-        handler(@QueryParam(QueryDto) query: QueryDto) {}
+        handler(@QueryParam(QueryDto) _query: QueryDto) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].dto).toBe(QueryDto);
@@ -118,7 +118,7 @@ describe('Parameter decorators', () => {
   describe('@Req', () => {
     it('creates request parameter decorator', () => {
       class Ctrl {
-        handler(@Req() req: any) {}
+        handler(@Req() _req: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('request');
@@ -128,7 +128,7 @@ describe('Parameter decorators', () => {
   describe('@Res', () => {
     it('creates response parameter decorator', () => {
       class Ctrl {
-        handler(@Res() res: any) {}
+        handler(@Res() _res: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('response');
@@ -138,7 +138,7 @@ describe('Parameter decorators', () => {
   describe('@Headers', () => {
     it('creates headers parameter decorator', () => {
       class Ctrl {
-        handler(@Headers() headers: any) {}
+        handler(@Headers() _headers: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('headers');
@@ -146,7 +146,7 @@ describe('Parameter decorators', () => {
 
     it('creates headers with specific name', () => {
       class Ctrl {
-        handler(@Headers('authorization') auth: string) {}
+        handler(@Headers('authorization') _auth: string) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].name).toBe('authorization');
@@ -156,7 +156,7 @@ describe('Parameter decorators', () => {
   describe('@Cookies', () => {
     it('creates cookies parameter decorator', () => {
       class Ctrl {
-        handler(@Cookies() cookies: any) {}
+        handler(@Cookies() _cookies: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('cookies');
@@ -164,7 +164,7 @@ describe('Parameter decorators', () => {
 
     it('creates cookies with specific name', () => {
       class Ctrl {
-        handler(@Cookies('sessionId') sid: string) {}
+        handler(@Cookies('sessionId') _sid: string) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].name).toBe('sessionId');
@@ -174,7 +174,7 @@ describe('Parameter decorators', () => {
   describe('@Files', () => {
     it('creates multipart parameter decorator', () => {
       class Ctrl {
-        handler(@Files() files: any) {}
+        handler(@Files() _files: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('multipart');
@@ -182,7 +182,7 @@ describe('Parameter decorators', () => {
 
     it('creates files with specific name', () => {
       class Ctrl {
-        handler(@Files('avatar') file: any) {}
+        handler(@Files('avatar') _file: any) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].name).toBe('avatar');
@@ -192,7 +192,7 @@ describe('Parameter decorators', () => {
   describe('@Fingerprint', () => {
     it('creates fingerprint parameter decorator', () => {
       class Ctrl {
-        handler(@Fingerprint() fp: string) {}
+        handler(@Fingerprint() _fp: string) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
       expect(p[0].type).toBe('fingerprint');
@@ -203,10 +203,10 @@ describe('Parameter decorators', () => {
     it('accumulates multiple parameter decorators on the same method', () => {
       class Ctrl {
         handler(
-          @Body() body: any,
-          @Params('id') id: string,
-          @QueryParam('sort') sort: string,
-          @Headers('x-token') token: string,
+          @Body() _body: any,
+          @Params('id') _id: string,
+          @QueryParam('sort') _sort: string,
+          @Headers('x-token') _token: string,
         ) {}
       }
       const p = getParams(Ctrl.prototype, 'handler');
