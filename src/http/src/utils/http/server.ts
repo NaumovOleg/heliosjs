@@ -1,10 +1,4 @@
-import {
-  CATCH,
-  INTERCEPT,
-  SANITIZE,
-  SERVER_CONFIG_KEY,
-  USE_MIDDLEWARE,
-} from '@heliosjs/core/constants';
+import { CATCH, INTERCEPT, SERVER_CONFIG_KEY, USE_MIDDLEWARE } from '@heliosjs/core/constants';
 import type { ServerConfig } from '../../types/http';
 
 /**
@@ -29,7 +23,6 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
   const errorHandler = Reflect.getMetadata(CATCH, configOrClass);
   const interceptor = Reflect.getMetadata(INTERCEPT, configOrClass);
   const middlewares = Reflect.getMetadata(USE_MIDDLEWARE, configOrClass);
-  const sanitizers = Reflect.getMetadata(SANITIZE, configOrClass.prototype) || [];
 
   return {
     port: 3000,
@@ -42,7 +35,7 @@ export const resolveConfig = (configOrClass?: any): ServerConfig => {
       .filter((el: unknown) => !!el),
     cors: decoratorConfig.cors,
     controllers: (decoratorConfig.controllers ?? []).filter((el: unknown) => !!el),
-    sanitizers,
+    sanitizers: decoratorConfig.sanitizers ?? [],
     websocketPath: decoratorConfig.websocketPath ?? '/ws',
   };
 };

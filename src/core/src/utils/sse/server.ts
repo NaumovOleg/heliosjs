@@ -159,7 +159,11 @@ export class SSEServer implements ISSEServer {
     for (const controller of this.controllers) {
       if (controller.sse?.handlers?.[eventType]) {
         for (const handler of controller.sse.handlers[eventType]) {
-          await handler.fn(event).catch((err: unknown) => getGlobalLogger().error('sse: handler failed', err));
+          // `fn` isn't guaranteed to be async — Promise.resolve() so a sync
+          // handler (or one that returns a plain value) doesn't crash `.catch`.
+          await Promise.resolve(handler.fn(event)).catch((err: unknown) =>
+            getGlobalLogger().error('sse: handler failed', err)
+          );
         }
       }
     }

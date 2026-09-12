@@ -130,7 +130,7 @@ describe('SSEServer', () => {
     const sse = new SSEServer();
     const res1 = createMockResponse();
     const res2 = createMockResponse();
-    const c1 = sse.createConnection(res1);
+    const _c1 = sse.createConnection(res1);
     sse.createConnection(res2);
     sse.broadcast({ data: 'hi' });
     expect(res1.write).toHaveBeenCalledWith(expect.stringContaining('data: hi'));
@@ -142,7 +142,7 @@ describe('SSEServer', () => {
     const res1 = createMockResponse();
     const res2 = createMockResponse();
     const c1 = sse.createConnection(res1);
-    const c2 = sse.createConnection(res2);
+    const _c2 = sse.createConnection(res2);
     sse.broadcast({ data: 'hi' }, c1.id);
     expect(res1.write).not.toHaveBeenCalledWith(expect.stringContaining('data: hi'));
     expect(res2.write).toHaveBeenCalledWith(expect.stringContaining('data: hi'));
@@ -162,5 +162,60 @@ describe('SSEServer', () => {
     const without = {} as any;
     sse.registerControllers([withSse, without]);
     expect(sse.controllers).toHaveLength(1);
+  });
+
+  it('sendToClient returns false and logs when writing throws', () => {
+    const sse = new SSEServer();
+    const res = createMockResponse();
+    const client = sse.createConnection(res);
+    res.write = vi.fn(() => {
+      throw new Error('write failed');
+    });
+    expect(sse.sendToClient(client.id, { data: 'x' })).toBe(false);
+  });
+
+  describe('close cleanup and handler dispatch', () => {
+    function fireClose(res: ReturnType<typeof createMockResponse>) {
+      const handler = res.on.mock.calls.find(([event]: [string]) => event === 'close')?.[1];
+      return handler?.();
+    }
+
+    it('removes the client and runs close handlers when the response closes', async () => {
+      const sse = new SSEServer();
+      const connFn = vi.fn();
+      const closeFn = vi.fn();
+      sse.registerControllers([
+        { sse: { handlers: { connection: [{ fn: connFn }], close: [{ fn: closeFn }] } } } as any,
+      ]);
+      const res = createMockResponse();
+      sse.createConnection(res);
+      expect(sse.getStats().clients).toBe(1);
+      expect(connFn).toHaveBeenCalledWith(expect.objectContaining({ type: 'connection' }));
+
+      await fireClose(res);
+      expect(sse.getStats().clients).toBe(0);
+      expect(closeFn).toHaveBeenCalledWith(expect.objectContaining({ type: 'close' }));
+    });
+
+    it('supports a synchronous handler (no promise returned)', async () => {
+      const sse = new SSEServer();
+      const syncFn = vi.fn(() => undefined);
+      sse.registerControllers([{ sse: { handlers: { connection: [{ fn: syncFn }] } } } as any]);
+      const res = createMockResponse();
+      expect(() => sse.createConnection(res)).not.toThrow();
+      await Promise.resolve();
+      expect(syncFn).toHaveBeenCalledOnce();
+    });
+
+    it('logs and continues when a handler rejects', async () => {
+      const sse = new SSEServer();
+      const failing = vi.fn().mockRejectedValue(new Error('boom'));
+      sse.registerControllers([{ sse: { handlers: { connection: [{ fn: failing }] } } } as any]);
+      const res = createMockResponse();
+      expect(() => sse.createConnection(res)).not.toThrow();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(failing).toHaveBeenCalledOnce();
+    });
   });
 });

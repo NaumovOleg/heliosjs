@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import http from 'node:http';
-import { CONTROLLER_REQUEST, CONTROLLERS } from '@heliosjs/core/constants';
+import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
 import type {
   ControllerClass,
   ControllerMeta,
@@ -15,6 +15,7 @@ import type {
 import {
   handleCORS,
   Logger,
+  reflectControllerMeta,
   SSEServer,
   SSEService,
   sanitizeRequest,
@@ -376,7 +377,10 @@ export class Helios extends Plugin implements IHttpServer {
       if (!result.includes(ControllerClass)) {
         result.push(ControllerClass);
       }
-      const subControllers = Reflect.getMetadata(CONTROLLERS, ControllerClass.prototype) || [];
+      // `@Controller`'s decorator stores nested `controllers` under
+      // DECORATOR.controller via defineControllerMeta — read it the same way
+      // core does, not a standalone metadata key nothing writes to.
+      const subControllers = reflectControllerMeta(ControllerClass.prototype).controllers ?? [];
 
       if (subControllers.length > 0) {
         const nestedControllers = this.collectControllers(subControllers);
@@ -450,7 +454,11 @@ export class Helios extends Plugin implements IHttpServer {
       // headers as GET but no body.
       response.end(request.method === 'HEAD' ? undefined : response.data);
     } catch {
-      if (!response.headersSent) {
+      // `response.end()` marks its own `_headersSent` true before attempting
+      // the write (so a concurrent call short-circuits), so by the time it
+      // throws `response.headersSent` is already true — check the raw
+      // transport's own flag instead to see whether bytes actually went out.
+      if (!response.raw?.headersSent) {
         response.status = 500;
       }
       return;

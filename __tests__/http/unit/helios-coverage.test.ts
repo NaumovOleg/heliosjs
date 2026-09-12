@@ -2,7 +2,8 @@ import 'reflect-metadata';
 import http from 'node:http';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { Helios, Server } from '@heliosjs/http';
-import { Controller, Get, Post } from '@heliosjs/core';
+import { Controller, Get } from '@heliosjs/core';
+import { getRolesExtractor } from '@heliosjs/core/utils';
 
 let portCounter = 20000;
 function makePort() { return portCounter++; }
@@ -30,11 +31,12 @@ describe('Helios coverage gaps', () => {
   afterEach(async () => { if (app) { await app.close(); app = undefined as any; } });
 
   it('constructor with rbac config', () => {
-    @Server({ port: 0 })
-    class App {}
     const getRoles = vi.fn();
+    @Server({ port: 0, rbac: { getRoles } })
+    class App {}
     const a = new Helios(App as any);
     expect(a).toBeDefined();
+    expect(getRolesExtractor()).toBe(getRoles);
   });
 
   it('constructor with requestTimeout and headersTimeout', () => {
@@ -155,6 +157,9 @@ describe('Helios coverage gaps', () => {
     const base = await startApp(app);
     const res = await fetch(`${base}/test`);
     expect(res.status).toBe(200);
+    // Regression: `sanitizers` passed via @Server(...) config used to be
+    // silently dropped by resolveConfig — assert it's actually wired in.
+    expect(sanitizer.schema.validate).toHaveBeenCalled();
   });
 
   it('beforeRequest runs globalMiddlewares', async () => {
@@ -166,7 +171,7 @@ describe('Helios coverage gaps', () => {
     app = buildApp([TestCtrl]);
     app.use(async (_req: any, _res: any, next: any) => { ran = true; await next(); });
     const base = await startApp(app);
-    const res = await fetch(`${base}/test`);
+    await fetch(`${base}/test`);
     expect(ran).toBe(true);
   });
 

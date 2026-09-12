@@ -3,7 +3,7 @@ import http from 'node:http';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { Helios, Server } from '@heliosjs/http';
-import { Controller, Get, Post } from '@heliosjs/core';
+import { Controller, Get } from '@heliosjs/core';
 
 vi.mock('graphql-yoga', () => ({
   createYoga: vi.fn(() => (req: any, res: any) => {
@@ -242,43 +242,79 @@ describe('Helios coverage - requestHandler paths', () => {
     expect(base).toBeDefined();
   });
 
-  it('setupGraphQL: with resolvers and pubSub', async () => {
-    const { createPubSub } = await import('graphql-yoga');
+  it('setupGraphQL: with resolvers and pubSub wires useServer and the yoga route', async () => {
+    const { createYoga, createPubSub } = await import('graphql-yoga');
+    const { buildSchema } = await import('type-graphql');
+    const { useServer } = await import('graphql-ws/use/ws');
+    vi.mocked(createYoga).mockClear();
+    vi.mocked(buildSchema).mockClear();
+    vi.mocked(useServer).mockClear();
+    const pubSub = (createPubSub as any)();
     @Server({
-      port: 0,
-      graphql: {
-        path: '/graphql',
-        playground: true,
-        resolvers: [class {}],
-        pubSub: (createPubSub as any)(),
-      },
+      port: makePort(),
+      graphql: { path: '/graphql', playground: true, resolvers: [class {}], pubSub },
     })
     class App {}
     const a = new Helios(App as any);
-    expect(a).toBeDefined();
+    await a.listen();
+
+    expect(buildSchema).toHaveBeenCalledWith(
+      expect.objectContaining({ validate: true, pubSub })
+    );
+    expect(createYoga).toHaveBeenCalledWith(
+      expect.objectContaining({ graphiql: true })
+    );
+    expect(useServer).toHaveBeenCalledOnce();
+
+    // The context callback passed to createYoga (line ~491) is only invoked
+    // by yoga itself at request time — call it directly here to cover it.
+    const { context } = vi.mocked(createYoga).mock.calls[0][0] as any;
+    const ctx = context({ request: { headers: { a: '1' } } });
+    expect(ctx.pubSub).toBe(pubSub);
+
+    // The graphql-path routing middleware registered via `this.use(...)`.
+    // The mocked yoga handler writes a response — use that as the "was it
+    // invoked" signal since createYoga's return value isn't itself a spy.
+    const gqlMiddleware = (a as any).globalMiddlewares.at(-1);
+    const matchingRes = { raw: { writeHead: vi.fn(), end: vi.fn() } };
+    await gqlMiddleware({ requestUrl: { pathname: '/graphql/anything' }, raw: {} }, matchingRes);
+    expect(matchingRes.raw.end).toHaveBeenCalled();
+
+    const nonMatchingRes = { raw: { writeHead: vi.fn(), end: vi.fn() } };
+    await gqlMiddleware({ requestUrl: { pathname: '/other' }, raw: {} }, nonMatchingRes);
+    expect(nonMatchingRes.raw.end).not.toHaveBeenCalled();
+
+    await a.close();
   });
 
-  it('setupGraphQL: with resolvers but no pubSub', async () => {
-    @Server({
-      port: 0,
-      graphql: {
-        path: '/gql',
-        resolvers: [class {}],
-      },
-    })
+  it('setupGraphQL: with resolvers but no pubSub skips useServer and falls back to createPubSub in context', async () => {
+    const { createYoga, createPubSub } = await import('graphql-yoga');
+    const { useServer } = await import('graphql-ws/use/ws');
+    vi.mocked(useServer).mockClear();
+    vi.mocked(createPubSub).mockClear();
+    vi.mocked(createYoga).mockClear();
+    @Server({ port: makePort(), graphql: { path: '/gql', resolvers: [class {}] } })
     class App {}
     const a = new Helios(App as any);
-    expect(a).toBeDefined();
+    await a.listen();
+
+    expect(useServer).not.toHaveBeenCalled();
+    const { context } = vi.mocked(createYoga).mock.calls[0][0] as any;
+    context({ request: {} });
+    expect(createPubSub).toHaveBeenCalled();
+
+    await a.close();
   });
 
-  it('setupGraphQL: no resolvers returns early', () => {
-    @Server({
-      port: 0,
-      graphql: { path: '/graphql', resolvers: [] },
-    })
+  it('setupGraphQL: no resolvers returns early without building a schema', async () => {
+    const { buildSchema } = await import('type-graphql');
+    vi.mocked(buildSchema).mockClear();
+    @Server({ port: makePort(), graphql: { path: '/graphql', resolvers: [] } })
     class App {}
     const a = new Helios(App as any);
-    expect(a).toBeDefined();
+    await a.listen();
+    expect(buildSchema).not.toHaveBeenCalled();
+    await a.close();
   });
 
   it('requestHandler: multiple plugins with hooks', async () => {
@@ -321,7 +357,7 @@ describe('Helios coverage - requestHandler paths', () => {
     class App {}
     const a = new Helios(App as any);
     (a as any).plugins = [plugin];
-    const server = await a.listen(makePort(), '127.0.0.1');
+    await a.listen(makePort(), '127.0.0.1');
     await new Promise(r => setImmediate(r));
     expect(plugin.onStart).toHaveBeenCalled();
     await a.close();
@@ -399,6 +435,9 @@ describe('Helios coverage - requestHandler paths', () => {
     }
     app = buildApp([TestCtrl], { sanitizers: [sanitizer] });
     await (app as any).requestHandler(makeFakeReq({ url: '/test' }), makeFakeRes());
+    // Regression: `sanitizers` passed via @Server(...) config used to be
+    // silently dropped by resolveConfig — assert it's actually wired in.
+    expect(sanitizer.schema.validate).toHaveBeenCalled();
   });
 
   it('requestHandler: direct call with global middleware', async () => {
@@ -460,15 +499,18 @@ describe('Helios coverage - requestHandler paths', () => {
     );
   });
 
-  it('requestHandler: collectControllers with nested', async () => {
+  it('requestHandler: collectControllers discovers nested controllers', async () => {
     @Controller('/sub')
     class Sub { @Get('/') h() { return {}; } }
-    @Controller('/parent')
+    // Regression: collectControllers used to read nested `controllers` from a
+    // metadata key nothing writes to, so declared children were silently
+    // dropped from the flat list (and never reached SSE registration).
+    @Controller({ prefix: '/parent', controllers: [Sub] })
     class Parent { @Get('/') h() { return {}; } }
-    Reflect.defineMetadata('controllers', [Sub], Parent.prototype);
     app = buildApp([Parent]);
     const ctrl = (app as any).collectControllers([Parent]);
-    expect(ctrl.length).toBeGreaterThanOrEqual(1);
+    expect(ctrl).toContain(Parent);
+    expect(ctrl).toContain(Sub);
   });
 
   it('compileControllers: with controller classes', async () => {
@@ -477,5 +519,146 @@ describe('Helios coverage - requestHandler paths', () => {
     app = buildApp([A]);
     const ctrl = (app as any).compileControllers([A]);
     expect(ctrl.length).toBeGreaterThan(0);
+  });
+
+  it('constructor: log: false silences the logger', () => {
+    @Server({ port: makePort(), log: false })
+    class App {}
+    app = new Helios(App as any);
+    expect((app as any).logger.getLevel()).toBe('silent');
+  });
+
+  it('close() rejects when the underlying server errors on close', async () => {
+    @Server({ port: makePort() })
+    class App {}
+    app = new Helios(App as any);
+    await app.listen();
+    // Once: the failed close leaves `isRunning` true (the error branch never
+    // flips it), so afterEach's own cleanup close must go through for real.
+    vi.spyOn((app as any).app, 'close').mockImplementationOnce((cb: any) => cb(new Error('close failed')));
+    await expect(app.close()).rejects.toThrow('close failed');
+  });
+
+  it('requestHandler: skips route dispatch when a beforeRequest plugin hook already ended the response', async () => {
+    const handler = vi.fn().mockReturnValue({ fromController: true });
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return handler(); }
+    }
+    app = buildApp([TestCtrl]);
+    const raw = (app as any).app as http.Server;
+    (app as any).plugins = [
+      {
+        name: 'short-circuit',
+        hooks: {
+          // Plugins receive the raw node request; find the matching raw response
+          // via the http.Server's pending connections isn't exposed, so end it
+          // through a `request` listener instead — simplest: stash it on req.
+          beforeRequest: async (req: any) => {
+            req.__rawRes.writeHead(200, { 'Content-Type': 'text/plain' });
+            req.__rawRes.end('from plugin');
+          },
+        },
+      },
+    ];
+    raw.prependListener('request', (req: any, res: any) => {
+      req.__rawRes = res;
+    });
+    const base = await startApp(app);
+    const res = await fetch(`${base}/test`);
+    const text = await res.text();
+    expect(text).toBe('from plugin');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('requestHandler: a global middleware that ends the response skips beforeRoute and the controller', async () => {
+    const controllerHandler = vi.fn().mockReturnValue({ fromController: true });
+    const beforeRoute = vi.fn();
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return controllerHandler(); }
+    }
+    app = buildApp([TestCtrl]);
+    app.use(async (_req: any, res: any) => {
+      res.end('from global middleware');
+    });
+    (app as any).plugins = [{ name: 'p', hooks: { beforeRoute } }];
+    const base = await startApp(app);
+    const res = await fetch(`${base}/test`);
+    const text = await res.text();
+    expect(text).toBe('from global middleware');
+    expect(beforeRoute).not.toHaveBeenCalled();
+    expect(controllerHandler).not.toHaveBeenCalled();
+  });
+
+  it('requestHandler: a beforeRoute plugin hook that ends the response skips the controller', async () => {
+    const controllerHandler = vi.fn().mockReturnValue({ fromController: true });
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return controllerHandler(); }
+    }
+    app = buildApp([TestCtrl]);
+    (app as any).plugins = [
+      {
+        name: 'end-in-before-route',
+        hooks: {
+          beforeRoute: async (_req: any, res: any) => {
+            res.end('from beforeRoute hook');
+          },
+        },
+      },
+    ];
+    const base = await startApp(app);
+    const res = await fetch(`${base}/test`);
+    const text = await res.text();
+    expect(text).toBe('from beforeRoute hook');
+    expect(controllerHandler).not.toHaveBeenCalled();
+  });
+
+  it('requestHandler: a static middleware that ends the response short-circuits the rest of the pipeline', async () => {
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return { fromController: true }; }
+    }
+    app = buildApp([TestCtrl]);
+    (app as any).staticMiddlewares = [
+      async (_req: any, res: any) => {
+        res.raw.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.raw.end('from static middleware');
+      },
+    ];
+    const base = await startApp(app);
+    const res = await fetch(`${base}/test`);
+    const text = await res.text();
+    expect(text).toBe('from static middleware');
+  });
+
+  it('sendResponse: sets status 500 when response.end() throws and headers were not sent', async () => {
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return { ok: true }; }
+    }
+    app = buildApp([TestCtrl]);
+    const res = makeFakeRes();
+    res.end = vi.fn(() => { throw new Error('socket gone'); });
+    await (app as any).requestHandler(makeFakeReq({ url: '/test' }), res);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it('setupGraphQL: useServer\'s context callback returns the configured pubSub', async () => {
+    const { createPubSub, createYoga } = await import('graphql-yoga');
+    const { useServer } = await import('graphql-ws/use/ws');
+    vi.mocked(useServer).mockClear();
+    vi.mocked(createYoga).mockClear();
+    const pubSub = (createPubSub as any)();
+    @Server({ port: makePort(), graphql: { path: '/graphql', resolvers: [class {}], pubSub } })
+    class App {}
+    const a = new Helios(App as any);
+    await a.listen();
+
+    const { context } = vi.mocked(useServer).mock.calls[0][0] as any;
+    expect(context()).toEqual({ pubSub });
+
+    await a.close();
   });
 });

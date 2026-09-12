@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
 import { resolveConfig } from '../../../src/http/src/utils/http/server';
-import { SERVER_CONFIG_KEY, CATCH, INTERCEPT, USE_MIDDLEWARE, SANITIZE } from '@heliosjs/core/constants';
+import { SERVER_CONFIG_KEY, CATCH, INTERCEPT, USE_MIDDLEWARE } from '@heliosjs/core/constants';
 
 describe('resolveConfig', () => {
   it('throws when called with undefined', () => {
@@ -54,12 +54,18 @@ describe('resolveConfig', () => {
     expect(config.middlewares).toContain(mw);
   });
 
-  it('resolves sanitizers from SANITIZE metadata', () => {
+  it('resolves sanitizers from the decorator config object', () => {
     const sanitizer = { type: 'string' as const };
     class App {}
-    Reflect.defineMetadata(SANITIZE, [sanitizer], App.prototype);
+    Reflect.defineMetadata(SERVER_CONFIG_KEY, { sanitizers: [sanitizer] }, App);
     const config = resolveConfig(App);
     expect(config.sanitizers).toContain(sanitizer);
+  });
+
+  it('defaults sanitizers to an empty array when not configured', () => {
+    class App {}
+    const config = resolveConfig(App);
+    expect(config.sanitizers).toEqual([]);
   });
 
   it('merges decorator config with defaults', () => {
