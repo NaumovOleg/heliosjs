@@ -118,7 +118,7 @@
     "tsconfig-paths": "4.2.0",
     "tsx": "^4.19.0",
     "type-graphql": "2.0.0-rc.3",
-    "typescript": "6.0.2",
+    "typescript": "6.0.3",
     "typescript-eslint": "8.59.1",
     "vitest": "^4.1.9",
     "ws": "8.21.3"
