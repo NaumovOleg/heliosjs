@@ -30,7 +30,7 @@
     "publish:major": "yarn version --major --no-git-tag-version && yarn publish --access public"
   },
   "dependencies": {
-    "@types/aws-lambda": "8.10.161"
+    "@types/aws-lambda": "8.10.163"
   },
   "peerDependencies": {
     "@heliosjs/core": ">=4.0.2",
