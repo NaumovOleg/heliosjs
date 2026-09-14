@@ -251,10 +251,16 @@ export class GrpcServer {
       }
     } catch (error) {
       const normalized = normalizeError(error);
-      callback({
-        code: normalized.code,
-        message: normalized.message,
-      });
+      // grpc-js only passes a `callback` for non-response-streaming RPCs; a
+      // response-streaming/bidi call gets `(call)` alone, so a synchronous
+      // throw from a stream handler must report through `call.destroy`
+      // instead — calling a nonexistent callback would throw again here,
+      // as an unhandled rejection on this async method's returned promise.
+      if (typeof callback === 'function') {
+        callback({ code: normalized.code, message: normalized.message });
+      } else {
+        call.destroy({ code: normalized.code, message: normalized.message });
+      }
     }
   }
 }

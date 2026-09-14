@@ -66,12 +66,26 @@ export function toPromise<T>(observable: any): Promise<T> {
 
   return new Promise((resolve, reject) => {
     let resolved = false;
-    const subscription = observable.subscribe({
+    // A mutable holder, not a `subscription` variable reassigned after
+    // `subscribe()` returns: a source that emits synchronously (a
+    // `BehaviorSubject`, `of(value)`, ...) invokes `next` before that
+    // assignment would complete, and reading a `const`/`let subscription`
+    // there is a TDZ `ReferenceError` — which, thrown from inside an RxJS
+    // consumer callback, RxJS's `reportUnhandledError` re-throws on the next
+    // tick, crashing the process (verified: an uncaught exception, not a
+    // silent no-op). `ref` itself is assigned once and stays in scope from
+    // the start of this block, so `ref.current` is always safe to read.
+    // Deferring the unsubscribe by a microtask, rather than calling it
+    // inline, also gives `ref.current` a chance to be set first, so a
+    // synchronous source's subscription still gets torn down instead of
+    // leaking (an async source's timing is unaffected either way).
+    const ref: { current?: { unsubscribe(): void } } = {};
+    ref.current = observable.subscribe({
       next: (value: T) => {
         if (!resolved) {
           resolved = true;
           resolve(value);
-          subscription.unsubscribe();
+          queueMicrotask(() => ref.current?.unsubscribe());
         }
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

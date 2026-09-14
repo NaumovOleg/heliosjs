@@ -94,4 +94,14 @@ describe('GrpcModule', () => {
     await mod.stop();
     expect(stop).toHaveBeenCalledOnce();
   });
+
+  it('stop() closes every registered client channel', async () => {
+    const mod = GrpcModule.forRoot({
+      clients: [{ name: 'users', options: { protoPath: './test.proto', package: 'test' } }],
+    });
+    const client = mod.getClient('users')!;
+    const closeSpy = vi.spyOn(client, 'close');
+    await mod.stop();
+    expect(closeSpy).toHaveBeenCalledOnce();
+  });
 });

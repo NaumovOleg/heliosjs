@@ -85,11 +85,14 @@ export class GrpcModule {
   }
 
   /**
-   * Stops gRPC server if configured.
+   * Stops gRPC server if configured and closes every registered client channel.
    */
   async stop(): Promise<void> {
     if (this.server) {
       await this.server.stop();
+    }
+    for (const client of this.clients.values()) {
+      client.close();
     }
   }
 }

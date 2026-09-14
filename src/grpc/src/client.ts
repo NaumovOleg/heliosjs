@@ -104,13 +104,52 @@ export class GrpcClient implements ClientGrpc {
     const client = new serviceDefinition(this.options.url, credentials);
     this.realClients.set(serviceName, client);
 
-    // Wrap methods to return Observables
+    // Wrap methods to return Observables. grpc-js attaches `requestStream`/
+    // `responseStream` directly to each generated method function — read
+    // those rather than assuming every RPC is unary (callback-shaped).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrapped: any = {};
     for (const methodName in client) {
+       
+      const methodFn = client[methodName];
+      if (typeof methodFn !== 'function') continue;
+      const responseStream = !!methodFn.responseStream;
+      const requestStream = !!methodFn.requestStream;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       wrapped[methodName] = (...args: any[]) => {
+        if (requestStream) {
+          // Client-streaming/bidi RPCs take a stream of outgoing requests,
+          // not a single argument list — getService()'s one-call-in,
+          // one-Observable-out shape has nowhere to put that. Erroring here
+          // beats silently wrapping a call that would just hang forever.
+          return new Observable((observer) => {
+            observer.error(
+              new Error(
+                `${methodName}: client-streaming/bidi RPCs are not supported by getService()`
+              )
+            );
+          });
+        }
+
         return new Observable((observer) => {
+          if (responseStream) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const call: any = client[methodName](...args);
+            const onData = (value: unknown) => observer.next(value);
+            const onError = (error: unknown) => observer.error(error);
+            const onEnd = () => observer.complete();
+            call.on('data', onData);
+            call.on('error', onError);
+            call.on('end', onEnd);
+            return () => {
+              call.off('data', onData);
+              call.off('error', onError);
+              call.off('end', onEnd);
+              if (typeof call.cancel === 'function') call.cancel();
+            };
+          }
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           client[methodName](...args, (error: any, response: any) => {
             if (error) {

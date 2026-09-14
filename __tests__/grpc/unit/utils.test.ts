@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GrpcError, GrpcInvalidProtoError, GrpcServiceNotFoundError } from '../../../src/grpc/src/utils/grpc/errors';
 import { normalizeError, toPromise } from '../../../src/grpc/src/utils/grpc/helpers';
 import { status } from '@grpc/grpc-js';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 describe('GrpcError classes', () => {
   it('GrpcError sets code and message', () => {
@@ -91,5 +91,17 @@ describe('toPromise', () => {
       setTimeout(() => subscriber.error(new Error('obs err')), 0);
     });
     await expect(toPromise(obs)).rejects.toThrow('obs err');
+  });
+
+  it('resolves and unsubscribes without crashing when the source emits synchronously', async () => {
+    // A source that emits on subscribe (BehaviorSubject, of(), ...) used to
+    // hit a TDZ ReferenceError reading `subscription` before it was assigned;
+    // RxJS re-throws consumer-callback errors on the next tick, which crashed
+    // the process rather than just failing this promise.
+    const subject = new BehaviorSubject('sync value');
+    const result = await toPromise(subject);
+    expect(result).toBe('sync value');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(subject.observed).toBe(false);
   });
 });

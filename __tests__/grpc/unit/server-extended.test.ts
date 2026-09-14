@@ -317,6 +317,20 @@ describe('GrpcServer', () => {
     expect(callback).toHaveBeenCalledWith(expect.objectContaining({ code: expect.any(Number), message: 'handler err' }));
   });
 
+  it('regression: a stream handler that throws synchronously reports through call.destroy, not a nonexistent callback', async () => {
+    // grpc-js invokes a response-streaming/bidi handler as `(call)` alone —
+    // no callback argument — so the catch block can't assume one exists.
+    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    const handler = vi.fn().mockImplementation(() => { throw new Error('handler err'); });
+    const call = { write: vi.fn(), end: vi.fn(), destroy: vi.fn(), request: {}, metadata: {} };
+    const methodMeta = makeMethodMeta('Watch', 'handler', true);
+
+    await (server as any).executeHandler(handler, methodMeta, call, undefined);
+    expect(call.destroy).toHaveBeenCalledWith(
+      expect.objectContaining({ code: expect.any(Number), message: 'handler err' })
+    );
+  });
+
   it('normalizeMethodName lowercases first char', () => {
     const server = new GrpcServer({ url: '0.0.0.0:50051' });
     expect((server as any).normalizeMethodName('FindById')).toBe('findById');

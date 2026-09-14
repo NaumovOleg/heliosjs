@@ -1,9 +1,23 @@
+import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { GrpcClient } from '../../../src/grpc/src/client';
+
+function makeStreamCall() {
+  const call = new EventEmitter() as EventEmitter & { cancel: () => void };
+  call.cancel = vi.fn();
+  return call;
+}
+const StreamAll = vi.fn(makeStreamCall) as any;
+StreamAll.responseStream = true;
+
+const PushUpdates = vi.fn() as any;
+PushUpdates.requestStream = true;
 
 const mockClientInstance = {
   FindById: vi.fn(),
   FindAll: vi.fn(),
+  StreamAll,
+  PushUpdates,
   close: vi.fn(),
 };
 
@@ -108,5 +122,48 @@ describe('GrpcClient', () => {
   it('throws when service not found in package', () => {
     const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
     expect(() => client.getService('NonExistent')).toThrow('not found');
+  });
+
+  it('server-streaming methods emit each data event and complete on end', async () => {
+    const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
+    const service = client.getService<any>('Package');
+    const values: any[] = [];
+    const done = new Promise<void>((resolve) => {
+      service.StreamAll({}).subscribe({ next: (v: any) => values.push(v), complete: resolve });
+    });
+    const call = StreamAll.mock.results.at(-1).value;
+    call.emit('data', { id: '1' });
+    call.emit('data', { id: '2' });
+    call.emit('end');
+    await done;
+    expect(values).toEqual([{ id: '1' }, { id: '2' }]);
+  });
+
+  it('server-streaming methods propagate stream errors', async () => {
+    const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
+    const service = client.getService<any>('Package');
+    const rejected = expect(service.StreamAll({}).toPromise()).rejects.toThrow('stream failed');
+    const call = StreamAll.mock.results.at(-1).value;
+    call.emit('error', new Error('stream failed'));
+    await rejected;
+  });
+
+  it('server-streaming subscriptions cancel the call and detach listeners on unsubscribe', () => {
+    const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
+    const service = client.getService<any>('Package');
+    const subscription = service.StreamAll({}).subscribe();
+    const call = StreamAll.mock.results.at(-1).value;
+    expect(call.listenerCount('data')).toBeGreaterThan(0);
+    subscription.unsubscribe();
+    expect(call.cancel).toHaveBeenCalledOnce();
+    expect(call.listenerCount('data')).toBe(0);
+    expect(call.listenerCount('error')).toBe(0);
+    expect(call.listenerCount('end')).toBe(0);
+  });
+
+  it('client-streaming/bidi methods error instead of hanging forever', async () => {
+    const client = new GrpcClient({ protoPath: './test.proto', package: 'test' });
+    const service = client.getService<any>('Package');
+    await expect(service.PushUpdates({}).toPromise()).rejects.toThrow(/not supported/);
   });
 });
