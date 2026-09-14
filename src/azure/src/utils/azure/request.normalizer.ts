@@ -4,12 +4,15 @@ import type { HttpRequest, InvocationContext } from '@azure/functions';
 
 /**
  * The Functions host sets `X-Forwarded-For` as `ip:port` (comma-separated for
- * multiple hops); take the left-most entry and strip the port.
+ * multiple hops). The right-most entry is the one appended by Azure's own
+ * front end — the only trusted hop — so take that one and strip the port. A
+ * client can prepend arbitrary values, making the left-most entry spoofable.
  */
 const getSourceIp = (headers: Record<string, string | string[]>): string | undefined => {
   const forwardedFor = headers['x-forwarded-for'];
-  const value = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
-  return value?.split(',')[0]?.trim().replace(/:\d+$/, '');
+  const value = Array.isArray(forwardedFor) ? forwardedFor.join(',') : forwardedFor;
+  const entries = value?.split(',');
+  return entries?.[entries.length - 1]?.trim().replace(/:\d+$/, '');
 };
 
 /**

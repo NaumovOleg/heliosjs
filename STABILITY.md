@@ -1,6 +1,6 @@
 # Stability & Versioning Policy
 
-What "breaking change," "supported," and "stable" mean for the five
+What "breaking change," "supported," and "stable" mean for the six
 published `@heliosjs/*` packages. For release *mechanics* (Changesets,
 `yarn changeset`, what CI runs on publish), see `CLAUDE.md`'s "Releasing"
 section instead — this doc is about the guarantees, not the tooling.
@@ -11,8 +11,8 @@ Strict [semver](https://semver.org/), evaluated **independently per
 package** — a breaking change in one package does not force a version bump
 in another, even one that depends on it:
 
-- `@heliosjs/core` and `@heliosjs/grpc` version independently of everything
-  else and of each other.
+- `@heliosjs/core`, `@heliosjs/azure`, and `@heliosjs/grpc` version
+  independently of everything else and of each other.
 - `@heliosjs/http`, `@heliosjs/aws`, and `@heliosjs/middlewares` are
   version-linked to each other (they bump together), but still independently
   of `core`/`grpc`.

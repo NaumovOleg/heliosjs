@@ -118,6 +118,33 @@ describe('Helios (Azure Functions)', () => {
     expect(hook).toHaveBeenCalled();
   });
 
+  it('calls afterResponse plugin hook on the error path too', async () => {
+    const hook = vi.fn();
+    const app = new Helios(MockCtrl as any);
+    app.usePlugin({ name: 'test', hooks: { afterResponse: hook } });
+    (app.controller as any)[CONTROLLER_REQUEST] = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    const result = await app.handler(makeRequest(), makeCtx());
+    expect(result.status).toBe(500);
+    expect(hook).toHaveBeenCalled();
+  });
+
+  it('still parses the request when a beforeRequest plugin reads the raw body', async () => {
+    const app = new Helios(MockCtrl as any);
+    app.usePlugin({
+      name: 'test',
+      hooks: { beforeRequest: async (req: HttpRequest) => { await req.text(); } },
+    });
+    const req = makeRequest({
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: { string: JSON.stringify({ ok: true }) },
+    });
+    const result = await app.handler(req, makeCtx());
+    expect(result.status).toBe(200);
+  });
+
   it('sets CORS config from options', () => {
     const app = new Helios(MockCtrl as any, { cors: { origin: '*', methods: ['GET'] } });
     expect(app).toBeDefined();

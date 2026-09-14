@@ -81,14 +81,14 @@ describe('normalizeAzureRequest', () => {
     expect(options.sourceIp).toBe('1.2.3.4');
   });
 
-  it('takes the left-most hop when x-forwarded-for has multiple', async () => {
+  it('takes the right-most (trusted) hop when x-forwarded-for has multiple', async () => {
     const req = new HttpRequest({
       method: 'GET',
       url: 'https://fn.azurewebsites.net/api/x',
       headers: { 'x-forwarded-for': '1.1.1.1:1, 2.2.2.2:2' },
     });
     const options = await normalizeAzureRequest(req, ctx);
-    expect(options.sourceIp).toBe('1.1.1.1');
+    expect(options.sourceIp).toBe('2.2.2.2');
   });
 
   it('leaves sourceIp undefined without x-forwarded-for', async () => {

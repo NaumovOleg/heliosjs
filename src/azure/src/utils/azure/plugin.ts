@@ -1,10 +1,8 @@
-import type { MiddlewareCB } from '@heliosjs/core/types';
 import { getGlobalLogger } from '@heliosjs/core/utils';
 import type { Hooks, PluginHookKeys, PluginKeys, Plugin as TPlugin } from '../../types/azure';
 
 export class Plugin {
   plugins: TPlugin[] = [];
-  middlewares: MiddlewareCB[] = [];
   protected async callPluginHook<K extends PluginHookKeys>(
     hookName: K,
     ...args: Parameters<NonNullable<Hooks[K]>>
@@ -53,9 +51,10 @@ export class Plugin {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   usePlugin(plugin: any) {
     this.plugins.push(plugin);
-    plugin.onInit?.(this);
-    if (plugin.middleware) {
-      this.middlewares?.unshift(plugin.middleware);
+    if (plugin.onInit) {
+      void Promise.resolve(plugin.onInit(this)).catch((error) => {
+        getGlobalLogger().error(`plugin ${plugin.name}: onInit failed`, error);
+      });
     }
 
     return this;

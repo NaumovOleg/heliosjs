@@ -37,3 +37,7 @@ app.http('api', {
   handler: helios.handler,
 });
 ```
+
+> Azure Functions prepends `host.json`'s `routePrefix` (`"api"` by default) to
+> every route above — set `"extensions": { "http": { "routePrefix": "" } }`
+> in `host.json` if your controllers use bare paths like `/users`.

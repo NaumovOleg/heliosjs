@@ -11,23 +11,19 @@ describe('Azure Plugin', () => {
     expect(onInit).toHaveBeenCalledWith(host);
   });
 
-  it('prepends middleware', () => {
-    const mw = async () => {};
-    const plugin = { name: 'test', middleware: mw };
-    const host = new Plugin();
-    host.usePlugin(plugin);
-    expect(host.middlewares[0]).toBe(mw);
-  });
-
   it('returns this for chaining', () => {
     const host = new Plugin();
     expect(host.usePlugin({ name: 'test' })).toBe(host);
   });
 
-  it('skips plugins without middleware', () => {
+  it('logs and does not throw when onInit rejects', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onInit = vi.fn().mockRejectedValue(new Error('init failed'));
     const host = new Plugin();
-    host.usePlugin({ name: 'test' });
-    expect(host.middlewares).toEqual([]);
+    expect(() => host.usePlugin({ name: 'test', onInit })).not.toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it('callPluginHook calls hooks', async () => {

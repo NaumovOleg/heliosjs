@@ -11,7 +11,7 @@ import type {
 import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
 import { ApplicationError, getErrorType, handleCORS, setFingerprintConfig, setRolesExtractor } from '@heliosjs/core/utils';
 import type { HttpHandler, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import type { AzureOptions, IAzureAdapter, Plugin as AzurePlugin } from './types/azure';
+import type { AzureOptions, IAzureAdapter } from './types/azure';
 import { Plugin, RequestFactory, ResponseFactory } from './utils/azure';
 
 /**
@@ -27,7 +27,6 @@ import { Plugin, RequestFactory, ResponseFactory } from './utils/azure';
 export class Helios extends Plugin implements IAzureAdapter {
   handler: HttpHandler;
   controller: ControllerType;
-  plugins: AzurePlugin[] = [];
   private readonly corsConfig?: CORSConfig;
   private readonly trustProxy: boolean;
   /**
@@ -51,11 +50,16 @@ export class Helios extends Plugin implements IAzureAdapter {
 
   private createHandler(): HttpHandler {
     return async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+      // Clone before any hook runs: `HttpRequest`'s body can only be read
+      // once, and a `beforeRequest` plugin may consume it (it receives the
+      // same raw request) — reading from a pristine clone here keeps that
+      // independent of whatever the plugin does.
+      const bodyReq = req.clone();
       await this.callPluginHook('beforeRequest', req, context);
 
       let request: Request;
       try {
-        request = await RequestFactory.create(req, context, this.trustProxy);
+        request = await RequestFactory.create(bodyReq, context, this.trustProxy);
       } catch (error) {
         // Malformed JSON / bad body — reply before we have a Request.
         const status = (error as { status?: number })?.status ?? 400;
@@ -160,7 +164,7 @@ export class Helios extends Plugin implements IAzureAdapter {
     return { status, headers, body };
   }
 
-  private handleError(error: ErrorObject, request: Request): HttpResponseInit {
+  private async handleError(error: ErrorObject, request: Request): Promise<HttpResponseInit> {
     const config = {
       includeStack: process.env.NODE_ENV !== 'production',
       logErrors: true,
@@ -180,6 +184,8 @@ export class Helios extends Plugin implements IAzureAdapter {
       ['X-Request-Id', request.requestId],
       ...this.flattenHeaders(tempResponse.headers),
     ];
+
+    await this.callPluginHook('afterResponse', request, tempResponse);
 
     return { status, headers, jsonBody: serialized };
   }

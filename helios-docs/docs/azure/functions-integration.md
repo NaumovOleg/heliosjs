@@ -50,6 +50,17 @@ app.http("api", {
 });
 ```
 
+:::caution Default `/api` route prefix
+
+Azure Functions v4 prepends `host.json`'s `routePrefix` (`"api"` by default)
+to every HTTP-triggered route, including the `{*path}` catch-all above — so a
+request to `/users` actually arrives at the handler as `/api/users`, and
+Helios controllers declared at bare paths like `/users` won't match it. Set
+`"extensions": { "http": { "routePrefix": "" } }` in `host.json` so the paths
+your controllers declare are the paths clients actually call.
+
+:::
+
 ## Adapter Options
 
 ```typescript
