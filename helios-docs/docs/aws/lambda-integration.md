@@ -175,10 +175,10 @@ import { Helios, Plugin } from "@heliosjs/aws";
 
 const loggingPlugin: Plugin = {
   name: "logging",
-  onInit(app, event, context) {
-    console.log("Lambda cold start", context.functionName);
-  },
   hooks: {
+    beforeRequest(event, context) {
+      console.log("Invocation:", context.functionName);
+    },
     afterResponse(req, res) {
       console.log("Request completed");
     },
@@ -210,7 +210,7 @@ export const handler = adapter.handler;
 shape it accepts — `APIGatewayProxyEvent`, `APIGatewayProxyEventV2`,
 `ALBEvent`, `CloudFrontRequestEvent`, and the Lambda Function URL event —
 useful when you need to type something that touches the raw event yourself,
-e.g. inside a plugin's `onInit(app, event, context)`.
+e.g. inside a plugin's `hooks.beforeRequest(event, context)`.
 
 ## Remarks
 

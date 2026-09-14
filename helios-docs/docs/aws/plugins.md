@@ -11,7 +11,7 @@ Plugins extend the Lambda adapter with lifecycle hooks. Use them for logging, me
 ```typescript
 interface Plugin {
   name: string;
-  onInit?(app: ILambdaAdapter, event: LambdaEvent, context: Context): void | Promise<void>;
+  onInit?(app: ILambdaAdapter): void | Promise<void>;
   hooks?: {
     beforeRequest?(event: LambdaEvent, context: Context): void | Promise<void>;
     beforeRoute?(req: Request, res: Response): void | Promise<void>;
@@ -25,6 +25,11 @@ Unlike the `@heliosjs/http` plugin interface, the AWS `Plugin` has **no
 exists) is the closest equivalent. `beforeRequest` here gets the **raw**
 Lambda `event`/`context`, before any framework `Request` is built — there's
 no `IncomingMessage` on Lambda.
+
+`onInit` only receives `app` — it fires once, synchronously, from inside
+`usePlugin` (typically at cold start), before any invocation exists, so
+there's no live event/`Context` to hand it. Reach for `hooks.beforeRequest`
+when a hook needs the raw per-invocation objects.
 
 ## Registering Plugins
 
@@ -48,10 +53,6 @@ import { Plugin } from "@heliosjs/aws";
 
 const loggingPlugin: Plugin = {
   name: "logging",
-
-  onInit(app, event, context) {
-    console.log(`Lambda: ${context.functionName}, Memory: ${context.memoryLimitInMB}MB`);
-  },
 
   hooks: {
     beforeRequest(event, context) {
@@ -101,7 +102,7 @@ const createDbPlugin = (config: any): Plugin => {
   return {
     name: "database",
 
-    async onInit(app, event, context) {
+    async onInit() {
       pool = new Pool(config);
       console.log("Database pool created");
     },
@@ -153,7 +154,7 @@ const tracingPlugin: Plugin = {
 
 | Hook | When | Arguments |
 |------|------|-----------|
-| `onInit` | Lambda cold start | `app`, `event`, `context` |
+| `onInit` | When registered via `usePlugin` (typically cold start) | `app` |
 | `beforeRequest` | Before the raw event is parsed | `LambdaEvent`, `Context` |
 | `beforeRoute` | Before route dispatch | `Request`, `Response` |
 | `afterResponse` | After response is built | `Request`, `Response` |

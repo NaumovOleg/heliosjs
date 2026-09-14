@@ -18,8 +18,13 @@ export type PluginHookKeys = keyof Hooks;
 export interface Plugin {
   /** Unique plugin name, used in log lines. */
   name: string;
-  /** One-time setup, called when the plugin is registered. */
-  onInit?(app: ILambdaAdapter, event: LambdaEvent, context: Context): void | Promise<void>;
+  /**
+   * One-time setup, called synchronously when the plugin is registered via
+   * `usePlugin` — typically at cold start, before any invocation exists.
+   * Only `app` is available; there is no live event/`Context` yet. Use
+   * `hooks.beforeRequest` for per-invocation access to those.
+   */
+  onInit?(app: ILambdaAdapter): void | Promise<void>;
   /** Per-request lifecycle hooks. */
   hooks?: Hooks;
 }
