@@ -1,5 +1,20 @@
 # Change Log
 
+## 11.0.3
+
+### Patch Changes
+
+- acad735: Fix two bugs found in `@Roles` and `@Cors`:
+
+  - `@Roles(...)` only checked its _last_ argument for an options object, so `@Roles({ mode: 'all' }, 'admin')` silently dropped the options and fell back to the weaker `'any'` mode instead of erroring or applying it. `normalizeArgs` now finds the options object at any argument position.
+  - `@Cors()`'s default `methods` list included `ANY`, a framework-internal routing marker (not a real HTTP verb), in `Access-Control-Allow-Methods`. It's now filtered out of the default.
+
+  Also corrected `@UseFingerprint`'s docs, which claimed a `@Guard` on the same route can read the fingerprint it attaches — guards run before the middleware stage `@UseFingerprint` registers into, so they never see it; a guard that needs the fingerprint should call `getOrComputeFingerprint(req)` directly.
+
+- Updated dependencies [8fc2b27]
+- Updated dependencies [e64f9d7]
+  - @heliosjs/core@4.0.4
+
 ## 11.0.2
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.0.4
+
+### Patch Changes
+
+- 8fc2b27: Add Azure Functions as a recognized request/response source: `RequestSource`/`ResponseSource` now include `'azure'`, and `Request` gains `isAzure()`, `getAzureRequest()`, and `getAzureContext()` (mirroring the existing `isLambda()`/`getLambdaEvent()`/`getLambdaContext()`). Backs the new `@heliosjs/azure` adapter package.
+- e64f9d7: Fix `@Catch` handlers running twice for one error. `execute()` called `beforeRequest()` (sanitizers/guards/pipes/middlewares) inside its own try block; `beforeRequest()` already runs the route's error handlers itself on failure and only rethrows when none of them resolve the error, but `execute()`'s catch then ran the exact same handlers a second time on that rethrow. Any `@Catch` handler using a log-and-passthrough pattern (log, then let the error propagate) fired twice for every error originating in the sanitizer/guard/pipe/middleware stage. `beforeRequest()`'s own errors are now finalized directly, without a second dispatch.
+
 ## 4.0.3
 
 ### Patch Changes

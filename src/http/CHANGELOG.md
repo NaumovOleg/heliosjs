@@ -1,5 +1,14 @@
 # Change Log
 
+## 11.0.3
+
+### Patch Changes
+
+- 25a8ebe: Fix an unhandled promise rejection in `Plugin.usePlugin()`: `plugin.onInit?.(this)` discarded the returned promise, so an async `onInit` that rejected produced an unhandled rejection instead of a logged error. `usePlugin` now attaches a `.catch` that logs through the global logger, matching the fix already applied to `@heliosjs/azure`'s `Plugin`.
+- Updated dependencies [8fc2b27]
+- Updated dependencies [e64f9d7]
+  - @heliosjs/core@4.0.4
+
 ## 11.0.2
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # Change Log
 
+## 11.0.3
+
+### Patch Changes
+
+- 77edb4a: Fix a spoofable `sourceIp` for ALB-triggered Lambdas. ALB has no `requestContext.identity`/`http.sourceIp` field, so `X-Forwarded-For` was the only source — but the normalizer took the _first_ (client-controlled) hop, letting any caller set their own `sourceIp` and defeat IP-based rate limiting, RBAC, or audit logging. It now takes the last hop, the one ALB itself appends, matching `Request.getClientIp()`'s existing (correct) reasoning.
+
+  Also removed `getSourceIp` from `utils/aws/lambda.ts`, a dead, unreachable duplicate of this same bug that wasn't called by any real request path, and made `runControllers`' unmatched-route error path read `response.data` consistently instead of a separately-null `processed.data`.
+
+- fce02e0: Fix `Plugin.onInit`'s type signature and docs: it was declared as `onInit?(app, event, context)`, but `usePlugin()` only ever calls it with `app` — `event`/`context` were always `undefined`. Docs examples that read `context.functionName` inside `onInit` would throw at cold start. Signature is now `onInit?(app: ILambdaAdapter): void | Promise<void>`; docs moved the per-invocation logging examples to `hooks.beforeRequest`, which does get a live event/context.
+- 25a8ebe: Fix an unhandled promise rejection in `Plugin.usePlugin()`: `plugin.onInit?.(this)` discarded the returned promise, so an async `onInit` that rejected produced an unhandled rejection instead of a logged error. `usePlugin` now attaches a `.catch` that logs through the global logger, matching the fix already applied to `@heliosjs/azure`'s `Plugin`.
+- Updated dependencies [8fc2b27]
+- Updated dependencies [e64f9d7]
+  - @heliosjs/core@4.0.4
+
 ## 11.0.1
 
 ### Patch Changes
