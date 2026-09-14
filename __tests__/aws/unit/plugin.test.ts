@@ -11,6 +11,16 @@ describe('AWS Plugin', () => {
     expect(onInit).toHaveBeenCalledWith(host);
   });
 
+  it('logs and does not throw when onInit rejects', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onInit = vi.fn().mockRejectedValue(new Error('init failed'));
+    const host = new Plugin();
+    expect(() => host.usePlugin({ name: 'test', onInit })).not.toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
   it('prepends middleware', () => {
     const mw = async () => {};
     const plugin = { name: 'test', middleware: mw };

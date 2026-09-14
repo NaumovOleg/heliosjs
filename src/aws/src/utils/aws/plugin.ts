@@ -53,7 +53,11 @@ export class Plugin {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   usePlugin(plugin: any) {
     this.plugins.push(plugin);
-    plugin.onInit?.(this);
+    if (plugin.onInit) {
+      void Promise.resolve(plugin.onInit(this)).catch((error) => {
+        getGlobalLogger().error(`plugin ${plugin.name}: onInit failed`, error);
+      });
+    }
     if (plugin.middleware) {
       this.middlewares?.unshift(plugin.middleware);
     }
