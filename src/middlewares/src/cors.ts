@@ -45,7 +45,10 @@ export function Cors(config: CORSConfig = {}) {
     const defaultConfig: CORSConfig = {
       origin: '*',
       optionsSuccessStatus: 204,
-      methods: Object.keys(HTTP_METHODS),
+      // ANY is a routing concept (matches every method for @Any), not a
+      // real HTTP verb — advertising it in Access-Control-Allow-Methods
+      // would be meaningless to a browser.
+      methods: Object.keys(HTTP_METHODS).filter((m) => m !== HTTP_METHODS.ANY),
     };
 
     const finalConfig = { ...defaultConfig, ...config };

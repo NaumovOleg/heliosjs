@@ -50,6 +50,12 @@ describe('normalizeArgs', () => {
   it('handles empty args', () => {
     expect(normalizeArgs([])).toEqual({ roles: [], options: {} });
   });
+  it('extracts a leading options object instead of silently dropping it', () => {
+    expect(normalizeArgs([{ mode: 'all' }, 'admin', 'editor'])).toEqual({
+      roles: ['admin', 'editor'],
+      options: { mode: 'all' },
+    });
+  });
 });
 
 const req = {} as Request;

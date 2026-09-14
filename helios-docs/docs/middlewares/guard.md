@@ -136,5 +136,5 @@ The decorator attaches the guard as metadata on the target class or method. This
 ## Related
 
 - [`@Roles`](./roles.md) — role-based access control built on guards.
-- [`@UseFingerprint` / `@Fingerprint`](./fingerprint.md) — request fingerprinting that guards can consume.
+- [`@UseFingerprint` / `@Fingerprint`](./fingerprint.md) — request fingerprinting; a guard should call `getOrComputeFingerprint(req)` directly rather than relying on `@UseFingerprint()`, which runs after guards.
 - [`@Use`](./use.md) — general-purpose middleware.

@@ -132,6 +132,15 @@ describe('@Cors', () => {
     expect(corsMeta.cors.origin).toBe('*');
   });
 
+  it('default methods list is real HTTP verbs, not the internal ANY marker', () => {
+    @Cors()
+    class Ctrl {}
+    const meta = reflectMiddlewaresMetadata(Ctrl);
+    const corsMeta = meta.find((m: any) => m.cors);
+    expect(corsMeta.cors.methods).not.toContain('ANY');
+    expect(corsMeta.cors.methods).toContain('GET');
+  });
+
   it('registers custom CORS config', () => {
     @Cors({ origin: 'http://example.com', methods: ['GET'] })
     class Ctrl {}

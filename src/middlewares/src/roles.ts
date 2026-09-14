@@ -25,20 +25,21 @@ export function matchRoles(required: string[], userRoles: string[], mode: RoleMo
     : required.some((role) => userRoles.includes(role));
 }
 
-/** @internal Splits `@Roles(...)`'s variadic arguments into a flat role list plus the trailing options object, if any. */
+/** @internal Splits `@Roles(...)`'s variadic arguments into a flat role list plus the options object, if any — the options object may appear at any position, not only trailing. */
 export function normalizeArgs(args: (RolesArg | RolesOptions)[]): {
   roles: string[];
   options: RolesOptions;
 } {
   let options: RolesOptions = {};
-  let roleArgs = args;
+  const roleArgs: RolesArg[] = [];
 
-  const last = args[args.length - 1];
-  const isOptions = typeof last === 'object' && last !== null && !Array.isArray(last);
-
-  if (isOptions) {
-    options = last as RolesOptions;
-    roleArgs = args.slice(0, -1);
+  for (const arg of args) {
+    const isOptions = typeof arg === 'object' && arg !== null && !Array.isArray(arg);
+    if (isOptions) {
+      options = arg as RolesOptions;
+    } else {
+      roleArgs.push(arg);
+    }
   }
 
   const roles = roleArgs.flatMap((arg) => {

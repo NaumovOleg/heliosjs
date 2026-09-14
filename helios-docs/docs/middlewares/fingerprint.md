@@ -7,7 +7,7 @@ description: Compute and inject a hashed request fingerprint with @Fingerprint()
 Request fingerprinting derives a stable identifier from request attributes (client IP, User-Agent, headers), hashes it, and exposes it to your application. HeliosJS provides two complementary decorators:
 
 - **`@Fingerprint()`** — a parameter decorator that injects the fingerprint into a handler argument.
-- **`@UseFingerprint()`** — a controller/method decorator that attaches the fingerprint to request state so guards, interceptors, and other middleware can read it.
+- **`@UseFingerprint()`** — a controller/method decorator that attaches the fingerprint to request state early, so the handler, param decorators, and interceptors can read it without recomputing it.
 
 ## Purpose
 
@@ -94,9 +94,9 @@ export class SessionController {
 }
 ```
 
-### Attach for downstream guards/interceptors — `@UseFingerprint()`
+### Attach for downstream interceptors — `@UseFingerprint()`
 
-Use the controller/method decorator when something *other than the handler* — a guard, an interceptor, a rate-limiter — needs the fingerprint. It computes and stores it in request state early, without blocking the request.
+Use the controller/method decorator when something *other than the handler* needs the fingerprint without recomputing it. It registers as a `middleware` item, which the request pipeline runs after guards and pipes but before the handler — so it's available to the handler itself and to interceptors, **not** to guards or pipes on the same route (they've already run by the time it executes). A guard that needs the fingerprint should call `getOrComputeFingerprint(req)` itself instead — it's cached, so `@UseFingerprint()` running afterward for the handler/interceptors won't recompute it.
 
 ```typescript
 import { Controller, Post } from "@heliosjs/core";
@@ -107,21 +107,21 @@ import { UseFingerprint } from "@heliosjs/middlewares";
 export class AuthController {
   @Post("/login")
   login() {
-    // A guard or interceptor on this controller can read
+    // An interceptor on this controller can read
     // req.getState("fingerprint").
   }
 }
 ```
 
-### Reading the attached value in a guard
+### Reading the attached value in an interceptor
 
 ```typescript
-import { Guard } from "@heliosjs/middlewares";
+import { Intercept, UseFingerprint } from "@heliosjs/middlewares";
 
 @UseFingerprint()
-@Guard((req) => {
+@Intercept((data, req) => {
   const fp = req.getState<string>("fingerprint");
-  return rateLimiter.allow(fp); // boolean
+  return { ...data, fingerprint: fp };
 })
 @Controller("/api")
 export class ApiController {}
@@ -177,4 +177,4 @@ Controller/method decorator. Registers a non-blocking middleware that computes a
 
 - [Routing & Parameters](../core-module/parameter-decorators.md) — all parameter decorators, including `@Fingerprint`.
 - [`@Roles`](./roles.md) — role-based access control.
-- [`@Guard`](./guard.md) — request guards that can consume the fingerprint.
+- [`@Guard`](./guard.md) — request guards; call `getOrComputeFingerprint(req)` directly if a guard needs the fingerprint, since `@UseFingerprint()` runs after guards.
