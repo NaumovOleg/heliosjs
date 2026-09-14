@@ -9,7 +9,7 @@ import type {
   CloudFrontRequestEvent,
   LambdaFunctionURLEvent,
 } from 'aws-lambda';
-import type { LambdaEvent, NormalizedEvent, RequestContext } from '../../types/aws';
+import type { LambdaEvent, RequestContext } from '../../types/aws';
 
 export const isRestApiEvent = (event: LambdaEvent): event is APIGatewayProxyEvent => {
   return (
@@ -119,35 +119,6 @@ export const isCloudFrontEvent = (event: LambdaEvent): event is CloudFrontReques
     event.Records.length > 0 &&
     event.Records[0]?.cf !== undefined
   );
-};
-
-export const getSourceIp = (event: NormalizedEvent): string => {
-  const forwardedFor = event.headers['x-forwarded-for'];
-  if (forwardedFor) {
-    if (Array.isArray(forwardedFor)) {
-      return forwardedFor[0].split(',')[0].trim();
-    }
-    return forwardedFor.split(',')[0].trim();
-  }
-
-  const ctx = event.requestContext;
-
-  if (isAPIGatewayV2Context(ctx) || isLambdaUrlContext(ctx)) {
-    return ctx.http.sourceIp;
-  }
-
-  if (isAPIGatewayV1Context(ctx)) {
-    return ctx.identity.sourceIp;
-  }
-
-  if (isCloudFrontContext(ctx)) {
-    const cfForwardedFor = event.headers['x-forwarded-for'];
-    if (cfForwardedFor) {
-      return Array.isArray(cfForwardedFor) ? cfForwardedFor[0] : cfForwardedFor;
-    }
-  }
-
-  return '0.0.0.0';
 };
 
 export const getQueryStringParameters = (

@@ -13,7 +13,6 @@ import {
   isLambdaUrlEvent,
   isALBEvent,
   isCloudFrontEvent,
-  getSourceIp,
   getQueryStringParameters,
   getMultiValueQueryStringParameters,
 } from '../../../src/aws/src/utils/aws/lambda';
@@ -145,33 +144,6 @@ describe('Context detectors', () => {
   it('isCloudFrontContext detects CloudFront context', () => {
     expect(isCloudFrontContext({ distributionId: 'abc' } as any)).toBe(true);
     expect(isCloudFrontContext({ http: {} } as any)).toBe(false);
-  });
-});
-
-describe('getSourceIp', () => {
-  it('extracts from x-forwarded-for string', () => {
-    const event = { headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' }, requestContext: {} } as any;
-    expect(getSourceIp(event)).toBe('1.2.3.4');
-  });
-
-  it('extracts from x-forwarded-for array', () => {
-    const event = { headers: { 'x-forwarded-for': ['1.2.3.4, 5.6.7.8'] }, requestContext: {} } as any;
-    expect(getSourceIp(event)).toBe('1.2.3.4');
-  });
-
-  it('falls back to v2 context sourceIp', () => {
-    const event = { headers: {}, requestContext: { http: { sourceIp: '9.8.7.6' }, apiId: 'abc' } } as any;
-    expect(getSourceIp(event)).toBe('9.8.7.6');
-  });
-
-  it('falls back to v1 context identity.sourceIp', () => {
-    const event = { headers: {}, requestContext: { identity: { sourceIp: '5.5.5.5' }, httpMethod: 'GET' } } as any;
-    expect(getSourceIp(event)).toBe('5.5.5.5');
-  });
-
-  it('falls back to 0.0.0.0', () => {
-    const event = { headers: {}, requestContext: {} } as any;
-    expect(getSourceIp(event)).toBe('0.0.0.0');
   });
 });
 

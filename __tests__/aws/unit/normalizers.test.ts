@@ -219,6 +219,19 @@ describe('normalizeALBEvent', () => {
     const result = normalizeALBEvent(event, makeCtx());
     expect(result.method).toBe('GET');
   });
+
+  it('regression: sourceIp is the last (ALB-appended) X-Forwarded-For hop, not the spoofable first one', () => {
+    // ALB has no requestContext.identity/http.sourceIp — X-Forwarded-For is
+    // the only source, and a client can prepend arbitrary values to it. Only
+    // the last hop is the one ALB itself appends.
+    const event = {
+      httpMethod: 'GET', path: '/search',
+      headers: { host: 'alb.example.com', 'x-forwarded-for': 'attacker-controlled, 10.0.0.5' },
+      requestContext: { elb: { targetGroupArn: 'arn' } },
+    } as any;
+    const result = normalizeALBEvent(event, makeCtx());
+    expect(result.sourceIp).toBe('10.0.0.5');
+  });
 });
 
 describe('normalizeAPIGatewayEvent', () => {

@@ -104,7 +104,6 @@ export class Helios extends Plugin implements ILambdaAdapter {
     context: Context;
   }) {
     const { request, response, eventType } = meta;
-    let processed;
 
     try {
       const controller = this.controller as unknown as IController;
@@ -114,13 +113,13 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
       await this.callPluginHook('beforeRoute', request, response);
 
-      processed = await controller[CONTROLLER_REQUEST](request, response);
+      await controller[CONTROLLER_REQUEST](request, response);
     } catch (error: unknown) {
       return this.handleError(error as ErrorObject, request);
     }
 
     if (getErrorType(response?.data).isError) {
-      return this.handleError(processed?.data, request);
+      return this.handleError(response?.data, request);
     }
 
     return this.toLambdaResponse(request, response, eventType);

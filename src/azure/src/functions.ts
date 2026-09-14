@@ -93,8 +93,6 @@ export class Helios extends Plugin implements IAzureAdapter {
   }
 
   private async runControllers(request: Request, response: Response): Promise<HttpResponseInit> {
-    let processed;
-
     try {
       const controller = this.controller as unknown as IController;
       if (typeof controller[CONTROLLER_REQUEST] !== 'function') {
@@ -103,13 +101,13 @@ export class Helios extends Plugin implements IAzureAdapter {
 
       await this.callPluginHook('beforeRoute', request, response);
 
-      processed = await controller[CONTROLLER_REQUEST](request, response);
+      await controller[CONTROLLER_REQUEST](request, response);
     } catch (error: unknown) {
       return this.handleError(error as ErrorObject, request);
     }
 
     if (getErrorType(response?.data).isError) {
-      return this.handleError(processed?.data, request);
+      return this.handleError(response?.data, request);
     }
 
     return this.toAzureResponse(request, response);

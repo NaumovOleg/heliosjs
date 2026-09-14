@@ -134,6 +134,18 @@ export const normalizeAPIGatewayV2Event = (
 
 // // ==================== Application Load Balancer ====================
 
+/**
+ * ALB has no `requestContext.identity`/`http.sourceIp` field (unlike API
+ * Gateway), so `X-Forwarded-For` is the only source — but a client can
+ * prepend arbitrary values to it. The last entry is the one ALB itself
+ * appends and is the only trustworthy one; the first is never trustworthy.
+ */
+const getAlbSourceIp = (headers: Record<string, string | undefined>): string | undefined => {
+  const forwardedFor = headers['x-forwarded-for'];
+  const entries = forwardedFor?.split(',');
+  return entries?.[entries.length - 1]?.trim();
+};
+
 export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOptions => {
   const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
   const headers = parseHeaders(event.headers);
@@ -158,7 +170,7 @@ export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOpt
     source: 'lambda',
     timestamp: new Date(),
     isBase64Encoded: !!event.isBase64Encoded,
-    sourceIp: event.headers?.['x-forwarded-for']?.split(',')[0]?.trim(),
+    sourceIp: getAlbSourceIp(event.headers ?? {}),
     userAgent: event.headers?.['user-agent'],
   };
 };

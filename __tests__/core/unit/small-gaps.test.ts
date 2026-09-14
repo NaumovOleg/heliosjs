@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { computeFingerprint, getOrComputeFingerprint, setFingerprintConfig } from '../../../src/core/src/utils/core/fingerprint';
 import { validate } from '../../../src/core/src/utils/shared/validate';
 import { ApplicationError } from '../../../src/core/src/utils/core/error/apperror';
-import { getEventType, getSourceIp } from '../../../src/aws/src/utils/aws/lambda';
+import { getEventType } from '../../../src/aws/src/utils/aws/lambda';
 
 function makeMeta(overrides: Record<string, any> = {}) {
   return { requestId: 'r1', method: 'GET', requestUrl: new URL('http://localhost/test'), sourceIp: '127.0.0.1', userAgent: 'test', startTime: Date.now(), ...overrides };
@@ -218,48 +218,12 @@ describe('apperror.ts - normalizeError paths', () => {
   });
 });
 
-describe('lambda.ts - getEventType and getSourceIp', () => {
+describe('lambda.ts - getEventType', () => {
   it('getEventType returns rest for REST API Gateway v1', () => {
     const event = {
       httpMethod: 'GET', resource: '/test', path: '/test',
       requestContext: { accountId: '123', apiId: '123' },
     } as any;
     expect(getEventType(event)).toBe('rest');
-  });
-
-  it('getSourceIp from CloudFront context with x-forwarded-for array', () => {
-    const event = {
-      requestContext: {
-        distributionId: 'xxx', eventType: 'lambda',
-        domainName: 'd123.cloudfront.net',
-      },
-      headers: { 'x-forwarded-for': ['1.2.3.4', '5.6.7.8'] },
-    } as any;
-    const ip = getSourceIp(event);
-    expect(ip).toBe('1.2.3.4');
-  });
-
-  it('getSourceIp from CloudFront context with x-forwarded-for string', () => {
-    const event = {
-      requestContext: {
-        distributionId: 'xxx', eventType: 'lambda',
-        domainName: 'd123.cloudfront.net',
-      },
-      headers: { 'x-forwarded-for': '1.2.3.4' },
-    } as any;
-    const ip = getSourceIp(event);
-    expect(ip).toBe('1.2.3.4');
-  });
-
-  it('getSourceIp from CloudFront with no x-forwarded-for', () => {
-    const event = {
-      requestContext: {
-        distributionId: 'xxx', eventType: 'lambda',
-        domainName: 'd123.cloudfront.net',
-      },
-      headers: {},
-    } as any;
-    const ip = getSourceIp(event);
-    expect(ip).toBe('0.0.0.0');
   });
 });
