@@ -283,6 +283,21 @@ describe('execute', () => {
     await execute(route, req, res);
     expect(res.status).toBe(200);
   });
+
+  it('regression: a log-and-rethrow @Catch handler runs once, not twice, for a beforeRequest-stage error', async () => {
+    // beforeRequest() (called inside execute()'s own try) already runs
+    // compiled.errorHandlers itself when a middleware throws; execute()'s
+    // catch used to run the exact same handlers again on the rethrow.
+    const errorHandler = vi.fn().mockImplementation((err) => err);
+    const middleware = vi.fn().mockRejectedValue(new Error('middleware fail'));
+    const route = makeRoute({
+      functions: [{ errorHandler }, { middleware }] as any,
+    });
+    const req = makeRequest();
+    const res = makeResponse();
+    await execute(route, req, res);
+    expect(errorHandler).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('beforeRequest', () => {

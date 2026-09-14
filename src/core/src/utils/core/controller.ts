@@ -110,18 +110,36 @@ export const execute = async (
     return response;
   }
 
+  let handled: boolean;
   try {
     // beforeRequest() is a guaranteed no-op when the route has no
     // sanitizers/guards/pipes/middlewares/rateLimits — skip the call (and its
     // `await`) rather than pay a microtask hop to run zero-length loops.
-    const handled = compiled.hasBeforeRequestWork
-      ? await beforeRequest(request, response, route)
-      : false;
-
-    if (handled) {
+    handled = compiled.hasBeforeRequestWork ? await beforeRequest(request, response, route) : false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    // beforeRequest() already ran compiled.errorHandlers itself (that's how
+    // it can resolve and return `true` above) and only rethrows when none of
+    // them resolved it — finalize directly here instead of re-running those
+    // same handlers a second time on the same error.
+    if (compiled.errorHandlers.length === 0 && SKIP_ERROR_HANDLER_CODES.includes(error?.code)) {
+      response.error(error);
       return response;
     }
+    if (compiled.errorHandlers.length > 0) {
+      response.error(error);
+      return response;
+    }
+    if (error instanceof Error) throw error;
+    getGlobalLogger().error('Non-Error value thrown with no @Catch handler', error);
+    return response;
+  }
 
+  if (handled) {
+    return response;
+  }
+
+  try {
     // Only parse multipart / re-derive body when a param actually needs it.
     const wantsBody = route.parameters.some(
       (p) => p.type === 'body' || p.type === 'multipart'
