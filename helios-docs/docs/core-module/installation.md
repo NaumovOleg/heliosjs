@@ -35,6 +35,12 @@ For AWS Lambda:
 npm install @heliosjs/aws
 ```
 
+For Azure Functions:
+
+```bash
+npm install @heliosjs/azure @azure/functions
+```
+
 For gRPC:
 
 ```bash
@@ -46,6 +52,7 @@ npm install @heliosjs/grpc
 | `@heliosjs/core` | Decorators, request/response, validation, error classes, rate limiting |
 | `@heliosjs/http` | HTTP server, WebSocket, SSE, GraphQL |
 | `@heliosjs/aws` | AWS Lambda adapter |
+| `@heliosjs/azure` | Azure Functions adapter |
 | `@heliosjs/middlewares` | `@Use`, `@Guard`, `@Roles`, `@Catch`, `@Intercept`, `@Pipe`, `@Sanitize`, `@Cors` |
 | `@heliosjs/grpc` | gRPC server and client |
 | `reflect-metadata` | Required for TypeScript decorators |

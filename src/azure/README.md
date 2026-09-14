@@ -20,5 +20,20 @@
 ## Quick Start
 
 ```bash
-npm install @heliosjs/core @heliosjs/http reflect-metadata
+npm install @heliosjs/core @heliosjs/azure @azure/functions reflect-metadata
+```
+
+```typescript
+import { app } from '@azure/functions';
+import { Helios } from '@heliosjs/azure';
+import { AppController } from './app.controller';
+
+const helios = new Helios(AppController);
+
+app.http('api', {
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  authLevel: 'anonymous',
+  route: '{*path}',
+  handler: helios.handler,
+});
 ```

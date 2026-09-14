@@ -18,6 +18,7 @@ export default defineConfig({
       { find: '@heliosjs/http', replacement: resolve(root, 'src/http/src/index.ts') },
       { find: '@heliosjs/grpc', replacement: resolve(root, 'src/grpc/src/index.ts') },
       { find: '@heliosjs/aws', replacement: resolve(root, 'src/aws/src/index.ts') },
+      { find: '@heliosjs/azure', replacement: resolve(root, 'src/azure/src/index.ts') },
     ],
   },
   test: {
@@ -30,6 +31,7 @@ export default defineConfig({
         'src/core/src/**/*.ts',
         'src/http/src/**/*.ts',
         'src/aws/src/**/*.ts',
+        'src/azure/src/**/*.ts',
         'src/middlewares/src/**/*.ts',
         'src/grpc/src/**/*.ts',
       ],

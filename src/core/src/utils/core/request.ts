@@ -134,6 +134,13 @@ export class Req implements Request {
   }
 
   /**
+   * Check if request is from Azure Functions
+   */
+  isAzure(): boolean {
+    return this.source === 'azure';
+  }
+
+  /**
    * Get Lambda event (if from Lambda)
    */
   getLambdaEvent() {
@@ -145,6 +152,20 @@ export class Req implements Request {
    */
   getLambdaContext() {
     return this.isLambda() ? this.context : undefined;
+  }
+
+  /**
+   * Get Azure Functions `HttpRequest` (if from Azure)
+   */
+  getAzureRequest() {
+    return this.isAzure() ? this.raw : undefined;
+  }
+
+  /**
+   * Get Azure Functions `InvocationContext` (if from Azure)
+   */
+  getAzureContext() {
+    return this.isAzure() ? this.context : undefined;
   }
 
   /**

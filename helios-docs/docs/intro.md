@@ -54,6 +54,7 @@ curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d 
 - **Server-Sent Events** — push notifications to clients
 - **GraphQL APIs** — type-graphql resolvers with subscriptions
 - **AWS Lambda functions** — API Gateway, ALB, CloudFront, Function URL
+- **Azure Functions** — the v4 programming model's HTTP trigger
 - **gRPC services** — server + client with RxJS observables
 
 ## Feature Overview
@@ -68,6 +69,7 @@ curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d 
 | Rate Limiting       | `@heliosjs/core`        | `@RateLimit` with fixed window, sliding window, token bucket strategies                  |
 | HTTP Server         | `@heliosjs/http`        | `@Server`, `Helios`, WebSocket, SSE, GraphQL                                             |
 | AWS Lambda          | `@heliosjs/aws`         | `Helios` adapter for API Gateway, ALB, CloudFront, Function URL                          |
+| Azure Functions     | `@heliosjs/azure`       | `Helios` adapter for the v4 programming model's HTTP trigger                             |
 | gRPC                | `@heliosjs/grpc`        | `GrpcModule`, `GrpcServer`, `GrpcClient`, decorators                                     |
 
 ## What You'll Learn
@@ -82,7 +84,8 @@ curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d 
 | 6    | Middleware           | Add logging, CORS, guards, interceptors       |
 | 7    | HTTP Server          | WebSocket, SSE, GraphQL, plugins              |
 | 8    | AWS Lambda           | Deploy to Lambda with API Gateway             |
-| 9    | gRPC                 | Build microservices with gRPC                 |
+| 9    | Azure Functions      | Deploy to Azure Functions with `app.http`     |
+| 10   | gRPC                 | Build microservices with gRPC                 |
 
 ## Prerequisites
 

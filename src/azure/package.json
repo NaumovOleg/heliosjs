@@ -1,0 +1,42 @@
+{
+  "name": "@heliosjs/azure",
+  "version": "1.0.0",
+  "description": "Azure Functions support for @heliosjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NaumovOleg/heliosjs.git",
+    "directory": "src/azure"
+  },
+  "files": [
+    "dist/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "yarn clean && tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "publish:public": "yarn publish --access public --no-git-tag-version",
+    "publish:patch": "yarn version --patch --no-git-tag-version && yarn publish --access public",
+    "publish:minor": "yarn version --minor --no-git-tag-version && yarn publish --access public",
+    "publish:major": "yarn version --major --no-git-tag-version && yarn publish --access public"
+  },
+  "devDependencies": {
+    "@azure/functions": "4.16.2"
+  },
+  "peerDependencies": {
+    "@azure/functions": ">=4.0.0",
+    "@heliosjs/core": ">=4.0.2",
+    "typescript": ">=5.0.0",
+    "reflect-metadata": "^0.2.2",
+    "@types/node": ">=20.0.0"
+  }
+}

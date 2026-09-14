@@ -14,6 +14,7 @@
 | [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)               |         | HTTP server and routing |
 | [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/src/middlewares) |         | Built-in middlewares    |
 | [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/src/aws)                 |         | Aws support             |
+| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/src/azure)             |         | Azure Functions support |
 | [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/src/grpc)               |         | Grpc support            |
 
 ## Quick Start

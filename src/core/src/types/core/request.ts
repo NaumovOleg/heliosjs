@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from 'http';
 
-/** Where a request originated: a Node HTTP server, an AWS Lambda event, or unknown. */
-export type RequestSource = 'http' | 'lambda' | 'unknown';
+/** Where a request originated: a Node HTTP server, an AWS Lambda event, an Azure Functions invocation, or unknown. */
+export type RequestSource = 'http' | 'lambda' | 'azure' | 'unknown';
 
 /**
  * Recognized AWS event shapes (used when `source` is `'lambda'`):
@@ -169,11 +169,18 @@ export interface Request<
   isHttp(): boolean;
   /** `true` when the request came from an AWS Lambda event. */
   isLambda(): boolean;
+  /** `true` when the request came from an Azure Functions invocation. */
+  isAzure(): boolean;
 
   /** The raw Lambda event, or `undefined` off Lambda. */
   getLambdaEvent(): unknown;
   /** The Lambda `Context`, or `undefined` off Lambda. */
   getLambdaContext(): unknown;
+
+  /** The raw Azure Functions `HttpRequest`, or `undefined` off Azure. */
+  getAzureRequest(): unknown;
+  /** The Azure Functions `InvocationContext`, or `undefined` off Azure. */
+  getAzureContext(): unknown;
 
   /** The raw Node request headers, or `undefined` off `node:http`. */
   getHttpRequest(): IncomingHttpHeaders | undefined;

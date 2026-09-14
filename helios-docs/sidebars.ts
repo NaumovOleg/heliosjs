@@ -51,6 +51,11 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Azure',
+      items: ['azure/functions-integration', 'azure/plugins'],
+    },
+    {
+      type: 'category',
       label: 'GRPC',
       items: ['grpc/module', 'grpc/usage', 'grpc/api', 'grpc/examples'],
     },

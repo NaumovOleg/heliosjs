@@ -17,10 +17,11 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "yarn build:core && yarn build:http && yarn build:aws && yarn build:middlewares && yarn build:grpc",
+    "build": "yarn build:core && yarn build:http && yarn build:aws && yarn build:azure && yarn build:middlewares && yarn build:grpc",
     "build:core": "yarn workspace @heliosjs/core run build",
     "build:http": "yarn workspace @heliosjs/http run build",
     "build:aws": "yarn workspace @heliosjs/aws run build",
+    "build:azure": "yarn workspace @heliosjs/azure run build",
     "build:grpc": "yarn workspace @heliosjs/grpc run build",
     "build:middlewares": "yarn workspace @heliosjs/middlewares run build",
     "dev": "nodemon --config ./nodemon.json",
@@ -49,6 +50,7 @@
     "src/middlewares",
     "src/http",
     "src/aws",
+    "src/azure",
     "src/grpc",
     "helios-docs"
   ],
@@ -65,6 +67,8 @@
     "typescript",
     "aws",
     "lambda",
+    "azure",
+    "azure-functions",
     "graphql",
     "grpc"
   ],

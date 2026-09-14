@@ -135,6 +135,33 @@ describe('Req.getLambdaEvent / getLambdaContext', () => {
   });
 });
 
+describe('Req.isAzure / getAzureRequest / getAzureContext', () => {
+  it('isAzure returns true only for azure source', () => {
+    expect(makeReq({ source: 'azure' }).isAzure()).toBe(true);
+    expect(makeReq({ source: 'http' }).isAzure()).toBe(false);
+  });
+
+  it('returns raw for azure source', () => {
+    const raw = { url: 'https://fn.azurewebsites.net/api/x' };
+    const req = makeReq({ source: 'azure', raw });
+    expect(req.getAzureRequest()).toBe(raw);
+  });
+
+  it('returns undefined for non-azure source', () => {
+    expect(makeReq({ source: 'http' }).getAzureRequest()).toBeUndefined();
+  });
+
+  it('returns context for azure source', () => {
+    const ctx = { invocationId: 'inv-1' };
+    const req = makeReq({ source: 'azure', context: ctx });
+    expect(req.getAzureContext()).toBe(ctx);
+  });
+
+  it('returns undefined context for non-azure source', () => {
+    expect(makeReq({ source: 'http', context: {} }).getAzureContext()).toBeUndefined();
+  });
+});
+
 describe('Req.getHttpRequest', () => {
   it('returns raw for http source', () => {
     const raw = { headers: {} };

@@ -1,5 +1,5 @@
-/** Where a response is being sent through: a Node HTTP server, AWS Lambda, or unknown. */
-export type ResponseSource = 'http' | 'lambda' | 'unknown';
+/** Where a response is being sent through: a Node HTTP server, AWS Lambda, Azure Functions, or unknown. */
+export type ResponseSource = 'http' | 'lambda' | 'azure' | 'unknown';
 
 /** Options accepted by {@link Response.setCookie} / {@link Response.clearCookie}. */
 export interface CookieOptions {

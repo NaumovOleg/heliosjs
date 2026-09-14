@@ -1,6 +1,6 @@
 #!/bin/bash
 
-folders=("http" "aws" "middlewares" "grpc")
+folders=("http" "aws" "azure" "middlewares" "grpc")
 
 cd ./src/core
 yarn link
