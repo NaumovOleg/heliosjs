@@ -303,11 +303,12 @@ function isGuardClass(guard: any): guard is GuardClass {
 /**
  * @internal Resolves one guard's raw return value: an `Error` is thrown as-is
  * (denial with a custom response), a `string` denies with that message, a
- * `boolean` denies/allows using `defaultMessage`, and `undefined` (a guard
- * that returns nothing) allows.
+ * `boolean` denies/allows using `defaultMessage`, and `void` (a guard that
+ * returns nothing) allows.
  */
 function resolveGuardResult(
-  result: boolean | string | Error | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- matches GuardFunction's return type
+  result: boolean | string | Error | void,
   defaultMessage: string
 ): { canActivate: boolean; message: string } {
   if (result instanceof Error) throw result;

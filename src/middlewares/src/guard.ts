@@ -15,7 +15,7 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * different status/code (e.g. `UnauthorizedError`). Guards may be async.
  *
  * @param guard - One of:
- *   - a **function** `(req, res) => boolean | string | Error | undefined | Promise<boolean | string | Error | undefined>`;
+ *   - a **function** `(req, res) => boolean | string | Error | void | Promise<boolean | string | Error | void>`;
  *   - a **class** with a `canActivate(req, res)` method (instantiated per request,
  *     may expose a `message` property for the denial text);
  *   - an already-constructed **instance** with `canActivate` (and optional

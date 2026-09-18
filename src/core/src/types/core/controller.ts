@@ -241,10 +241,14 @@ export interface GuardInstance {
    *   `string` to reject with `ForbiddenError`; an `Error` to reject with
    *   that error instead.
    */
+  // `void` (not just `undefined`) so a guard whose body never returns — implicitly, or via an explicit
+  // `: void` annotation — still type-checks; TS only treats a no-return function as `undefined`-
+  // compatible via contextual typing, which doesn't apply to a separately-declared guard function.
   canActivate(
     request: Request,
     response: Response
-  ): Promise<boolean | string | Error | undefined> | boolean | string | Error | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  ): Promise<boolean | string | Error | void> | boolean | string | Error | void;
 }
 
 /** A guard implemented as a class (instantiated per request); see the `@Guard` decorator. */
@@ -255,7 +259,8 @@ export type GuardClass = new (...args: any[]) => GuardInstance;
 export type GuardFunction = (
   request: Request,
   response: Response
-) => Promise<boolean | string | Error | undefined> | boolean | string | Error | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- see GuardInstance.canActivate above
+) => Promise<boolean | string | Error | void> | boolean | string | Error | void;
 
 /** @internal Kind tag for one entry in a `MiddlewaresMetadataItem` list (enum form). */
 export enum MiddlewaresMetadataItemProperty {

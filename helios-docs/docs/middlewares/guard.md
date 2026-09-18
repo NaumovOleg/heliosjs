@@ -23,7 +23,7 @@ A guard signals its decision through its return value (or its `canActivate` resu
 | Return value      | Effect                                                            |
 | ----------------- | ---------------------------------------------------------------- |
 | `true`            | Request proceeds.                                                |
-| `undefined` / nothing | Request proceeds — a guard that returns nothing is treated as `true`. |
+| nothing (`void`)  | Request proceeds — a guard that returns nothing is treated as `true`. |
 | `false`           | Request is rejected with `403 Forbidden` (default message).      |
 | `string`          | Request is rejected with `403 Forbidden`, using the string as the message. |
 | `Error`           | Request is rejected with that error as the response, instead of `ForbiddenError`. |
@@ -150,7 +150,7 @@ The decorator attaches the guard as metadata on the target class or method. This
 
 - Guards run before controller methods, as part of the request pipeline.
 - Use them for authentication, authorization, and request validation.
-- A guard that returns nothing (`undefined`) is treated the same as returning `true`.
+- A guard that returns nothing is treated the same as returning `true` — this includes a function/method with no `return` statement, whether its return type is inferred or explicitly annotated `void`.
 - A guard that returns `false` or a string stops request handling with `403 Forbidden`.
 - A guard that returns (or throws) an `Error` stops request handling with that error as the response instead.
 - For role checks, use [`@Roles`](./roles.md) instead of writing role logic by hand.
