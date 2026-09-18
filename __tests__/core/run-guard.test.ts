@@ -33,4 +33,31 @@ describe("runGuard (class and instance guards)", () => {
     const guard = { canActivate: () => true };
     await expect(runGuard(guard, req, res)).resolves.toBeUndefined();
   });
+
+  it("rejects with the guard's own Error instead of ForbiddenError", async () => {
+    class CustomError extends Error {
+      status = 402;
+    }
+    const custom = new CustomError('Payment required');
+    const guard = { canActivate: () => custom };
+    await expect(runGuard(guard, req, res)).rejects.toBe(custom);
+  });
+
+  it("propagates a function guard's returned Error", async () => {
+    const custom = new Error('nope');
+    await expect(runGuard(() => custom, req, res)).rejects.toBe(custom);
+  });
+
+  it("allows when a function guard returns nothing", async () => {
+    await expect(runGuard(() => undefined, req, res)).resolves.toBeUndefined();
+  });
+
+  it("allows when a class guard's canActivate returns nothing", async () => {
+    class VoidGuard {
+      canActivate() {
+        // no return
+      }
+    }
+    await expect(runGuard(VoidGuard, req, res)).resolves.toBeUndefined();
+  });
 });

@@ -237,10 +237,14 @@ export interface GuardInstance {
    * Decides whether the request may proceed.
    * @param request - The incoming request.
    * @param response - The response, for read-only context.
-   * @returns `true` to allow; `false` or a denial-message `string` to reject
-   *   with `ForbiddenError`.
+   * @returns `true` (or nothing) to allow; `false` or a denial-message
+   *   `string` to reject with `ForbiddenError`; an `Error` to reject with
+   *   that error instead.
    */
-  canActivate(request: Request, response: Response): Promise<boolean> | boolean | string;
+  canActivate(
+    request: Request,
+    response: Response
+  ): Promise<boolean | string | Error | undefined> | boolean | string | Error | undefined;
 }
 
 /** A guard implemented as a class (instantiated per request); see the `@Guard` decorator. */
@@ -251,7 +255,7 @@ export type GuardClass = new (...args: any[]) => GuardInstance;
 export type GuardFunction = (
   request: Request,
   response: Response
-) => Promise<boolean | string> | boolean | string;
+) => Promise<boolean | string | Error | undefined> | boolean | string | Error | undefined;
 
 /** @internal Kind tag for one entry in a `MiddlewaresMetadataItem` list (enum form). */
 export enum MiddlewaresMetadataItemProperty {

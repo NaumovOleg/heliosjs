@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.5
+
+### Patch Changes
+
+- 9207c78: `@Guard`'s callback (function, class, or instance `canActivate`) can now also return an `Error` to deny a request. Returning `false` or a string still denies with `ForbiddenError` (HTTP 403); returning an `Error` instead denies with that exact error, so a guard can reject with a different status/code (e.g. `UnauthorizedError`) without throwing. A guard that returns nothing (`undefined`) is now treated the same as returning `true`.
+
 ## 4.0.4
 
 ### Patch Changes

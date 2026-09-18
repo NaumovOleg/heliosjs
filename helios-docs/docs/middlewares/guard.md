@@ -23,9 +23,13 @@ A guard signals its decision through its return value (or its `canActivate` resu
 | Return value      | Effect                                                            |
 | ----------------- | ---------------------------------------------------------------- |
 | `true`            | Request proceeds.                                                |
+| `undefined` / nothing | Request proceeds — a guard that returns nothing is treated as `true`. |
 | `false`           | Request is rejected with `403 Forbidden` (default message).      |
 | `string`          | Request is rejected with `403 Forbidden`, using the string as the message. |
+| `Error`           | Request is rejected with that error as the response, instead of `ForbiddenError`. |
 | `Promise<...>`    | Awaited, then resolved value is interpreted as above.            |
+
+A guard that **throws** an `Error` (instead of returning it) is rejected the same way — with that error as the response.
 
 ## Parameters
 
@@ -111,6 +115,22 @@ class PostController {
 }
 ```
 
+### Rejecting with a different error
+
+Return an `Error` (instead of `false`/a string) to reject with a status/code other than `403 Forbidden`:
+
+```typescript
+import { UnauthorizedError } from "@heliosjs/core";
+
+@Guard((req) => {
+  return req.getHeader("authorization")
+    ? true
+    : new UnauthorizedError("Missing token");
+})
+@Controller("/secure")
+class SecureController {}
+```
+
 ### Multiple guards
 
 Apply `@Guard` more than once. All guards must pass for the request to proceed; the first to reject stops the request.
@@ -130,7 +150,9 @@ The decorator attaches the guard as metadata on the target class or method. This
 
 - Guards run before controller methods, as part of the request pipeline.
 - Use them for authentication, authorization, and request validation.
+- A guard that returns nothing (`undefined`) is treated the same as returning `true`.
 - A guard that returns `false` or a string stops request handling with `403 Forbidden`.
+- A guard that returns (or throws) an `Error` stops request handling with that error as the response instead.
 - For role checks, use [`@Roles`](./roles.md) instead of writing role logic by hand.
 
 ## Related

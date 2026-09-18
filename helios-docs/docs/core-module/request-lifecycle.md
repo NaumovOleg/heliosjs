@@ -19,7 +19,7 @@ pipe; something that reshapes output is an interceptor; and so on.
 | 2 | CORS | `@Cors`, `@Server({ cors })` | 403 on a disallowed origin |
 | 3 | Rate limiting | `@RateLimit` | 429 on breach |
 | 4 | Sanitizers | `@Sanitize`, `@Server({ sanitizers })` | Joi validation error |
-| 5 | Guards | `@Guard`, `@Roles` | 403 on denial |
+| 5 | Guards | `@Guard`, `@Roles` | 403 on denial (or a guard-returned `Error`) |
 | 6 | Pipes | `@Pipe` | — (transforms only) |
 | 7 | Middlewares | `@Use`, `@Server({ middlewares })` | Any error thrown, or simply not calling `next()` |
 | 8 | Parameter resolution + validation | `@Body`/`@Params`/`@QueryParam`/… (with a DTO) | 400 `ValidationError` |

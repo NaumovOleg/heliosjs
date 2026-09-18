@@ -301,42 +301,44 @@ function isGuardClass(guard: any): guard is GuardClass {
 }
 
 /**
+ * @internal Resolves one guard's raw return value: an `Error` is thrown as-is
+ * (denial with a custom response), a `string` denies with that message, a
+ * `boolean` denies/allows using `defaultMessage`, and `undefined` (a guard
+ * that returns nothing) allows.
+ */
+function resolveGuardResult(
+  result: boolean | string | Error | undefined,
+  defaultMessage: string
+): { canActivate: boolean; message: string } {
+  if (result instanceof Error) throw result;
+  if (typeof result === 'string') return { canActivate: false, message: result };
+  return { canActivate: result ?? true, message: defaultMessage };
+}
+
+/**
  * @internal Runs one guard (instance, class, or function) against the request
  * and throws `ForbiddenError` when it denies. Used by `beforeRequest` for every
  * compiled guard; the `@Guard`/`@Roles` decorators are the app-facing surface.
+ * A guard that returns an `Error` denies with that error instead of
+ * `ForbiddenError`.
  */
 export async function runGuard(
   guard: GuardInstance | GuardClass | GuardFunction,
   request: Request,
   response: Response
 ) {
-  let canActivate;
-  let message = 'Forbidden';
+  let canActivate: boolean;
+  let message: string;
   if (isGuardInstance(guard)) {
-    canActivate = await guard.canActivate(request, response);
-    if (typeof canActivate === 'string') {
-      message = canActivate;
-      canActivate = false;
-    } else {
-      message = guard.message ?? message;
-    }
+    const result = await guard.canActivate(request, response);
+    ({ canActivate, message } = resolveGuardResult(result, guard.message ?? 'Forbidden'));
   } else if (isGuardClass(guard)) {
     const guardInstance = new guard();
-    canActivate = await guardInstance.canActivate(request, response);
-    if (typeof canActivate === 'string') {
-      message = canActivate;
-      canActivate = false;
-    } else {
-      message = guardInstance.message ?? message;
-    }
+    const result = await guardInstance.canActivate(request, response);
+    ({ canActivate, message } = resolveGuardResult(result, guardInstance.message ?? 'Forbidden'));
   } else {
     const result = await guard(request, response);
-    if (typeof result === 'string') {
-      canActivate = false;
-      message = result;
-    } else {
-      canActivate = result;
-    }
+    ({ canActivate, message } = resolveGuardResult(result, 'Forbidden'));
   }
   if (!canActivate) {
     throw new ForbiddenError(message);

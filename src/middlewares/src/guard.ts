@@ -6,13 +6,16 @@ import { defineMiddlewaresMeta } from '@heliosjs/core/utils';
  * before pipes, middlewares, and the handler; use them for authentication and
  * authorization checks.
  *
- * A guard grants access by returning `true` and denies by returning `false` or a
- * `string`. On denial the request is rejected with `ForbiddenError` (HTTP 403);
- * a returned string becomes the error message (falling back to
- * `guard.message`, then `"Forbidden"`). Guards may be async.
+ * A guard grants access by returning `true` (or nothing) and denies by
+ * returning `false`, a `string`, or an `Error`. On denial with `false`/a
+ * string the request is rejected with `ForbiddenError` (HTTP 403); a returned
+ * string becomes the error message (falling back to `guard.message`, then
+ * `"Forbidden"`). On denial with a returned `Error`, that error is used as
+ * the response instead of `ForbiddenError` — use this to deny with a
+ * different status/code (e.g. `UnauthorizedError`). Guards may be async.
  *
  * @param guard - One of:
- *   - a **function** `(req, res) => boolean | string | Promise<boolean | string>`;
+ *   - a **function** `(req, res) => boolean | string | Error | undefined | Promise<boolean | string | Error | undefined>`;
  *   - a **class** with a `canActivate(req, res)` method (instantiated per request,
  *     may expose a `message` property for the denial text);
  *   - an already-constructed **instance** with `canActivate` (and optional
