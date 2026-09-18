@@ -2319,28 +2319,28 @@
   dependencies:
     tslib "^2.4.0"
 
-"@envelop/core@^5.5.1":
-  version "5.5.1"
-  resolved "https://registry.npmjs.org/@envelop/core/-/core-5.5.1.tgz"
-  integrity sha512-3DQg8sFskDo386TkL5j12jyRAdip/8yzK3x7YGbZBgobZ4aKXrvDU0GppU0SnmrpQnNaiTUsxBs9LKkwQ/eyvw==
+"@envelop/core@^5.6.0":
+  version "5.6.1"
+  resolved "https://registry.yarnpkg.com/@envelop/core/-/core-5.6.1.tgz#a3c8941786f3cd6e2835de788d982f8f986d03be"
+  integrity sha512-KEbJ7yrAA+W7IY9MZzpZJ77w/72ndaV/16+hhPapd+0Ohjqffl0mmF3QWy62/m3nRP4qidD+1eiEjJhS/O38Tg==
   dependencies:
-    "@envelop/instrumentation" "^1.0.0"
-    "@envelop/types" "^5.2.1"
+    "@envelop/instrumentation" "^1.0.1"
+    "@envelop/types" "^5.2.2"
     "@whatwg-node/promise-helpers" "^1.2.4"
     tslib "^2.5.0"
 
-"@envelop/instrumentation@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/@envelop/instrumentation/-/instrumentation-1.0.0.tgz"
-  integrity sha512-cxgkB66RQB95H3X27jlnxCRNTmPuSTgmBAq6/4n2Dtv4hsk4yz8FadA1ggmd0uZzvKqWD6CR+WFgTjhDqg7eyw==
+"@envelop/instrumentation@^1.0.0", "@envelop/instrumentation@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@envelop/instrumentation/-/instrumentation-1.0.1.tgz#f3898d55b955f5561502e98bd05e3cc38af19e50"
+  integrity sha512-FuexE2qd3Yc1Kh1DjTliwGxb9kyyv4ySBNnfJOxnQasVmGdcqX6AkkO5sIMxLWFRftp8PErOcIn2dQW/1RwytQ==
   dependencies:
     "@whatwg-node/promise-helpers" "^1.2.1"
     tslib "^2.5.0"
 
-"@envelop/types@^5.2.1":
-  version "5.2.1"
-  resolved "https://registry.npmjs.org/@envelop/types/-/types-5.2.1.tgz"
-  integrity sha512-CsFmA3u3c2QoLDTfEpGr4t25fjMU31nyvse7IzWTvb0ZycuPjMjb0fjlheh+PbhBYb9YLugnT2uY6Mwcg1o+Zg==
+"@envelop/types@^5.2.2":
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/@envelop/types/-/types-5.2.2.tgz#606abde91a5475f617f490c50e39de197e23a349"
+  integrity sha512-nl9cmUh8F+2/NNzpcLjzNqtaVn0m8XSzzxrPU2ByHhlz4Hqlc5QBfRsemZkoJMKrMviJXyJYdKZiUP1o70F3Kw==
   dependencies:
     "@whatwg-node/promise-helpers" "^1.0.0"
     tslib "^2.5.0"
@@ -2574,14 +2574,14 @@
     "@fastify/forwarded" "^3.0.0"
     ipaddr.js "^2.1.0"
 
-"@graphql-tools/executor@^1.5.0":
-  version "1.5.1"
-  resolved "https://registry.npmjs.org/@graphql-tools/executor/-/executor-1.5.1.tgz"
-  integrity sha512-n94Qcu875Mji9GQ52n5UbgOTxlgvFJicBPYD+FRks9HKIQpdNPjkkrKZUYNG51XKa+bf03rxNflm4+wXhoHHrA==
+"@graphql-tools/executor@^2.0.0":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@graphql-tools/executor/-/executor-2.0.1.tgz#472d8a407631e0fbac651a7d108aa048628b1542"
+  integrity sha512-rvlOaoTUXUUHlu7090e94566SeBnU9PV6xMztIt2s8StXy5HbP0p+tYSfg3N/gCdEzJ78ZQLjXJz4UFgWGZ/7A==
   dependencies:
-    "@graphql-tools/utils" "^11.0.0"
+    "@graphql-tools/utils" "^12.0.1"
     "@graphql-typed-document-node/core" "^3.2.0"
-    "@repeaterjs/repeater" "^3.0.4"
+    "@repeaterjs/repeater" "^3.1.0"
     "@whatwg-node/disposablestack" "^0.0.6"
     "@whatwg-node/promise-helpers" "^1.0.0"
     tslib "^2.4.0"
@@ -2603,20 +2603,20 @@
     "@graphql-tools/utils" "^11.0.0"
     tslib "^2.4.0"
 
-"@graphql-tools/utils@^10.11.0":
-  version "10.11.0"
-  resolved "https://registry.npmjs.org/@graphql-tools/utils/-/utils-10.11.0.tgz"
-  integrity sha512-iBFR9GXIs0gCD+yc3hoNswViL1O5josI33dUqiNStFI/MHLCEPduasceAcazRH77YONKNiviHBV8f7OgcT4o2Q==
+"@graphql-tools/utils@^11.0.0", "@graphql-tools/utils@^11.2.0":
+  version "11.2.2"
+  resolved "https://registry.yarnpkg.com/@graphql-tools/utils/-/utils-11.2.2.tgz#5e2c8458dc31d856c94cab0a02aabfd9a5e6e616"
+  integrity sha512-Do2A/t6ayqOma8m7PvpYMsCBswL+NB35BQSng4GWSBqafL2/BnfAZy/NSENPwV721Rm2fG0BHETFC0+FJJZmLw==
   dependencies:
     "@graphql-typed-document-node/core" "^3.1.1"
     "@whatwg-node/promise-helpers" "^1.0.0"
     cross-inspect "1.0.1"
     tslib "^2.4.0"
 
-"@graphql-tools/utils@^11.0.0":
-  version "11.0.0"
-  resolved "https://registry.npmjs.org/@graphql-tools/utils/-/utils-11.0.0.tgz"
-  integrity sha512-bM1HeZdXA2C3LSIeLOnH/bcqSgbQgKEDrjxODjqi3y58xai2TkNrtYcQSoWzGbt9VMN1dORGjR7Vem8SPnUFQA==
+"@graphql-tools/utils@^12.0.1":
+  version "12.0.1"
+  resolved "https://registry.yarnpkg.com/@graphql-tools/utils/-/utils-12.0.1.tgz#deb4524f776c0fd8fb695657df2d0358cacc2a49"
+  integrity sha512-8YC6jn4xYDS6YTY6xDAgQAs/nGgvzRaIGHS8GeSfVItQzNK7Ms24CQtE3EJY+amvR+tBnhRSX0N83aGj+V/RIg==
   dependencies:
     "@graphql-typed-document-node/core" "^3.1.1"
     "@whatwg-node/promise-helpers" "^1.0.0"
@@ -2635,20 +2635,20 @@
   dependencies:
     tslib "^2.8.1"
 
-"@graphql-yoga/subscription@^5.0.5":
-  version "5.0.5"
-  resolved "https://registry.npmjs.org/@graphql-yoga/subscription/-/subscription-5.0.5.tgz"
-  integrity sha512-oCMWOqFs6QV96/NZRt/ZhTQvzjkGB4YohBOpKM4jH/lDT4qb7Lex/aGCxpi/JD9njw3zBBtMqxbaC22+tFHVvw==
+"@graphql-yoga/subscription@^5.0.5", "@graphql-yoga/subscription@^5.1.0":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@graphql-yoga/subscription/-/subscription-5.1.1.tgz#8ea71b1527973cf373de1b5057dc42a1856e02b2"
+  integrity sha512-I48DpyPTxYzmO5TwvKOXxiLI/tsbyeYNhb4/6/oJEBn6nlb8snHL0G0Fw1LC2ApNW1QKYuCPRDTp9yUwVBqhNQ==
   dependencies:
-    "@graphql-yoga/typed-event-target" "^3.0.2"
+    "@graphql-yoga/typed-event-target" "^3.0.3"
     "@repeaterjs/repeater" "^3.0.4"
     "@whatwg-node/events" "^0.1.0"
     tslib "^2.8.1"
 
-"@graphql-yoga/typed-event-target@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.npmjs.org/@graphql-yoga/typed-event-target/-/typed-event-target-3.0.2.tgz"
-  integrity sha512-ZpJxMqB+Qfe3rp6uszCQoag4nSw42icURnBRfFYSOmTgEeOe4rD0vYlbA8spvCu2TlCesNTlEN9BLWtQqLxabA==
+"@graphql-yoga/typed-event-target@^3.0.3":
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/@graphql-yoga/typed-event-target/-/typed-event-target-3.0.3.tgz#b3318f9c88ebbf8c657a88afa9c4452bcefc7e1e"
+  integrity sha512-j/EgVfZSzKA2lVeiZ0un8E2eVIqWa9Woyqta4A40ht1M93ui9CDVHU6pmphoQTpFa92BNbMVexXdOtMQk8LCjA==
   dependencies:
     "@repeaterjs/repeater" "^3.0.4"
     tslib "^2.8.1"
@@ -3498,6 +3498,11 @@
   version "3.0.6"
   resolved "https://registry.npmjs.org/@repeaterjs/repeater/-/repeater-3.0.6.tgz"
   integrity sha512-Javneu5lsuhwNCryN+pXH93VPQ8g0dBX7wItHFgYiwQmzE1sVdg5tWHiOgHywzL2W21XQopa7IwIEnNbmeUJYA==
+
+"@repeaterjs/repeater@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@repeaterjs/repeater/-/repeater-3.1.0.tgz#312b20a655e5b3ebfe8b1e04ec7df567bcb48d87"
+  integrity sha512-TaoVksZRSx2KWYYpyLQtMQXXeS98VsgZImzW65xmiVgbYhXLk+aEsmzPLirqVuE4/XuUapH2iMtxUzaBNDzdSQ==
 
 "@rolldown/binding-android-arm64@1.0.3":
   version "1.0.3"
@@ -4754,10 +4759,10 @@
   dependencies:
     tslib "^2.6.3"
 
-"@whatwg-node/server@^0.10.14":
-  version "0.10.18"
-  resolved "https://registry.npmjs.org/@whatwg-node/server/-/server-0.10.18.tgz"
-  integrity sha512-kMwLlxUbduttIgaPdSkmEarFpP+mSY8FEm+QWMBRJwxOHWkri+cxd8KZHO9EMrB9vgUuz+5WEaCawaL5wGVoXg==
+"@whatwg-node/server@^0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@whatwg-node/server/-/server-0.11.0.tgz#307e0d84f94da2f0cbd1798bab430404b468a239"
+  integrity sha512-VSdkwnJRr8Yv9UgB2aXB3VUPWwd6Oqnn0hycFwhg9pZgWxJXb7JmhsiXe9tmpMwjHFxli12PGcz9aI63YYloGQ==
   dependencies:
     "@envelop/instrumentation" "^1.0.0"
     "@whatwg-node/disposablestack" "^0.0.6"
@@ -7429,21 +7434,21 @@ graphql-ws@6.0.7:
   resolved "https://registry.npmjs.org/graphql-ws/-/graphql-ws-6.0.7.tgz"
   integrity sha512-yoLRW+KRlDmnnROdAu7sX77VNLC0bsFoZyGQJLy1cF+X/SkLg/fWkRGrEEYQK8o2cafJ2wmEaMqMEZB3U3DYDg==
 
-graphql-yoga@5.18.1:
-  version "5.18.1"
-  resolved "https://registry.npmjs.org/graphql-yoga/-/graphql-yoga-5.18.1.tgz"
-  integrity sha512-GiDSlvibfY/vyurbkBOKMO+adF6bTCzKr80FYWta59s1Lx87oVo8T6Nu/0hrxrGv0SrAUkqUpcpr4Ee7XlYmBw==
+graphql-yoga@5.23.0:
+  version "5.23.0"
+  resolved "https://registry.yarnpkg.com/graphql-yoga/-/graphql-yoga-5.23.0.tgz#e9189818daf874161217b4e018b3777bf14d211b"
+  integrity sha512-TsgX8y4oXY6oPrzHEyYci7cFprkZ2VuwNvlZN/52PwlBGbUOm6Ewmgwhe1e1HX/b4/SzG89e/BHoGBVvMBlGMQ==
   dependencies:
-    "@envelop/core" "^5.5.1"
+    "@envelop/core" "^5.6.0"
     "@envelop/instrumentation" "^1.0.0"
-    "@graphql-tools/executor" "^1.5.0"
+    "@graphql-tools/executor" "^2.0.0"
     "@graphql-tools/schema" "^10.0.11"
-    "@graphql-tools/utils" "^10.11.0"
+    "@graphql-tools/utils" "^11.2.0"
     "@graphql-yoga/logger" "^2.0.1"
-    "@graphql-yoga/subscription" "^5.0.5"
+    "@graphql-yoga/subscription" "^5.1.0"
     "@whatwg-node/fetch" "^0.10.6"
     "@whatwg-node/promise-helpers" "^1.3.2"
-    "@whatwg-node/server" "^0.10.14"
+    "@whatwg-node/server" "^0.11.0"
     lru-cache "^10.0.0"
     tslib "^2.8.1"
 
