@@ -1,5 +1,14 @@
 # @heliosjs/grpc
 
+## 2.1.20
+
+### Patch Changes
+
+- 6d4c604: Added a package.json `exports` map restricting the public surface to the package root, matching `@heliosjs/core`'s existing shape — closes a deep-import path (`@heliosjs/grpc/dist/...`) that was never intentionally supported. No behavior change.
+- Updated dependencies [6d4c604]
+- Updated dependencies [4dedaeb]
+  - @heliosjs/core@4.0.7
+
 ## 2.1.19
 
 ### Patch Changes

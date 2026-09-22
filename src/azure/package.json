@@ -1,6 +1,6 @@
 {
   "name": "@heliosjs/azure",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Azure Functions support for @heliosjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -42,7 +42,7 @@
   },
   "peerDependencies": {
     "@azure/functions": ">=4.0.0",
-    "@heliosjs/core": ">=4.0.2",
+    "@heliosjs/core": ">=4.0.7",
     "typescript": ">=5.0.0",
     "reflect-metadata": "^0.2.2",
     "@types/node": ">=20.0.0"

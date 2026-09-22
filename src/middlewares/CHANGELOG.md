@@ -1,5 +1,14 @@
 # Change Log
 
+## 11.0.4
+
+### Patch Changes
+
+- 6d4c604: Added a package.json `exports` map restricting the public surface to the package root, matching `@heliosjs/core`'s existing shape — closes a deep-import path (`@heliosjs/middlewares/dist/...`) that was never intentionally supported. No behavior change.
+- Updated dependencies [6d4c604]
+- Updated dependencies [4dedaeb]
+  - @heliosjs/core@4.0.7
+
 ## 11.0.3
 
 ### Patch Changes

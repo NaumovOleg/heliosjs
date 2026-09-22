@@ -1,5 +1,17 @@
 # Change Log
 
+## 11.0.4
+
+### Patch Changes
+
+- 6d4c604: `Plugin`'s dispatch logic (register/run hooks/run lifecycle methods) is now built on `@heliosjs/core`'s new shared `PluginDispatch`, shared with `@heliosjs/aws`/`@heliosjs/azure`, instead of an independently-maintained copy. Internal refactor — `Plugin`'s public shape and behavior are unchanged.
+
+  Also added a package.json `exports` map restricting the public surface to the package root, matching `@heliosjs/core`'s existing shape — closes a deep-import path (`@heliosjs/http/dist/...`) that was never intentionally supported.
+
+- Updated dependencies [6d4c604]
+- Updated dependencies [4dedaeb]
+  - @heliosjs/core@4.0.7
+
 ## 11.0.3
 
 ### Patch Changes
