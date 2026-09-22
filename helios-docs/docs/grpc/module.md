@@ -128,3 +128,14 @@ const grpc = GrpcModule.forRoot({
 - Services return RxJS Observables; use `firstValueFrom()` to get a Promise
 - Proto files define the service contract
 - The server auto-discovers methods from `@GrpcMethod` metadata
+- Both `server.url` and each client's `options` default to plaintext — see
+  [Credentials, TLS, and Auth](./usage#credentials-tls-and-auth) for turning
+  TLS on and reading auth from call metadata (there's no `@Guard`/`@Roles`
+  equivalent here)
+
+## Related
+
+- [gRPC Module Usage](./usage) — defining services/methods, credentials/TLS,
+  metadata-based auth
+- [gRPC API Reference](./api) — every exported type and utility
+- [gRPC Examples](./examples) — a fuller worked example
