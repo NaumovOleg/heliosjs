@@ -1,11 +1,25 @@
 import type { ControllerMeta, Route } from '@heliosjs/core/types';
-import { normalizePath } from '@heliosjs/core/utils';
 
 // Frozen copy of the linear matcher as of 9220000 (src/core/src/utils/core/match.ts,
 // pre route-trie rewrite) — do not edit; oracle for match-differential.test.ts. This
-// is a straight copy of matchCompiledRegex/extractParamsAndWildcard/isMethodMatch/
-// routeSpecificity/findRoute as they existed before the trie index replaced the scan
-// in findRoute. Keep every quirk, including ones that look fixable.
+// is a straight copy of normalizePath/matchCompiledRegex/extractParamsAndWildcard/
+// isMethodMatch/routeSpecificity/findRoute as they existed before the trie index
+// replaced the scan in findRoute. Keep every quirk, including ones that look fixable.
+// normalizePath isn't part of the public @heliosjs/core/utils barrel (match.ts
+// imports it from a relative sibling file), so it's inlined here too rather than
+// reaching into src internals.
+
+function normalizePath(path: string): string {
+  if (!path) return '/';
+  const withoutQuery = path.split('?')[0];
+  return (
+    '/' +
+    withoutQuery
+      .split('/')
+      .filter((p) => p.length > 0)
+      .join('/')
+  );
+}
 
 function legacyMatchCompiledRegex(
   route: Route,
