@@ -149,3 +149,10 @@ through the adapter.
   `warn`, and `console.log` for everything else.
 - `log: false` in `@Server({ log: false })` is the quickest way to silence
   framework output in tests.
+
+## Related
+
+- [Error Handling](./error) — `serializeError`/the global `errorHandler`
+  are the other place request errors surface; pair them with a logger call
+- [HTTP Server](../http-module/server) — the `log` option on `@Server` in
+  context with the rest of the server config

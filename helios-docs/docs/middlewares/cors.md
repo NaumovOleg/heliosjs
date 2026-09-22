@@ -133,3 +133,8 @@ Works the same way on `@Cors` at the controller/method level.
 - The default `optionsSuccessStatus` is `204` for legacy browser compatibility
 - `credentials: true` requires explicit `origin` (not `*`)
 - Applying at class level affects all routes; method-level overrides for that route
+
+## Related
+
+- [HTTP Server](../http-module/server) — the same `CORSConfig` shape as
+  the server-wide `cors` option; `@Cors` overrides it per controller/route

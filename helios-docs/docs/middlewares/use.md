@@ -86,8 +86,9 @@ export class UserController {
 
 `req`/`res` here are the framework `Request`/`Response`, not raw Node
 objects — there's no `res.on('finish', ...)` to hook into. Log from an
-`@Intercept` instead, which runs once the handler has actually produced a
-result (and `req.startTime` is the request's high-resolution start time):
+[`@Intercept`](./intercept.md) instead, which runs once the handler has
+actually produced a result (and `req.startTime` is the request's
+high-resolution start time):
 
 ```typescript
 import { Intercept } from "@heliosjs/middlewares";
@@ -200,3 +201,13 @@ The decorator attaches middleware metadata to the target class or method. The fr
 - Class-level runs before method-level
 - Useful for logging, authentication, request modification, and cross-cutting concerns
 - A middleware can stop the pipeline by not calling `next()`
+
+## Related
+
+- [Intercept](./intercept) — the "after the handler" counterpart; use it
+  for logging/timing instead of `@Use` (no `res.on('finish', ...)` to hook
+  into on the framework `Response`)
+- [Guard](./guard) — for reject-or-allow authorization logic specifically,
+  runs earlier in the pipeline than `@Use`
+- [Request Lifecycle](../core-module/request-lifecycle) — where `@Use`
+  middlewares run relative to guards, pipes, and validation
