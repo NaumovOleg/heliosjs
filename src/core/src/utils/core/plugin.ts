@@ -63,20 +63,29 @@ export class PluginDispatch<
 
   /**
    * Registers a plugin and runs its `onInit` (if present), swallowing and
-   * logging a failure so one bad plugin doesn't take registration down.
-   * `this` passed to `onInit` is the real adapter instance (`Helios`, etc.)
-   * regardless of which class in the chain this method is defined on — plain
-   * JS/TS `this` binding, not something this base has to special-case.
-   * Adapters that need more (http also prepends `plugin.middleware` to its
-   * global middleware chain) override this and call `super.usePlugin(...)`.
+   * logging a failure — sync or async — so one bad plugin doesn't take
+   * registration down. `this` passed to `onInit` is the real adapter
+   * instance (`Helios`, etc.) regardless of which class in the chain this
+   * method is defined on. `onInit` itself runs as a real method call
+   * (`onInit.call(plugin, this)`, not a bare function call), so a plugin
+   * that does `onInit(app) { this.client = ... }` sees `this === plugin`,
+   * same as calling `plugin.onInit(this)` directly would. Adapters that
+   * need more (http also prepends `plugin.middleware` to its global
+   * middleware chain) override this and call `super.usePlugin(...)`.
    */
   usePlugin(plugin: TPlugin): this {
     this.plugins.push(plugin);
     const onInit = (plugin as any).onInit;
     if (onInit) {
-      void Promise.resolve(onInit(this)).catch((error: unknown) => {
+      try {
+        void Promise.resolve(onInit.call(plugin, this)).catch((error: unknown) => {
+          getGlobalLogger().error(`plugin ${plugin.name}: onInit failed`, error);
+        });
+      } catch (error) {
+        // onInit threw synchronously, before Promise.resolve ever got a
+        // chance to wrap it — catch that path too, not just a rejection.
         getGlobalLogger().error(`plugin ${plugin.name}: onInit failed`, error);
-      });
+      }
     }
     return this;
   }

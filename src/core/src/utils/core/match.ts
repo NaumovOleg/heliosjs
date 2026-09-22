@@ -271,22 +271,40 @@ function getIndex(rootMeta: ControllerMeta): RouteIndex {
 
 /** Gathers every trie-indexed route whose segment shape could match `segments`
  * (wildcards/optionals included) into `out`. Not yet filtered by method or
- * confirmed by regex — `search` does both against the merged candidate list. */
-function collectTrieCandidates(node: TrieNode | undefined, segments: string[], i: number, out: Route[]) {
-  if (!node) return;
+ * confirmed by regex — `search` does both against the merged candidate list.
+ *
+ * Iterative (an explicit stack, not recursion): the trie branches twice per
+ * node (static child + param child), so depth tracks the *request path's*
+ * segment count, not the number of registered routes — an attacker doesn't
+ * control that, but a pathological self-declared route table (thousands of
+ * chained segments, e.g. from deeply-nested `@Controller({ controllers })`)
+ * could, and recursion here would blow the call stack where the old linear
+ * scanner's plain for-loops never had a depth limit at all. A heap-allocated
+ * stack has no such ceiling in practice.
+ */
+function collectTrieCandidates(root: TrieNode | undefined, segments: string[], out: Route[]) {
+  const stack: { node: TrieNode; i: number }[] = [];
+  if (root) stack.push({ node: root, i: 0 });
 
-  out.push(...node.wild); // `*` matches 0+ remaining segments, at any depth
+  let frame = stack.pop();
+  while (frame) {
+    const { node, i } = frame;
 
-  if (i === segments.length) {
-    out.push(...node.exact, ...node.optional); // optional omitted entirely
-    return;
+    out.push(...node.wild); // `*` matches 0+ remaining segments, at any depth
+
+    if (i === segments.length) {
+      out.push(...node.exact, ...node.optional); // optional omitted entirely
+    } else {
+      if (i === segments.length - 1) {
+        out.push(...node.optional); // optional consuming exactly the last segment
+      }
+      const child = node.children.get(segments[i]);
+      if (child) stack.push({ node: child, i: i + 1 });
+      if (node.param) stack.push({ node: node.param, i: i + 1 });
+    }
+
+    frame = stack.pop();
   }
-  if (i === segments.length - 1) {
-    out.push(...node.optional); // optional consuming exactly the last segment
-  }
-
-  collectTrieCandidates(node.children.get(segments[i]), segments, i + 1, out);
-  collectTrieCandidates(node.param, segments, i + 1, out);
 }
 
 function search(
@@ -296,7 +314,7 @@ function search(
   method: string
 ): { route: Route; params: Record<string, string> } | undefined {
   const candidates: Route[] = [];
-  collectTrieCandidates(idx.root, segments, 0, candidates);
+  collectTrieCandidates(idx.root, segments, candidates);
   candidates.push(...idx.residual);
   // Candidates arrive in trie-traversal order, not declaration order — sort by
   // the precomputed order so ties resolve exactly like the old scan did.

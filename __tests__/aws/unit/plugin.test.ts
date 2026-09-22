@@ -67,6 +67,13 @@ describe('AWS Plugin', () => {
   });
 
   it('callPluginMethod calls methods', async () => {
+    // AWS plugins only really have `onInit` — `onStart` here is a
+    // deliberately-arbitrary method name, to prove callPluginMethod
+    // dispatches on any key present on the plugin object, not just the
+    // real Plugin interface's own fields. `as any` on the object literal
+    // is intentional: this is testing generic dispatch, not the typed
+    // public surface (a real caller can't pass `onStart` — LambdaPlugin
+    // doesn't declare it, and usePlugin's parameter is typed).
     const onStart = vi.fn();
     class TestHost extends Plugin {
       async callMethod(name: string, ...args: any[]) {
@@ -74,7 +81,7 @@ describe('AWS Plugin', () => {
       }
     }
     const h = new TestHost();
-    h.usePlugin({ name: 'test', onStart });
+    h.usePlugin({ name: 'test', onStart } as any);
     await h.callMethod('onStart', 'event');
     expect(onStart).toHaveBeenCalledWith('event');
   });
@@ -87,7 +94,7 @@ describe('AWS Plugin', () => {
       }
     }
     const h = new TestHost();
-    h.usePlugin({ name: 'test', onStart });
+    h.usePlugin({ name: 'test', onStart } as any);
     await h.callMethod('onStart');
     expect(onStart).toHaveBeenCalled();
   });

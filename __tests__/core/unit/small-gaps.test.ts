@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { computeFingerprint, getOrComputeFingerprint, setFingerprintConfig } from '../../../src/core/src/utils/core/fingerprint';
 import { validate } from '../../../src/core/src/utils/shared/validate';
 import { ApplicationError } from '../../../src/core/src/utils/core/error/apperror';
-import { getEventType } from '../../../src/aws/src/utils/aws/lambda';
 
 function makeMeta(overrides: Record<string, any> = {}) {
   return { requestId: 'r1', method: 'GET', requestUrl: new URL('http://localhost/test'), sourceIp: '127.0.0.1', userAgent: 'test', startTime: Date.now(), ...overrides };
@@ -215,15 +214,5 @@ describe('apperror.ts - normalizeError paths', () => {
       config: { includeStack: false, logErrors: false },
     });
     expect(appErr.status).toBe(400);
-  });
-});
-
-describe('lambda.ts - getEventType', () => {
-  it('getEventType returns rest for REST API Gateway v1', () => {
-    const event = {
-      httpMethod: 'GET', resource: '/test', path: '/test',
-      requestContext: { accountId: '123', apiId: '123' },
-    } as any;
-    expect(getEventType(event)).toBe('rest');
   });
 });

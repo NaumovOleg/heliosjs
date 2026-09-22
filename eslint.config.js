@@ -48,9 +48,21 @@ export default defineConfig([
     // path that tunnels into another package's src/ tree instead (Node
     // resolves `../../aws/src/...` off the filesystem directly, bypassing
     // `exports` entirely). This rule closes both gaps at lint time, before a
-    // build even runs. No violation exists today (verified by grep across
-    // src/__tests__/benchmarks before adding this) — this locks in what's
-    // already true rather than fixing an active one.
+    // build even runs. No violation exists today within this rule's own
+    // scope (src/**) — verified by grep, and confirmed again by this rule
+    // itself reporting clean.
+    //
+    // Deliberately scoped to src/** only, not __tests__/**: a test file
+    // legitimately reaches into its OWN package's src/ via a relative path
+    // all over this suite (e.g. __tests__/aws/unit/*.test.ts importing
+    // ../../../src/aws/src/...), and the relative-path patterns below match
+    // on the literal segment sequence (`aws/src/`, `core/src/`, ...)
+    // regardless of which package the importing file itself lives in — they
+    // can't tell "this test's own package" from "a different package"
+    // without a per-directory allow-list. A real __tests__-side violation
+    // (a core test reaching into @heliosjs/aws's internals via a relative
+    // path, found by code review, not this rule) was fixed directly instead
+    // — see the commit that removed it from __tests__/core/unit/small-gaps.test.ts.
     files: ['src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
