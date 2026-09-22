@@ -122,6 +122,44 @@ const grpc = GrpcModule.forRoot({
 | `@GrpcStreamMethod(service?, method?)` | Mark a method as a streaming RPC handler |
 | `@InjectGrpcClient(name)` | Inject a named `GrpcClient` |
 
+## API Reference
+
+Config types (`GrpcServerOptions`, `GrpcClientOptions`) and client-shape
+types (`ClientGrpc`, `GrpcServiceClient`) are structural — you rarely name
+them directly, `GrpcModule.forRoot()`/`new GrpcClient()`/`getService<T>()`
+infer or accept them positionally, as shown throughout this page and
+[Usage](./usage). The two exported error-handling utilities are worth a
+look on their own, since neither has a real usage example anywhere else:
+
+**`normalizeError(error)`** — what `GrpcServer` calls internally when a
+handler throws, mapping the thrown value to a `{ code, message }` gRPC
+status pair. An error with a numeric `.code` + `.message` (like `GrpcError`
+below) passes through as-is; one with an HTTP-style `.statusCode` is
+translated (`400`→`INVALID_ARGUMENT`, `401`→`UNAUTHENTICATED`,
+`403`→`PERMISSION_DENIED`, `404`→`NOT_FOUND`, `409`→`ALREADY_EXISTS`,
+`429`→`RESOURCE_EXHAUSTED`, `500`→`INTERNAL`, `501`→`UNIMPLEMENTED`,
+`503`→`UNAVAILABLE`); anything else becomes `INTERNAL`. You won't usually
+call this yourself — it's what makes a plain `throw new NotFoundError(...)`
+(reusing a `@heliosjs/core` error class) still produce a sensible gRPC
+status instead of an opaque `INTERNAL`.
+
+**`toPromise(observable)`** — adapts an RxJS `Observable` (what
+`GrpcClient`'s service methods return) to a `Promise` of its first emitted
+value, tearing the subscription down afterward. A `Promise` passed in is
+returned as-is, so it's safe to wrap either shape:
+
+```typescript
+import { toPromise } from "@heliosjs/grpc";
+
+const user = await toPromise(heroService.findOne({ id: 1 }));
+```
+
+**`GrpcError`** / **`GrpcInvalidProtoError`** / **`GrpcServiceNotFoundError`**
+— see [Error Handling](./examples#error-handling) for `GrpcError` in a
+handler; the other two are thrown internally by `GrpcServer.registerService()`
+(invalid proto file, service name not found in the loaded proto) — you
+catch them, you don't construct them.
+
 ## Remarks
 
 - `GrpcModule.forRoot()` is a singleton — subsequent calls return the same instance
@@ -137,5 +175,4 @@ const grpc = GrpcModule.forRoot({
 
 - [gRPC Module Usage](./usage) — defining services/methods, credentials/TLS,
   metadata-based auth
-- [gRPC API Reference](./api) — every exported type and utility
-- [gRPC Examples](./examples) — a fuller worked example
+- [gRPC Examples](./examples) — a fuller worked example, error handling, RxJS patterns

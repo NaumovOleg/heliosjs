@@ -254,6 +254,6 @@ shared function each handler calls.
 ## Related
 
 - [gRPC Module Documentation](./module) — `GrpcModule.forRoot()`, grouping a
-  server with named clients
-- [gRPC API Reference](./api) — every exported type and utility
-- [gRPC Examples](./examples) — a fuller worked example
+  server with named clients, plus the API reference for `normalizeError`/
+  `toPromise`/`GrpcError`
+- [gRPC Examples](./examples) — a fuller worked example, error handling, RxJS patterns

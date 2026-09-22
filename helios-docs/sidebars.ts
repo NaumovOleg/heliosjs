@@ -57,7 +57,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'GRPC',
-      items: ['grpc/module', 'grpc/usage', 'grpc/api', 'grpc/examples'],
+      items: ['grpc/module', 'grpc/usage', 'grpc/examples'],
     },
     {
       type: 'category',

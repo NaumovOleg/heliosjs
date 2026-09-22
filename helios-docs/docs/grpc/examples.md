@@ -208,3 +208,10 @@ export class UserService {
 2. Start the gRPC server
 3. The client makes a call to `findOne`
 4. Observe the console output
+
+## Related
+
+- [gRPC Module Usage](./usage) — `@GrpcMethod`'s argument-order gotcha,
+  credentials/TLS, metadata-based auth
+- [gRPC Module Documentation](./module) — `GrpcModule.forRoot()`, API
+  reference for `normalizeError`/`toPromise`/`GrpcError`
