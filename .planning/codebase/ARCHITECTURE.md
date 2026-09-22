@@ -94,12 +94,17 @@ requests into the same compiled controllers.
 **Per-route pipeline** (`descriptors/request.ts` -> `execute` in
 `src/core/src/utils/core/controller.ts`):
 
-1. `matchRoutes` (`src/core/src/utils/core/match.ts`) walks the controller + `children`
-   depth-first and returns the **highest-specificity** matching route. Specificity key
-   per segment: static `4` > `:param(regex)` `3` > `:param` `2` > optional `?` `1` >
-   wildcard `*` `0`, plus a trailing `5`; ties keep the first-declared route.
-   *(Note: CLAUDE.md still says "no specificity ranking / a wildcard shadows `/users`" —
-   that is stale as of commit `4957052` / this refactor.)*
+1. `matchRoutes`/`findRoute` (`src/core/src/utils/core/match.ts`) return the
+   **highest-specificity** matching route. Specificity key per segment: static `4`
+   > `:param(regex)` `3` > `:param` `2` > optional `?` `1` > wildcard `*` `0`, plus
+   a trailing `5`; ties keep the first-declared route. As of `@heliosjs/core` 4.0.7,
+   lookup is a per-segment trie built lazily from the controller + `children` tree
+   and cached per root (before that, every request linearly scanned the whole
+   tree in declaration order — see CONCERNS.md's "Route matching" entry for the
+   before/after numbers). The trie only narrows candidates; the specificity/tie
+   rule above is unchanged. Routes with a `:name(regex)` segment, a mid-route
+   `*`/`?`, or no `compiledRegex` (hand-built) aren't indexed and stay in a
+   linearly-scanned `residual` list.
 2. Param extraction (`compiledParamExtractor` or `getParams`).
 3. Route-level CORS configs (reduced over `route.compiled.cors`).
 4. `beforeRequest`:

@@ -172,15 +172,26 @@
 
 ## Performance Bottlenecks
 
-**Route matching now scans the whole controller subtree:**
-- Problem: `matchRoutes` no longer returns on first regex hit — it evaluates every
-  method-matching route whose specificity could beat the current best (it does skip
-  regex eval for routes that can't win).
+**Route matching now scans the whole controller subtree — FIXED (route-trie index):**
+- Problem (as of `@heliosjs/core` 4.0.6 and earlier): `findRoute` scanned every
+  method-matching route in the whole controller/children tree on every request,
+  in declaration order — a route's position in the table taxed every request to
+  routes declared after it. Measured on a 300-route table (properly isolated —
+  see `benchmarks/results-routes.csv`): 72,640 req/s at the first-declared route
+  down to 45,000 req/s (61.9%) at the last-declared one, 30,792 (42.4%) on a 404.
+- Now (`@heliosjs/core` 4.0.7+): routes whose segments are all static, plain
+  `:name`, or (last segment only) trailing `?`/`*` are indexed in a per-segment
+  trie, built lazily on first lookup and cached per controller-tree root. Same
+  300-route table: 89,752 req/s first-declared, 90,288 (100.6%) last-declared —
+  flat, matching Fastify's shape. The trie only narrows the candidate list; the
+  actual decision (highest specificity, first-declared on ties, method match,
+  then the existing regex confirm) is unchanged, verified by a differential
+  fuzz test against the old linear matcher (`__tests__/core/unit/match-differential.test.ts`).
 - Files: `src/core/src/utils/core/match.ts`.
-- Cause: correctness fix for specificity ordering trades early-exit for a full pass.
-- Improvement path: fine for typical controller sizes; if route counts grow large,
-  pre-sort `controller.routes` by specificity at `collectRoutes` time so the first hit
-  is the answer.
+- Residual caveat: `:name(regex)` routes (their regex isn't anchored to one
+  segment), a mid-route `*`/`?`, and hand-built routes with no `compiledRegex`
+  are not indexed — they stay in a linearly-scanned `residual` list, same as
+  before. Fine in practice; real route tables have few of them.
 
 **Rate limiting is in-memory by default:**
 - Problem: `MemoryStore` state is per-process and lost on restart.

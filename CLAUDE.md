@@ -51,7 +51,7 @@ Each item in that list is a tagged object with one of these keys: `middleware`, 
 - `collectRoutes` (`src/core/src/utils/core/controller.ts`) precompiles each route: a regex, a param extractor, and a `compiled` bucket that `buildCompiledMiddleware` splits by kind.
 
 **Request pipeline** (`execute` and `beforeRequest` in `utils/core/controller.ts`) runs in this order:
-1. `matchRoutes` walks the whole controller tree depth-first and keeps the highest-specificity match. `routeSpecificity` (`utils/core/match.ts`) ranks per segment: static > `:param(regex)` > `:param` > optional (`?`) > wildcard (`*`), compared left to right, with a trailing marker so a shorter exact path beats a longer optional/wildcard one. Ties keep the first-declared route, so a wildcard no longer shadows a sibling `/users`.
+1. `matchRoutes`/`findRoute` (`utils/core/match.ts`) look up the highest-specificity match via a per-segment trie, built lazily from the controller tree and cached per root — lookup cost depends on path depth, not total route count. `routeSpecificity` ranks per segment: static > `:param(regex)` > `:param` > optional (`?`) > wildcard (`*`), compared left to right, with a trailing marker so a shorter exact path beats a longer optional/wildcard one. Ties keep the first-declared route, so a wildcard no longer shadows a sibling `/users`. Routes with a `:name(regex)` segment, a mid-route `*`/`?`, or no precompiled regex (hand-built) aren't indexable and fall back to a linear scan.
 2. CORS
 3. Rate limit
 4. Sanitizers

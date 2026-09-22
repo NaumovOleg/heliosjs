@@ -118,3 +118,67 @@ after a hot-path perf pass on Helios (see below). Config: 100 connections,
   top of it. You're paying Express's routing cost either way and adding
   Nest's on top — this benchmark isolates exactly that delta.
 
+## Routing at scale (route-table size)
+
+The results above use a 2-route app, which is realistic for this micro-benchmark
+but too small to show whether a route's *position* in the table costs anything.
+A separate suite (`yarn benchmark:routes`, `benchmarks/run-routes.ts`) answers
+that with a 300-route table (10 controllers × 30 routes: 25 static, 4 param, 1
+trailing wildcard each), measuring the first-declared route, a middle one, the
+last-declared static route, the last-declared param route, and a 404 — all on
+the same table, so any spread is purely a function of position, not payload.
+
+:::note
+Same caveats as above (one machine, one day: Darwin 25.6.0, Node v24.14.0,
+Apple M4). Captured 2026-09-22. Full numbers, including latency, in
+`benchmarks/results-routes.csv`.
+:::
+
+**`@heliosjs/core` ≤ 4.0.6 — linear scan.** `findRoute` walked every
+method-matching route in the whole controller/children tree, in declaration
+order, on every request:
+
+| URL position     | Req/sec | % of first-declared |
+| ----------------- | ------: | -------------------: |
+| first-declared     |  72,640 |               100.0% |
+| middle             |  53,912 |                74.2% |
+| last-declared (static) | 45,000 |            61.9% |
+| last-declared (param)  | 43,116 |            59.4% |
+| 404 (no match)     |  30,792 |                42.4% |
+
+**`@heliosjs/core` ≥ 4.0.7 — trie index.** Routes whose segments are all
+static, plain `:name`, or (last segment only) trailing `?`/`*` are indexed in
+a per-segment trie, built lazily on first lookup and cached per controller-tree
+root — lookup cost depends on path depth, not table size:
+
+| URL position     | Req/sec | % of first-declared |
+| ----------------- | ------: | -------------------: |
+| first-declared     |  89,752 |               100.0% |
+| middle             |  89,392 |                99.6% |
+| last-declared (static) | 90,288 |           100.6% |
+| last-declared (param)  | 87,712 |            97.7% |
+| 404 (no match)     |  43,744 |                48.7% |
+
+Fastify (radix tree, not re-measured per version since its router didn't
+change) stays flat across all five positions on the same table, ~118k–125k
+req/s either way — that flat shape is the target the trie index reaches.
+
+**Reading these numbers:**
+
+- The trie removes route-position as a cost entirely for static/param routes:
+  61.9% → 100.6% of the first-declared route's throughput at the
+  last-declared one. The flat baseline is also ~24% faster than the old
+  scan's *first*-route case (72,640 → 89,752) — a cached trie lookup beats
+  re-walking even route #1 from scratch every request.
+- **The 404 numbers sit well below the flat plateau on both versions** (42.4%
+  / 48.7%) — that's the cost of constructing and serializing a
+  `NotFoundError` response (stack trace, timestamp, request id), not routing.
+  Fastify's default 404 is far cheaper to produce, which is most of why its
+  own 404-vs-first-declared ratio (96–99%) looks so much flatter than
+  Helios's here; it isn't a routing-speed gap.
+- Routes that can't be indexed exactly — a `:name(regex)` segment (its regex
+  isn't anchored to one path segment), a mid-route `*`/`?`, or a hand-built
+  route with no precompiled regex — stay on the old linear path in both
+  versions. Real route tables have few of these, so this doesn't show up at
+  the scale measured here.
+
