@@ -41,6 +41,45 @@ export default defineConfig([
     },
   },
   {
+    // Cross-package boundary check: only @heliosjs/core has a package.json
+    // `exports` map with subpaths (., /utils, /types, /constants); the other
+    // 5 packages only expose `.`. That's runtime/tsc-resolution enforcement
+    // for imports through the package name, but it can't see a *relative*
+    // path that tunnels into another package's src/ tree instead (Node
+    // resolves `../../aws/src/...` off the filesystem directly, bypassing
+    // `exports` entirely). This rule closes both gaps at lint time, before a
+    // build even runs. No violation exists today (verified by grep across
+    // src/__tests__/benchmarks before adding this) — this locks in what's
+    // already true rather than fixing an active one.
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@heliosjs/*/dist/**', '@heliosjs/*/src/**'],
+              message:
+                "Import from the package root (e.g. '@heliosjs/core') or one of its declared subpaths (/utils, /types, /constants for core) — not another package's dist/src internals directly.",
+            },
+            {
+              group: [
+                '**/core/src/**',
+                '**/http/src/**',
+                '**/aws/src/**',
+                '**/azure/src/**',
+                '**/grpc/src/**',
+                '**/middlewares/src/**',
+              ],
+              message:
+                "A relative import can't cross into another @heliosjs package's src/ tree — import from its public @heliosjs/<pkg> entry point instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.config.js', '**/*.config.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
