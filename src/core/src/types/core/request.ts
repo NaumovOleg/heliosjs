@@ -227,3 +227,23 @@ export interface Request<
   /** Plain-object view of the request, for logging/serialization. */
   toJSON(): Record<string, this>;
 }
+
+/**
+ * @internal Compile-time contract every adapter's `RequestFactory` class
+ * conforms to: a static `create(...)` that builds a {@link Request} from
+ * that transport's own raw event shape. `TArgs` is deliberately per-adapter
+ * (`@heliosjs/http`'s `create` takes `(req, maxBytes?, trustProxy?, skipBody?)`;
+ * `@heliosjs/aws`'s takes `(event, context, trustProxy?)`; `@heliosjs/azure`'s
+ * takes the same as aws but returns a `Promise` since Azure's body read is
+ * async) — this only pins down the return type and that `create` exists,
+ * catching a future adapter forgetting to return a real `Request` (or
+ * renaming/dropping `create`) as a type error instead of a silent surprise.
+ * `create` is `static`, so a normal `implements` doesn't apply (TS only
+ * checks instance members that way) — each adapter instead assigns its class
+ * to a locally-scoped `const` typed as `IRequestFactory<...>`, which type-
+ * checks the static side by assignment. No runtime behavior comes from this;
+ * the three factories' actual normalization logic stays adapter-specific.
+ */
+export interface IRequestFactory<TArgs extends unknown[]> {
+  create(...args: TArgs): Request | Promise<Request>;
+}
