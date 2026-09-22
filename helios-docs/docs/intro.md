@@ -47,6 +47,29 @@ curl http://localhost:3000/users       # [{ "id": 1, "name": "Alice" }]
 curl -X POST http://localhost:3000/users -H "Content-Type: application/json" -d '{"name":"Bob"}'
 ```
 
+## Why Helios, not Express, Fastify, or NestJS?
+
+- **Faster than Express and NestJS**, and not by accident — Nest's default
+  adapter *is* Express, plus a dependency-injection and module-resolution
+  layer on top of it. Helios has no DI container: routes compile once, at
+  construction time, not through an IoC graph on every request. See the
+  [routing benchmark](./benchmarks) for current numbers.
+- **Decorator-based like Nest, but usable everywhere Nest isn't** — the same
+  `@Controller`/`@Get` classes run behind Node's `http`, AWS Lambda, Azure
+  Functions, or gRPC. Express and Fastify are HTTP-only; swapping Nest to a
+  serverless target means a different adapter *and* a different mental
+  model. Here it's the same code, a different package.
+- **Not a routing story everywhere** — Fastify's radix-tree router keeps it
+  ~25-30% ahead on raw routing throughput, and there's no DI container if
+  that's what you're after. Helios pulls back ahead where the "compile once,
+  reuse many times" idea applies further down the pipeline: within 0.5% of
+  Fastify on [Ajv-compiled validation](./benchmarks-validation), and ahead
+  of Fastify's own schema-compiled serializer on medium/large JSON payloads
+  (verified three ways — see [Serialization](./benchmarks-serialization)).
+
+Full methodology, more suites, and the "surprising enough to verify three
+ways" story behind that last point: **[Benchmarks](./benchmarks)**.
+
 ## What You Can Build
 
 - **REST APIs** — controllers, validation, error handling, CORS, rate limiting
