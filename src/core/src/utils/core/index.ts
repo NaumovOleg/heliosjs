@@ -7,6 +7,7 @@ export * from './headers';
 export * from './logger';
 export * from './match';
 export * from './multipart';
+export * from './plugin';
 export * from './rbac';
 export * from './ratelimit';
 export * from './redos';

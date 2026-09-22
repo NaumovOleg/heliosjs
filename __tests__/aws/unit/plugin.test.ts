@@ -21,23 +21,22 @@ describe('AWS Plugin', () => {
     errorSpy.mockRestore();
   });
 
-  it('prepends middleware', () => {
+  it('has no middleware-chain concept, unlike @heliosjs/http — a `middleware` field is simply not read', () => {
+    // AWS/Lambda has no global middleware chain anywhere in lambda.ts. A
+    // previous version of this class collected `plugin.middleware` into a
+    // `middlewares` array that nothing ever consumed — dead code (removed;
+    // see the commit that fixed it) that these two tests used to assert on,
+    // which is exactly how it went unnoticed. This documents the actual
+    // behavior instead of the never-executed one.
     const mw = async () => {};
-    const plugin = { name: 'test', middleware: mw };
     const host = new Plugin();
-    host.usePlugin(plugin);
-    expect(host.middlewares[0]).toBe(mw);
+    expect(() => host.usePlugin({ name: 'test', middleware: mw } as any)).not.toThrow();
+    expect((host as unknown as { middlewares?: unknown[] }).middlewares).toBeUndefined();
   });
 
   it('returns this for chaining', () => {
     const host = new Plugin();
     expect(host.usePlugin({ name: 'test' })).toBe(host);
-  });
-
-  it('skips plugins without middleware', () => {
-    const host = new Plugin();
-    host.usePlugin({ name: 'test' });
-    expect(host.middlewares).toEqual([]);
   });
 
   it('callPluginHook calls hooks', async () => {

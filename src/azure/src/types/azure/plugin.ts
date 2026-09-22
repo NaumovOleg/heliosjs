@@ -12,8 +12,6 @@ export interface Hooks {
   afterResponse?: (req: Request, res: Response) => void | Promise<void>;
 }
 
-export type PluginHookKeys = keyof Hooks;
-
 /** A plugin for the `@heliosjs/azure` adapter. */
 export interface Plugin {
   /** Unique plugin name, used in log lines. */
@@ -28,4 +26,3 @@ export interface Plugin {
   /** Per-request lifecycle hooks. */
   hooks?: Hooks;
 }
-export type PluginKeys = keyof Omit<Plugin, 'name' | 'hooks'>;

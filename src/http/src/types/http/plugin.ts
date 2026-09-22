@@ -32,6 +32,3 @@ export interface Plugin {
   /** Per-request lifecycle hooks. */
   hooks?: HttpPluginHooks;
 }
-
-export type PluginHookKeys = keyof HttpPluginHooks;
-export type PluginKeys = keyof Omit<Plugin, 'name' | 'hooks'>;

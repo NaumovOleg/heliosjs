@@ -1,43 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { MiddlewareCB } from '@heliosjs/core/types';
-import { getGlobalLogger } from '@heliosjs/core/utils';
-import type {
-  Plugin as HttpPlugin,
-  HttpPluginHooks,
-  PluginHookKeys,
-  PluginKeys,
-} from '../../types/http';
+import { PluginDispatch } from '@heliosjs/core/utils';
+import type { Plugin as HttpPlugin } from '../../types/http';
 
-export class Plugin {
-  plugins: HttpPlugin[] = [];
+/**
+ * `@heliosjs/http`'s plugin dispatcher — see `PluginDispatch` in
+ * `@heliosjs/core` for the shared register/dispatch logic this builds on.
+ * The one thing http needs beyond that base: a plugin's `middleware` (if
+ * present) is prepended to the global middleware chain on registration.
+ */
+export class Plugin extends PluginDispatch<HttpPlugin> {
   middlewares: MiddlewareCB[] = [];
-  protected async callPluginHook<K extends PluginHookKeys>(
-    hookName: K,
-    ...args: Parameters<NonNullable<HttpPluginHooks[K]>>
-  ): Promise<void> {
-    for (const plugin of this.plugins) {
-      const hook = plugin.hooks?.[hookName];
-      if (hook) {
-        try {
-          await (hook as any)(...args);
-        } catch (error) {
-          getGlobalLogger().error(`plugin ${plugin.name}: hook ${hookName} failed`, error);
-        }
-      }
-    }
-  }
-  protected async callPluginMethod(hookName: PluginKeys, ...args: any): Promise<void> {
-    for (const plugin of this.plugins) {
-      const hook = plugin?.[hookName];
-      if (hook) {
-        try {
-          await (hook as any)(...args);
-        } catch (error) {
-          getGlobalLogger().error(`plugin ${plugin.name}: hook ${hookName} failed`, error);
-        }
-      }
-    }
-  }
 
   /**
    * Registers a plugin and attaches its middleware/hook lifecycle.
@@ -53,17 +25,11 @@ export class Plugin {
    *   },
    * });
    */
-  usePlugin(plugin: any) {
-    this.plugins.push(plugin);
-    if (plugin.onInit) {
-      void Promise.resolve(plugin.onInit(this)).catch((error) => {
-        getGlobalLogger().error(`plugin ${plugin.name}: onInit failed`, error);
-      });
-    }
+  usePlugin(plugin: HttpPlugin): this {
+    super.usePlugin(plugin);
     if (plugin.middleware) {
-      this.middlewares?.unshift(plugin.middleware);
+      this.middlewares.unshift(plugin.middleware);
     }
-
     return this;
   }
 }
