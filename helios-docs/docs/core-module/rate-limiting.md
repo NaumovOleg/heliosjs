@@ -6,6 +6,15 @@ sidebar_position: 14
 
 HeliosJS provides built-in rate limiting via the `@RateLimit` decorator with multiple strategies.
 
+## Purpose
+
+Rate limiting protects a route from being called too often by the same
+caller — the "same caller" question is the interesting part, which is why
+the key generator matters as much as the limit itself. The default key is
+the request [fingerprint](../middlewares/fingerprint) (IP + User-Agent +
+Accept-Language by default), not just the IP, so two callers behind the
+same NAT/proxy aren't automatically bucketed together.
+
 ## Basic Usage
 
 ```typescript
@@ -214,3 +223,13 @@ export class ApiController {
 - The `MemoryStore` works for single-instance deployments; use a shared store (Redis) for distributed systems
 - Rate limit key defaults to the request fingerprint
 - Headers are set automatically on every response
+
+## Related
+
+- [Fingerprint](../middlewares/fingerprint) — the default rate-limit key;
+  configure what it's computed from
+- [Guard](../middlewares/guard) — runs after rate limiting in the pipeline,
+  for authorization rather than request volume
+- [Catch](../middlewares/catch) — change what a `RateLimitExceededError`
+  response body looks like (`onLimit` is a side-effect hook, not a response
+  override)

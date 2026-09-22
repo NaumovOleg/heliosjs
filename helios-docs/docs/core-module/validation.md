@@ -6,6 +6,15 @@ sidebar_position: 5
 
 HeliosJS validates request data using DTO classes with `class-validator` decorators. Validation runs automatically before your handler executes.
 
+## Purpose
+
+Validation is opt-in per parameter, not global — pass a DTO class where
+you'd otherwise pass a field name (`@Body(CreateUserDto)` instead of
+`@Body()`) and the framework validates before your handler ever runs,
+throwing the same `ValidationError` either way. That's what keeps "is this
+field validated" answerable by reading the handler's signature alone,
+without a separate schema registry to cross-reference.
+
 Prefer a JSON Schema and raw throughput over decorated classes? See [Fast path: JSON Schema with compileSchema](#fast-path-json-schema-with-compileschema) further down — same `@Body`/`@Params`/etc., a different validator underneath.
 
 ## Installation
@@ -396,3 +405,13 @@ curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name": "Bob", "email": "bob@example.com", "password": "secret123"}'
 ```
+
+## Related
+
+- [Routing & Parameters](./parameter-decorators) — every parameter decorator
+  that accepts a DTO (`@Params`, `@QueryParam`, `@Headers`, `@Cookies`, `@Files`)
+- [Sanitize](../middlewares/sanitize) — Joi-based alternative/complement,
+  runs earlier in the pipeline (before guards, not just before the handler)
+- [Pipe](../middlewares/pipe) — see its [composed
+  example](../middlewares/pipe#composed-with-a-guard-and-a-validated-dto)
+  for validating the *transformed* value, not the raw one

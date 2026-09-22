@@ -6,6 +6,15 @@ sidebar_position: 7
 
 The `@Server` decorator configures your HTTP server, and the `Helios` class starts and manages it.
 
+## Purpose
+
+`@Server` is where cross-cutting, app-wide config lives — CORS, global
+middleware, the error handler, WebSocket/SSE/GraphQL, RBAC — as opposed to
+`@Controller`-level config, which applies to one route group. Most of it
+has a controller/route-level equivalent (`@Cors` vs `cors`, `@Catch` vs
+`errorHandler`) for the cases that need to differ per route; `@Server`'s
+version is what applies everywhere nothing more specific overrides it.
+
 ## Basic Setup
 
 ```typescript
@@ -279,3 +288,12 @@ server.listen(3000).then(() => {
 - Static files are served with caching headers by default
 - `server.use()` adds middleware at runtime (after construction)
 - WebSocket and SSE are enabled via their respective config options
+
+## Related
+
+- [CORS](../middlewares/cors) — the `@Cors` decorator version of this page's
+  `cors` option, for per-controller/route overrides
+- [WebSocket](./websockets) — the `websocket` option in depth
+- [Server-Sent Events](./server-sent-events) — the `sse` option in depth
+- [Plugins](./plugins) — hook into server lifecycle/requests without
+  forking `Helios` itself

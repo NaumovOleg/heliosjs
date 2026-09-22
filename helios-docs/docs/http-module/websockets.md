@@ -6,6 +6,15 @@ sidebar_position: 8
 
 HeliosJS provides decorator-driven WebSocket support with topic pub/sub, broadcasting, and client management.
 
+## Purpose
+
+Reach for WebSocket when the client needs to send messages too, not just
+receive them — chat, multiplayer, collaborative editing. For server-to-
+client-only push (notifications, live feeds, dashboards), [Server-Sent
+Events](./server-sent-events) is plain HTTP, auto-reconnects in the
+browser for free, and works through infrastructure that doesn't know about
+the WS protocol.
+
 ## Enable WebSockets
 
 ```typescript
@@ -296,3 +305,9 @@ interface WebSocketMessage {
 - `@InjectWS()` gives access to the WebSocket service for programmatic control
 - Messages are JSON-serialized automatically
 - `getStats()` returns connected client count and topic subscriptions
+
+## Related
+
+- [Server-Sent Events](./server-sent-events) — unidirectional alternative;
+  see its [SSE vs WebSocket](./server-sent-events#sse-vs-websocket) table
+- [HTTP Server](./server) — the `websocket` option on `@Server`

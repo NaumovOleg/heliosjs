@@ -4,6 +4,16 @@ sidebar_position: 2
 
 # Installation & Setup
 
+## Purpose
+
+HeliosJS ships as six independent packages — `@heliosjs/core` is the only
+one you always need; `http`, `aws`, `azure`, `grpc`, and `middlewares` are
+opt-in per deployment target. The two tsconfig flags below
+(`experimentalDecorators`, `emitDecoratorMetadata`) aren't stylistic —
+they're what makes `@Controller`/`@Get`/etc. work at all, since HeliosJS
+uses legacy TC39 decorators plus `reflect-metadata`, not the newer stage-3
+decorator proposal.
+
 ## Prerequisites
 
 ```bash
@@ -248,3 +258,10 @@ npm install -D tsx
   }
 }
 ```
+
+## Related
+
+- [Controllers](./controllers) — the next step: routes, parameters, nested
+  controllers
+- [HTTP Server](../http-module/server) — `@Server` configuration once you're
+  past a single controller

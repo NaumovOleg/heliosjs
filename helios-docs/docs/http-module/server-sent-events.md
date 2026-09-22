@@ -6,6 +6,15 @@ sidebar_position: 9
 
 SSE pushes real-time updates from server to client over HTTP. Unlike WebSocket, SSE is unidirectional (server → client) and works over standard HTTP.
 
+## Purpose
+
+Reach for SSE when the client only ever *receives* (notifications, live
+feeds, dashboards, progress updates) — it's plain HTTP, so it goes through
+proxies/load balancers that don't understand the WS protocol, and the
+browser's `EventSource` auto-reconnects with no code of your own. Once the
+client needs to send messages back too, that's [WebSocket](./websockets),
+not SSE with a second HTTP call bolted on.
+
 ## Enable SSE
 
 ```typescript
@@ -213,3 +222,9 @@ eventSource.onerror = (error) => {
 - `broadcast()` sends to all connected clients
 - `sendToClient()` sends to a specific client by ID
 - Clean up intervals/listeners on disconnect to prevent memory leaks
+
+## Related
+
+- [WebSocket](./websockets) — bidirectional alternative, for when the
+  client needs to send messages too
+- [HTTP Server](./server) — the `sse` option on `@Server`

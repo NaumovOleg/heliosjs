@@ -6,6 +6,14 @@ sidebar_position: 6
 
 HeliosJS provides powerful routing with decorators. Every parameter decorator injects data directly into your handler method.
 
+## Purpose
+
+Without parameter decorators, a handler would take one `(req, res)` pair and
+pick fields out by hand. A decorator like `@Params('id')` or `@Body()`
+instead declares what the handler needs as part of its signature — pass a
+DTO class instead of a name (`@Body(CreateUserDto)`) and the same decorator
+also validates, covered in full on the [Validation](./validation) page.
+
 ## Route Decorators
 
 | Decorator | HTTP Method | Description |
@@ -521,3 +529,12 @@ export class UserController {
 
 See [Controllers → Route Priority](./controllers.md#route-priority) for the
 full specificity ranking.
+
+## Related
+
+- [Validation with DTOs](./validation) — pass a DTO class instead of a name
+  to any parameter decorator for automatic validation
+- [Sanitize](../middlewares/sanitize) — Joi-based alternative that runs
+  earlier in the pipeline, before guards
+- [Controllers](./controllers) — where these decorators are actually used,
+  full CRUD examples

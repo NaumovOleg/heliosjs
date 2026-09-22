@@ -4,6 +4,16 @@ sidebar_position: 3
 
 # Controllers
 
+## Purpose
+
+A controller is where a route's shape and its handler live together — the
+`@Get('/:id')` decorator and the method it decorates are the same
+declaration, so there's no separate routing table to keep in sync with your
+handlers. Nesting controllers (`controllers: [...]`) is how you compose
+route groups without a router-mounting step; the [specificity-based
+matcher](#route-priority) is what makes declaration order not matter for
+correctness, only for tie-breaking.
+
 ## What is a Controller?
 
 A controller is a class that handles incoming HTTP requests. Each method decorated with a route decorator (`@Get`, `@Post`, etc.) becomes an endpoint.
@@ -464,3 +474,12 @@ curl -X DELETE http://localhost:3000/tasks/1
 | `@Req()` | Parameter | Inject raw request object |
 | `@Res()` | Parameter | Inject raw response object |
 | `@Fingerprint()` | Parameter | Inject computed fingerprint |
+
+## Related
+
+- [Routing & Parameters](./parameter-decorators) — every parameter decorator
+  in depth, including DTO validation on `@Params`/`@QueryParam`/`@Headers`
+- [Request Lifecycle](./request-lifecycle) — where route matching sits in
+  the full pipeline, and what runs before/after your handler
+- [HTTP Server](../http-module/server) — registering controllers via
+  `@Server`, nested controllers at the server level
