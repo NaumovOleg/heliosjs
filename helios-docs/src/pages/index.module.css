@@ -96,6 +96,62 @@
   text-align: center;
 }
 
+.comparison {
+  background: var(--ifm-background-surface-color);
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+  text-align: left;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.comparisonChart {
+  min-width: 0;
+}
+
+.chartCaption {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+.comparisonPoints {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.comparisonPoints li {
+  padding-left: 1rem;
+  border-left: 3px solid var(--ifm-color-primary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ifm-font-color-base);
+}
+
+.comparisonPoints li:last-child {
+  border-left-color: var(--ifm-color-emphasis-400);
+}
+
+.comparisonPoints strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+@media (max-width: 768px) {
+  .comparisonGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .sectionHeader {
   margin-bottom: 2.5rem;
 }
@@ -114,8 +170,6 @@
 
 .featuresRow {
   justify-content: center;
-  gap: 10px;
-  margin: 0 -5px;
 }
 
 .featureCol {

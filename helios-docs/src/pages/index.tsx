@@ -2,8 +2,66 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import Layout from '@theme/Layout';
 import clsx from 'clsx';
+import BenchChart from '@site/src/components/BenchChart';
 import Logo from '../../static/img/helios-logo.svg';
 import styles from './index.module.css';
+
+// Static-route req/sec, current commit (fa462de) — same numbers as
+// docs/benchmarks.md's Results table. Update both together; see that page's
+// "Captured" line for the source run.
+const ROUTING_BENCH = { Fastify: 122888, Helios: 89808, Express: 72672, NestJS: 65810 };
+
+function Comparison() {
+  return (
+    <section className={clsx(styles.features, styles.comparison)}>
+      <div className="container">
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Why HeliosJS?</h2>
+          <p className={styles.sectionSubtitle}>
+            The three things that actually differ from Express, Fastify, and NestJS
+          </p>
+        </div>
+
+        <div className={styles.comparisonGrid}>
+          <div className={styles.comparisonChart}>
+            <BenchChart title="GET /users, req/sec" data={ROUTING_BENCH} />
+            <p className={styles.chartCaption}>
+              100 connections, median of 3×8s runs, no pipelining —{' '}
+              <a href={useBaseUrl('/docs/benchmarks')}>full methodology &amp; more suites →</a>
+            </p>
+          </div>
+
+          <ul className={styles.comparisonPoints}>
+            <li>
+              <strong>Beats Express and NestJS outright</strong> — and the reason is
+              structural, not incidental: Nest's default adapter <em>is</em> Express,
+              plus its own dependency-injection and module-resolution layer on top.
+              Helios has no DI container to resolve — routes compile once, at
+              construction time, not through an IoC graph on every request.
+            </li>
+            <li>
+              <strong>One decorator model, four runtimes.</strong> The same{' '}
+              <code>@Controller</code>/<code>@Get</code> classes run behind Node's{' '}
+              <code>http</code>, AWS Lambda, Azure Functions, or gRPC — swap the
+              adapter package, not the code. Express and Fastify are HTTP-only;
+              NestJS needs a different mental model per platform.
+            </li>
+            <li>
+              <strong>Where it doesn't win:</strong> Fastify's radix-tree router and
+              optional schema-compiled serialization keep it ~25-30% ahead on raw
+              routing throughput, and there's no DI container if that's what you're
+              after. Helios pulls back ahead on Ajv-backed validation and mid/large
+              JSON payloads — see the{' '}
+              <a href={useBaseUrl('/docs/benchmarks-validation')}>validation</a> and{' '}
+              <a href={useBaseUrl('/docs/benchmarks-serialization')}>serialization</a>{' '}
+              suites.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function Features() {
   const features = [
@@ -11,7 +69,7 @@ function Features() {
       icon: '🎯',
       title: 'Decorator-First',
       description:
-        'Write clean, declarative code using TypeScript decorators. Controllers, routes, and middleware are defined with intuitive decorators.',
+        'Controllers, routes, guards, pipes, and validation are all declared with decorators — the request pipeline is the class definition, not a chain you assemble by hand.',
     },
     {
       icon: '🚀',
@@ -20,22 +78,16 @@ function Features() {
         'Built with TypeScript from the ground up. Full type safety, intelligent autocomplete, and excellent IDE support.',
     },
     {
-      icon: '🔌',
-      title: 'Modular Architecture',
+      icon: '🌐',
+      title: 'Multi-Transport',
       description:
-        'Use only what you need. Core package provides the foundation, while HTTP, WebSocket, and middleware packages add functionality.',
+        'The same controller classes serve HTTP, AWS Lambda, Azure Functions, and gRPC — pick the adapter package your deployment target needs.',
     },
     {
-      icon: '⚡',
-      title: 'High Performance',
+      icon: '🧰',
+      title: 'Batteries Included',
       description:
-        'Built on Node.js core with minimal overhead. Fast routing, efficient middleware execution, and optimized for production workloads.',
-    },
-    {
-      icon: '🔧',
-      title: 'Extensible',
-      description:
-        'Create custom plugins, middleware, and decorators. Extend the framework to fit your needs.',
+        'Guards, pipes, DTO validation, rate limiting, CORS, and RBAC ship in core — no separate packages to assemble before you can ship a real endpoint.',
     },
   ];
 
@@ -43,7 +95,7 @@ function Features() {
     <section className={styles.features}>
       <div className="container">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Why HeliosJS?</h2>
+          <h2 className={styles.sectionTitle}>What's included</h2>
           <p className={styles.sectionSubtitle}>
             Everything you need to build modern Node.js applications
           </p>
@@ -146,6 +198,7 @@ export default function Home() {
       <HomepageHeader />
       <main>
         <Code />
+        <Comparison />
         <Features />
       </main>
     </Layout>
