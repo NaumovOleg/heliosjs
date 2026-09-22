@@ -54,55 +54,63 @@ frameworks on one machine, not an absolute number to plan capacity around.
 
 ## Results
 
-Captured 2026-09-11 on Darwin 25.6.0, Node v24.14.0, Apple M4 (10 cores),
-after a hot-path perf pass on Helios (see below). Config: 100 connections,
-3 runs × 8s per scenario (+2s discarded warmup), no pipelining.
+Captured 2026-09-22 on Darwin 25.6.0, Node v24.14.0, Apple M4 (10 cores),
+`@heliosjs/core` @ commit `fa462de` (the current trie-based router — see
+[Routing at scale](#routing-at-scale-route-table-size) below; a 2-route app
+is too small for the trie to change anything measurably, so these numbers
+are steady across both the pre- and post-trie code). Config: 100
+connections, 3 runs × 8s per scenario (+2s discarded warmup), no
+pipelining. Full history in `benchmarks/results.csv`.
 
 **`GET /users` (static route)**
 
 <BenchChart
   title="GET /users (static route)"
-  data={{ Fastify: 113560, Helios: 89184, Express: 70936, NestJS: 64156 }}
+  data={{ Fastify: 122888, Helios: 89808, Express: 72672, NestJS: 65810 }}
 />
 
 | Framework | Req/sec | Latency avg | Latency p99 | Throughput |
 | --------- | ------: | -----------: | -----------: | ---------: |
-| Fastify   | 113,560 | 0.05 ms      | 1.00 ms      | 22.31 MB/s |
-| Helios    |  89,184 | 0.94 ms      | 2.00 ms      | 18.03 MB/s |
-| Express   |  70,936 | 1.02 ms      | 2.00 ms      | 16.71 MB/s |
-| NestJS    |  64,156 | 1.02 ms      | 2.00 ms      | 16.52 MB/s |
+| Fastify   | 122,888 | 0.05 ms      | 1.00 ms      | 24.14 MB/s |
+| Helios    |  89,808 | 0.98 ms      | 2.00 ms      | 18.16 MB/s |
+| Express   |  72,672 | 1.02 ms      | 2.00 ms      | 17.12 MB/s |
+| NestJS    |  65,810 | 1.03 ms      | 2.00 ms      | 16.95 MB/s |
 
 **`GET /users/:id` (param route)**
 
 <BenchChart
   title="GET /users/:id (param route)"
-  data={{ Fastify: 111080, Helios: 83678, Express: 69264, NestJS: 59376 }}
+  data={{ Fastify: 120216, Helios: 87280, Express: 71008, NestJS: 62756 }}
 />
 
 | Framework | Req/sec | Latency avg | Latency p99 | Throughput |
 | --------- | ------: | -----------: | -----------: | ---------: |
-| Fastify   | 111,080 | 0.05 ms      | 1.00 ms      | 22.35 MB/s |
-| Helios    |  83,678 | 1.01 ms      | 2.00 ms      | 17.32 MB/s |
-| Express   |  69,264 | 1.02 ms      | 2.00 ms      | 16.65 MB/s |
-| NestJS    |  59,376 | 1.06 ms      | 3.00 ms      | 15.57 MB/s |
+| Fastify   | 120,216 | 0.05 ms      | 1.00 ms      | 24.20 MB/s |
+| Helios    |  87,280 | 1.00 ms      | 2.00 ms      | 18.06 MB/s |
+| Express   |  71,008 | 1.02 ms      | 2.00 ms      | 17.07 MB/s |
+| NestJS    |  62,756 | 1.05 ms      | 3.00 ms      | 16.46 MB/s |
 
 ### Reading these numbers
 
-- **Fastify still wins by a wide margin** on both routes. It compiles routes
-  into a radix tree and (when schemas are declared) serializes responses with
-  a compiled fast-path — neither of which the other three frameworks do here.
+- **Fastify wins by a wide margin** on both routes — roughly a quarter ahead
+  of Helios (27% static, 27% param, this run). It compiles routes into a
+  radix tree and (when schemas are declared) serializes responses with a
+  compiled fast-path — neither of which the other three frameworks do here.
   This suite doesn't declare Fastify schemas, so this is Fastify's
-  routing/dispatch floor, not its ceiling.
-- **Helios beats both Express and NestJS**, and closed part of the Fastify
-  gap in this update (roughly 25% → 20%) by removing per-request overhead
-  that didn't scale with route complexity: dead-end async hops in the
-  pipeline for routes with no guards/pipes/middleware, a duplicate
-  `Content-Type` header write, and a `crypto.randomUUID()` call for the
-  request-correlation id. None of that was routing cost — routing itself was
-  already cheap (see below) — it was fixed overhead paid on every request
-  regardless of route shape.
+  routing/dispatch floor, not its ceiling. The gap moves a few points
+  between runs (an earlier capture on 2026-09-11 measured ~21-25%, same
+  methodology, same machine) — read it as "consistently around a quarter,"
+  not a precise figure to the decimal.
+- **Helios beats both Express and NestJS** on both routes, by a wider and
+  more stable margin than the Fastify gap. A past optimization pass removed
+  per-request overhead that didn't scale with route complexity — dead-end
+  async hops in the pipeline for routes with no guards/pipes/middleware, a
+  duplicate `Content-Type` header write, and a `crypto.randomUUID()` call
+  for the request-correlation id — none of which was routing cost (routing
+  itself was already cheap, see below); it was fixed overhead paid on every
+  request regardless of route shape.
 - The param route still costs Helios relatively little over the static one
-  (83,678 vs 89,184 req/s, ~6%) despite doing real extra work — a regex
+  (87,280 vs 89,808 req/s, ~2.8%) despite doing real extra work — a regex
   capture group plus a lookup instead of a static string compare. That
   tracks with the architecture: `@Controller` precompiles every route into a
   regex and a dedicated param extractor at construction time (see

@@ -20,10 +20,17 @@ what's different.
 
 :::note
 Each framework's server here is its own dedicated process with nothing else
-routed — not the same server file the main routing page benchmarks. A route
-sharing a process with other, earlier-registered routes pays for the
-router's linear scan past them; a single-concern server avoids that
-confound entirely rather than trying to correct for it after the fact.
+routed — not the same server file the main routing page benchmarks. This
+suite predates `@heliosjs/core` 4.0.7's route-trie rewrite (see the main
+page's [Routing at scale](./benchmarks#routing-at-scale-route-table-size)
+section): before the trie, a route sharing a controller tree with other,
+earlier-registered routes paid for the router's linear scan past them, so a
+single-concern server was the only way to give `/mw/0`/`/mw/3`/`/mw/6` a
+clean baseline uncontaminated by that confound. As of the trie, an
+indexable route's position no longer costs anything on its own — but the
+isolation stays, both because it's still the simplest way to get a clean
+per-layer signal with nothing else competing for the event loop, and so
+this suite's numbers don't need re-deriving if that changes again.
 :::
 
 ## Results

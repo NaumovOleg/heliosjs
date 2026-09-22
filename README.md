@@ -11,14 +11,18 @@ as a breaking change, support windows, and which packages version together.
 
 ## Packages
 
-| Package                                                                                              | Version | Description             |
-| ---------------------------------------------------------------------------------------------------- | ------- | ----------------------- |
-| [@heliosjs/core](https://github.com/NaumovOleg/heliosjs/tree/master/src/core)                        |         | Core decorators and DI  |
-| [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)                        |         | HTTP server and routing |
-| [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/middlewares) |         | Built-in middlewares    |
-| [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/aws)                 |         | Aws support             |
-| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/azure)             |         | Azure Functions support |
-| [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/grpc)               |         | Grpc support            |
+| Package                                                                                              | Version | Description                           |
+| ---------------------------------------------------------------------------------------------------- | ------- | -------------------------------------- |
+| [@heliosjs/core](https://github.com/NaumovOleg/heliosjs/tree/master/src/core)                        | 4.0.6   | Decorators, routing, request pipeline |
+| [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)                        | 11.0.3  | HTTP server, WebSocket, SSE, GraphQL  |
+| [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/middlewares) | 11.0.3  | `@Guard`, `@Pipe`, `@Intercept`, …    |
+| [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/aws)                 | 11.0.3  | AWS Lambda adapter                    |
+| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/azure)             | 1.0.0   | Azure Functions adapter               |
+| [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/grpc)               | 2.1.19  | gRPC server + client                  |
+
+There's no dependency-injection container — routes are precompiled at
+construction time, not resolved through an IoC graph. That's a deliberate
+tradeoff, not a gap: see the benchmarks below for what it buys.
 
 ## Quick Start
 
@@ -30,9 +34,9 @@ npm install @heliosjs/core @heliosjs/http reflect-metadata
 
 | Framework   | Req/sec     | Latency (avg) | Throughput |
 | ----------- | ----------- | -------------- | ---------- |
-| **Fastify** | **113,560** | 0.05 ms        | 22.31 MB/s |
-| **Helios**  | 89,184      | 0.94 ms        | 18.03 MB/s |
-| Express     | 70,936      | 1.02 ms        | 16.71 MB/s |
-| NestJS      | 64,156      | 1.02 ms        | 16.52 MB/s |
+| **Fastify** | **122,888** | 0.05 ms        | 24.14 MB/s |
+| **Helios**  | 89,808      | 0.98 ms        | 18.16 MB/s |
+| Express     | 72,672      | 1.02 ms        | 17.12 MB/s |
+| NestJS      | 65,810      | 1.03 ms        | 16.95 MB/s |
 
-> `GET /users`, 100 connections, 3×8s runs (median), no pipelining. [Full benchmarks & methodology](https://naumovoleg.github.io/heliosjs/docs/benchmarks) — including middleware, validation, and serialization suites.
+> `GET /users`, 100 connections, 3×8s runs (median), no pipelining. [Full benchmarks & methodology](https://naumovoleg.github.io/heliosjs/docs/benchmarks) — including a 300-route routing-at-scale suite, middleware, validation, and serialization.
