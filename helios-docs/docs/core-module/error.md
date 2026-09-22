@@ -193,31 +193,24 @@ interface ErrorResponse {
 
 ## @Catch Decorator
 
-The `@Catch` decorator registers error handlers at the controller or method level. Error handlers receive the error, request, and response objects.
-
-### Controller-Level Error Handler
-
-A `@Catch` handler doesn't call `res.send()`-style methods — it just
-**returns** the value that becomes the response body (and can set `res.status`
-first):
+The `@Catch` decorator registers error handlers at the controller or method
+level. A handler doesn't call `res.send()`-style methods — it **returns**
+the value that becomes the response body (and can set `res.status` first),
+and it receives the error, request, and response objects:
 
 ```typescript
-import { Controller, Get, Response, Request } from "@heliosjs/core";
+import { Controller, Get, Params, Response, NotFoundError, ValidationError } from "@heliosjs/core";
 import { Catch } from "@heliosjs/middlewares";
 
-const errorHandler = (error: Error, req: Request, res: Response) => {
-  console.error(`[${req.requestId}] Error:`, error.message);
-
-  if (error.name === "ValidationError") {
-    res.status = 400;
-    return { success: false, error: { message: error.message, details: (error as any).details } };
-  }
-
-  if (error.name === "NotFoundError") {
+const errorHandler = (error: Error, req: any, res: Response) => {
+  if (error instanceof NotFoundError) {
     res.status = 404;
     return { success: false, error: { message: error.message } };
   }
-
+  if (error instanceof ValidationError) {
+    res.status = 400;
+    return { success: false, error: { message: error.message, details: (error as any).details } };
+  }
   res.status = 500;
   return { success: false, error: { message: "Internal server error" } };
 };
@@ -225,60 +218,28 @@ const errorHandler = (error: Error, req: Request, res: Response) => {
 @Controller("/users")
 @Catch(errorHandler)
 export class UserController {
-  // All errors in this controller are caught by errorHandler
-}
-```
-
-### Method-Level Error Handler
-
-```typescript
-import { Controller, Post, Body, Response } from "@heliosjs/core";
-import { Catch } from "@heliosjs/middlewares";
-
-@Controller("/users")
-export class UserController {
-  @Post("/")
-  @Catch((error: Error, req, res: Response) => {
-    console.error("Create user failed:", error.message);
-    res.status = 500;
-    return { error: "Failed to create user" };
-  })
-  create(@Body() data: any) {
-    // If this throws, the method-level handler runs
+  @Get("/:id")
+  findOne(@Params("id") id: string) {
+    const user = database.findUser(id);
+    if (!user) throw new NotFoundError("User", id);
+    return user;
   }
 }
 ```
 
-### Multiple Error Handlers
+That's one of the built-in error classes above paired with `@Catch` — see
+**[Catch Middleware](../middlewares/catch)** for the full guide: method-level
+handlers, stacking (method runs before controller), async handlers, and the
+contextual factory pattern (`createErrorHandler(serviceName)`) for sharing
+handler logic across controllers.
 
-You can stack `@Catch` decorators. Method-level handlers run before controller-level:
+## serializeError, isError, getErrorType Utilities
 
-```typescript
-const logError = (error: Error, req: any, res: any) => {
-  console.error("Log:", error.message);
-  // Re-throw to let the next handler deal with response
-  throw error;
-};
+Three helpers that live in **`@heliosjs/core/utils`**, not the package
+root — used internally by the global `errorHandler` below, and useful
+directly if you're building your own error-normalization logic.
 
-const respondError = (error: Error, req: any, res: any) => {
-  res.status = 500;
-  return { error: error.message };
-};
-
-@Controller("/users")
-@Catch(respondError)
-export class UserController {
-  @Post("/")
-  @Catch(logError)
-  create() {
-    // logError runs first, then respondError if error propagates
-  }
-}
-```
-
-These three helpers live in **`@heliosjs/core/utils`**, not the package root.
-
-## serializeError Utility
+### serializeError
 
 `serializeError` flattens any error-like value into a `SerializedError` —
 `type` is one of `'HeliosError' | 'Error' | 'HttpError' | 'AxiosError' | 'ValidationError' | 'Unknown'`:
@@ -323,7 +284,7 @@ serializeError(new Error("Something broke"));
 // }
 ```
 
-## isError Utility
+### isError
 
 Check if a value is an error of any recognized type — note that any
 non-empty string or number also counts as "error-shaped":
@@ -338,7 +299,7 @@ isError(null);                              // false
 isError({});                                 // false — no message/status/code
 ```
 
-## getErrorType Utility
+### getErrorType
 
 Classify a value and say whether it's an error:
 
@@ -436,3 +397,13 @@ export class ApiController {
   }
 }
 ```
+
+## Related
+
+- [Catch Middleware](../middlewares/catch) — the full `@Catch` guide:
+  method-level handlers, stacking, async handlers, the contextual factory
+  pattern
+- [Guard](../middlewares/guard) — reject a request before it reaches the
+  handler, rather than catching what it throws
+- [Request Lifecycle](./request-lifecycle) — where error handling sits
+  relative to guards, pipes, and the handler

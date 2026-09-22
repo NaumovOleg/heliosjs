@@ -179,3 +179,11 @@ export class PostController {}
 - Method-level handlers run before controller-level
 - Multiple handlers can be stacked (use `throw error` to pass to the next one)
 - Separates error handling logic from business logic
+
+## Related
+
+- [Error Handling](../core-module/error) — the built-in error classes
+  (`NotFoundError`, `ValidationError`, …) and utilities (`serializeError`,
+  `isError`, `getErrorType`) that pair naturally with a `@Catch` handler
+- [Guard](./guard) — reject a request before it reaches the handler, rather
+  than catching what it throws
