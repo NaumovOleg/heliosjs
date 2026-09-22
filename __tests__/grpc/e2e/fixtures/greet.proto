@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package greet.v1;
+
+// Minimal fixture for the gRPC wire e2e test — one RPC that succeeds, one
+// that always throws, so the same real client/server pair can prove both the
+// happy path and real gRPC error-status propagation.
+service GreetService {
+  rpc Greet (GreetRequest) returns (GreetReply);
+  rpc Fail (GreetRequest) returns (GreetReply);
+}
+
+message GreetRequest {
+  string name = 1;
+}
+
+message GreetReply {
+  string message = 1;
+}
