@@ -144,6 +144,57 @@ export class ProductController {
 }
 ```
 
+## Composed with a Guard and a Validated DTO
+
+A realistic route rarely uses just one middleware decorator. Here's the
+shape a production "create user" endpoint actually has — an auth guard, a
+pipe that normalizes raw input, and a `class-validator` DTO — and, more
+importantly, *why* they're layered in this order. Per the [Request
+Lifecycle](../core-module/request-lifecycle), guards run before pipes, and
+pipes run before parameter validation: an unauthenticated request never
+reaches the (comparatively expensive) normalization/validation work, and
+validation sees the *piped* value, not the raw one — so `"  Bob@EXAMPLE.com  "`
+gets trimmed and lowercased by the pipe before `@IsEmail()` ever looks at it,
+instead of failing on whitespace or case:
+
+```typescript
+import { Controller, Post, Body } from "@heliosjs/core";
+import { Guard, Pipe } from "@heliosjs/middlewares";
+import { IsEmail, IsString, MinLength } from "class-validator";
+
+class CreateUserDto {
+  @IsString()
+  @MinLength(2)
+  name!: string;
+
+  @IsEmail()
+  email!: string;
+}
+
+@Guard((req) => !!req.getHeader("authorization"))
+@Pipe({
+  body: (body) => ({
+    ...body,
+    name: typeof body.name === "string" ? body.name.trim() : body.name,
+    email: typeof body.email === "string" ? body.email.trim().toLowerCase() : body.email,
+  }),
+})
+@Controller("/users")
+export class UserController {
+  @Post("/")
+  create(@Body(CreateUserDto) data: CreateUserDto) {
+    // Unauthenticated requests never get here. `data.email` is already
+    // trimmed and lowercased — @IsEmail() validated the cleaned value.
+    return { id: 1, ...data };
+  }
+}
+```
+
+The same layering works with [`@Sanitize`](./sanitize) instead of `@Pipe` —
+sanitizers run even earlier (stage 4, before guards), so a sanitizer is the
+right tool when invalid data should never reach a guard's authorization
+logic at all, not just the handler.
+
 ## Method-Level Pipe
 
 ```typescript
@@ -169,3 +220,14 @@ export class UserController {
 - Each function receives raw data and must return the transformed value
 - Apply at class level for all routes, or method level for specific routes
 - Common use cases: type casting, normalization, trimming, default values
+
+## Related
+
+- [Guard](./guard) — runs before pipes; reject a request before spending any
+  normalization/validation work on it
+- [Sanitize](./sanitize) — Joi-based alternative that runs even earlier
+  (before guards), for data that shouldn't reach authorization logic at all
+- [Validation with DTOs](../core-module/validation) — `@Body(SomeDto)`
+  validates the *piped* value, not the raw one
+- [Request Lifecycle](../core-module/request-lifecycle) — the full pipeline
+  order this page's composed example depends on

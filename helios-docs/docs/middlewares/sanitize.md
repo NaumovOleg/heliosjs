@@ -223,3 +223,14 @@ The decorator attaches sanitization config as metadata. The framework applies sa
 - Sanitization runs before validation, so validated data is already clean
 - Use `stripUnknown: true` to remove unexpected fields
 - XSS sanitization (`SANITIZER.xss()`) strips every HTML tag and attribute via `sanitize-html`, so `<script>` blocks, `on*` handlers, and `javascript:`/`data:` URIs in attributes are all removed — install `sanitize-html` to use it
+
+## Related
+
+- [Pipe](./pipe) — runs later (after guards, before validation); see its
+  [composed guard+pipe+DTO example](./pipe#composed-with-a-guard-and-a-validated-dto)
+  for how `@Sanitize` and `@Pipe` fit together in one pipeline (sanitize
+  first, when invalid data shouldn't even reach a guard)
+- [Validation with DTOs](../core-module/validation) — `class-validator`
+  alternative/complement for `@Body`/`@Params`/`@QueryParam`
+- [Request Lifecycle](../core-module/request-lifecycle) — sanitizers run at
+  stage 4, before guards (5) and pipes (6)
