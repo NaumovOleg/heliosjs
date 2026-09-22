@@ -197,6 +197,8 @@ adapter.usePlugin(loggingPlugin);
 export const handler = adapter.handler;
 ```
 
+See [Custom Plugins for AWS Lambda](./plugins) for the full plugin interface and more examples.
+
 ## TypeScript Types
 
 `adapter.handler` already **is** a standard AWS Lambda `Handler` — export it
@@ -219,3 +221,10 @@ e.g. inside a plugin's `hooks.beforeRequest(event, context)`.
 - Controllers are identical to HTTP server controllers
 - Plugins can hook into the Lambda lifecycle via `onInit`, `beforeRequest`, `afterResponse`
 - RBAC and fingerprint work the same as in HTTP servers
+
+## Related
+
+- [Custom Plugins for AWS Lambda](./plugins) — the full `Plugin` interface,
+  more hook examples
+- [Controllers](../core-module/controllers) — controllers here are
+  identical to HTTP server controllers

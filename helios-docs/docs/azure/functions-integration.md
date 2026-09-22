@@ -267,3 +267,10 @@ function example(req: Request) {
 - Plugins can hook into the invocation lifecycle via `onInit`, `beforeRequest`, `beforeRoute`, `afterResponse`
 - RBAC, fingerprint, and adapter-level CORS work the same as in HTTP servers
 - Request body reading is asynchronous (the Functions host exposes it as a Fetch-like `ReadableStream`) — already handled for you inside the adapter
+
+## Related
+
+- [Custom Plugins for Azure Functions](./plugins) — the full `Plugin`
+  interface, more hook examples
+- [Controllers](../core-module/controllers) — controllers here are
+  identical to HTTP server controllers

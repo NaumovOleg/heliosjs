@@ -167,3 +167,8 @@ const tracingPlugin: Plugin = {
 - Avoid blocking the request lifecycle with synchronous I/O
 - Lambda plugins should handle cold starts gracefully
 - Use small connection pools for database plugins
+
+## Related
+
+- [AWS Lambda Integration](./lambda-integration) — the adapter itself,
+  supported event types, a full CRUD example

@@ -187,3 +187,8 @@ const tracingPlugin: Plugin = {
 - Handle cold starts gracefully, same as on any serverless platform
 - Use small connection pools for database plugins, especially on the Consumption plan
 - Prefer `context.log`/`context.error` over `console.log` for anything you want in Application Insights
+
+## Related
+
+- [Azure Functions Integration](./functions-integration) — the adapter
+  itself, the `{*path}` catch-all routing pattern, a full CRUD example
