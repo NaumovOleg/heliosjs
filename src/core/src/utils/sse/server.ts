@@ -1,7 +1,16 @@
 // server/SSEServer.ts
 import type { ServerResponse } from 'node:http';
 
-import type { CORSConfig, ControllerType, ISSEServer, SSEClient, SSEEvent, SSEMessage } from '../../types/core';
+import type {
+  CORSConfig,
+  ControllerType,
+  ISSEServer,
+  SSEClient,
+  SSEEvent,
+  SSEMessage,
+  SSEServerOptions,
+} from '../../types/core';
+import { assertValidCORSConfig } from '../core/cors';
 import { getGlobalLogger } from '../core/logger';
 import { generateUniqueId } from '../shared';
 
@@ -14,12 +23,27 @@ import { generateUniqueId } from '../shared';
  */
 export class SSEServer implements ISSEServer {
   private readonly clients = new Map<string, SSEClient>();
+  private readonly options: Required<
+    Pick<SSEServerOptions, 'maxConnections' | 'heartbeatMs' | 'maxMessageBytes'>
+  >;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controllers: any[] = [];
   private corsConfig?: CORSConfig;
 
+  constructor(options: SSEServerOptions = {}) {
+    validatePositiveLimit(options.maxConnections, 'maxConnections', true);
+    validatePositiveLimit(options.heartbeatMs, 'heartbeatMs', false);
+    validatePositiveLimit(options.maxMessageBytes, 'maxMessageBytes', true);
+    this.options = {
+      maxConnections: options.maxConnections ?? 1000,
+      heartbeatMs: options.heartbeatMs ?? 30_000,
+      maxMessageBytes: options.maxMessageBytes ?? 1024 * 1024,
+    };
+  }
+
   /** Sets the CORS policy used to validate the `Origin` of new SSE connections. */
   setCorsConfig(config: CORSConfig) {
+    assertValidCORSConfig(config);
     this.corsConfig = config;
   }
 
@@ -30,7 +54,23 @@ export class SSEServer implements ISSEServer {
    * @param origin - Optional origin header value for CORS.
    * @returns Registered SSE client descriptor.
    */
-  public createConnection(res: ServerResponse, origin?: string) {
+  public createConnection(res: ServerResponse, origin?: string): SSEClient | undefined {
+    if (this.clients.size >= this.options.maxConnections) {
+      res.statusCode = 503;
+      res.end('SSE connection limit reached');
+      return undefined;
+    }
+
+    if (origin && this.corsConfig && !this.isOriginAllowed(origin)) {
+      if (typeof res.writeHead === 'function') {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+      } else {
+        res.statusCode = 403;
+      }
+      res.end?.('SSE origin not allowed');
+      return undefined;
+    }
+
     const clientId = generateUniqueId();
 
     const headers: Record<string, string> = {
@@ -39,22 +79,16 @@ export class SSEServer implements ISSEServer {
       Connection: 'keep-alive',
     };
 
-    if (origin) {
-      if (!this.corsConfig) {
-        headers['Access-Control-Allow-Origin'] = origin;
-      } else {
-        const allowed = this.isOriginAllowed(origin);
-        if (allowed) {
-          headers['Access-Control-Allow-Origin'] =
-            this.corsConfig.origin === '*' && !this.corsConfig.credentials ? '*' : origin;
-          headers['Vary'] = 'Origin';
-          if (this.corsConfig.credentials) {
-            headers['Access-Control-Allow-Credentials'] = 'true';
-          }
+    if (origin && this.corsConfig) {
+      const allowed = this.isOriginAllowed(origin);
+      if (allowed) {
+        headers['Access-Control-Allow-Origin'] =
+          this.corsConfig.origin === '*' && !this.corsConfig.credentials ? '*' : origin;
+        headers['Vary'] = 'Origin';
+        if (this.corsConfig.credentials) {
+          headers['Access-Control-Allow-Credentials'] = 'true';
         }
       }
-    } else if (!this.corsConfig || this.corsConfig.origin === '*') {
-      headers['Access-Control-Allow-Origin'] = '*';
     }
 
     res.writeHead(200, headers);
@@ -70,11 +104,20 @@ export class SSEServer implements ISSEServer {
     };
 
     this.clients.set(clientId, client);
+    const heartbeat = setInterval(() => {
+      if (res.writableEnded || res.destroyed) {
+        clearInterval(heartbeat);
+        return;
+      }
+      res.write(': heartbeat\n\n');
+    }, this.options.heartbeatMs);
+    heartbeat.unref?.();
 
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.triggerHandlers('connection', { type: 'connection', client, data: res });
 
     res.on('close', async () => {
+      clearInterval(heartbeat);
       this.clients.delete(clientId);
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.triggerHandlers('close', { type: 'close', client });
@@ -85,6 +128,7 @@ export class SSEServer implements ISSEServer {
 
   private isOriginAllowed(origin: string): boolean {
     if (!this.corsConfig) return true;
+    if (this.corsConfig.credentials && this.corsConfig.origin === '*') return false;
     if (this.corsConfig.origin === '*') return true;
     if (typeof this.corsConfig.origin === 'string') return this.corsConfig.origin === origin;
     if (Array.isArray(this.corsConfig.origin)) return this.corsConfig.origin.includes(origin);
@@ -117,8 +161,12 @@ export class SSEServer implements ISSEServer {
       });
       sseMessage += '\n';
 
-      client.response.write(sseMessage);
-      return true;
+      if (Buffer.byteLength(sseMessage, 'utf8') > this.options.maxMessageBytes) {
+        getGlobalLogger().warn(`sse: message for ${clientId} exceeds maxMessageBytes`);
+        return false;
+      }
+
+      return client.response.write(sseMessage) !== false;
     } catch (error) {
       getGlobalLogger().error(`sse: send to ${clientId} failed`, error);
       return false;
@@ -167,5 +215,12 @@ export class SSEServer implements ISSEServer {
         }
       }
     }
+  }
+}
+
+function validatePositiveLimit(value: number | undefined, name: string, allowZero: boolean): void {
+  if (value === undefined) return;
+  if (!Number.isFinite(value) || !Number.isInteger(value) || (allowZero ? value < 0 : value <= 0)) {
+    throw new TypeError(`SSE ${name} must be a ${allowZero ? 'non-negative' : 'positive'} integer`);
   }
 }

@@ -92,6 +92,9 @@ export function tokenBucket(
   store: RateLimitStore = new MemoryStore(),
 ): RateLimitStrategy {
   const { refillRate } = options;
+  if (!Number.isFinite(refillRate) || refillRate <= 0) {
+    throw new TypeError('tokenBucket: `refillRate` must be a positive finite number');
+  }
   return {
     async consume(key: string, ctx: RateLimitContext): Promise<RateLimitRecord> {
       const now = Date.now();

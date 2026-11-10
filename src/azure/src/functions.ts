@@ -9,7 +9,14 @@ import type {
   Response,
 } from '@heliosjs/core/types';
 import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
-import { ApplicationError, getErrorType, handleCORS, setFingerprintConfig, setRolesExtractor } from '@heliosjs/core/utils';
+import {
+  ApplicationError,
+  assertValidCORSConfig,
+  getErrorType,
+  handleCORS,
+  setFingerprintConfig,
+  setRolesExtractor,
+} from '@heliosjs/core/utils';
 import type { HttpHandler, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import type { AzureOptions, IAzureAdapter } from './types/azure';
 import { Plugin, RequestFactory, ResponseFactory } from './utils/azure';
@@ -29,6 +36,7 @@ export class Helios extends Plugin implements IAzureAdapter {
   controller: ControllerType;
   private readonly corsConfig?: CORSConfig;
   private readonly trustProxy: boolean;
+  private readonly canonicalHost?: string;
   /**
    * Creates an Azure Functions adapter with a root Helios controller.
    *
@@ -43,7 +51,9 @@ export class Helios extends Plugin implements IAzureAdapter {
       setFingerprintConfig(options.fingerprint);
     }
     this.corsConfig = options?.cors;
+    if (this.corsConfig) assertValidCORSConfig(this.corsConfig);
     this.trustProxy = options?.trustProxy ?? true;
+    this.canonicalHost = options?.canonicalHost;
     this.controller = this.compileController(controller);
     this.handler = this.createHandler();
   }
@@ -59,7 +69,7 @@ export class Helios extends Plugin implements IAzureAdapter {
 
       let request: Request;
       try {
-        request = await RequestFactory.create(bodyReq, context, this.trustProxy);
+        request = await RequestFactory.create(bodyReq, context, this.trustProxy, this.canonicalHost);
       } catch (error) {
         // Malformed JSON / bad body — reply before we have a Request.
         const status = (error as { status?: number })?.status ?? 400;
@@ -100,6 +110,18 @@ export class Helios extends Plugin implements IAzureAdapter {
       }
 
       await this.callPluginHook('beforeRoute', request, response);
+
+      if (this.corsConfig) {
+        const corsResult = handleCORS(request, response, this.corsConfig);
+        if (!corsResult.permitted) {
+          response.status = 403;
+          response.data = 'CORS: Origin not allowed';
+          return this.toAzureResponse(request, response);
+        }
+        if (!corsResult.continue) {
+          return this.toAzureResponse(request, response);
+        }
+      }
 
       await controller[CONTROLLER_REQUEST](request, response);
     } catch (error: unknown) {
@@ -144,6 +166,7 @@ export class Helios extends Plugin implements IAzureAdapter {
 
   private async toAzureResponse(request: Request, response: Response): Promise<HttpResponseInit> {
     this.applyCors(request, response);
+    this.applySecurityHeaders(request, response);
 
     const status = (response.data as { status?: number })?.status ?? response?.status ?? 200;
     // `response.headers` already carries a default Content-Type from the Res
@@ -164,7 +187,7 @@ export class Helios extends Plugin implements IAzureAdapter {
 
   private async handleError(error: ErrorObject, request: Request): Promise<HttpResponseInit> {
     const config = {
-      includeStack: process.env.NODE_ENV !== 'production',
+      includeStack: false,
       logErrors: true,
     };
 
@@ -177,14 +200,29 @@ export class Helios extends Plugin implements IAzureAdapter {
 
     const tempResponse = ResponseFactory.create(request);
     this.applyCors(request, tempResponse);
+    this.applySecurityHeaders(request, tempResponse);
 
     const headers: [string, string][] = [
       ['X-Request-Id', request.requestId],
       ...this.flattenHeaders(tempResponse.headers),
     ];
-
     await this.callPluginHook('afterResponse', request, tempResponse);
 
     return { status, headers, jsonBody: serialized };
+  }
+
+  private applySecurityHeaders(request: Request, response: Response): void {
+    if (!response.hasHeader('X-Content-Type-Options')) {
+      response.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    if (!response.hasHeader('X-Frame-Options')) {
+      response.setHeader('X-Frame-Options', 'DENY');
+    }
+    if (!response.hasHeader('Referrer-Policy')) {
+      response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+    if (request.isSecure() && !response.hasHeader('Strict-Transport-Security')) {
+      response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
   }
 }

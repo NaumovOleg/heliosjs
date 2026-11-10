@@ -13,12 +13,12 @@ as a breaking change, support windows, and which packages version together.
 
 | Package                                                                                              | Version | Description                           |
 | ---------------------------------------------------------------------------------------------------- | ------- | -------------------------------------- |
-| [@heliosjs/core](https://github.com/NaumovOleg/heliosjs/tree/master/src/core)                        | 4.0.6   | Decorators, routing, request pipeline |
-| [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)                        | 11.0.3  | HTTP server, WebSocket, SSE, GraphQL  |
-| [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/middlewares) | 11.0.3  | `@Guard`, `@Pipe`, `@Intercept`, …    |
-| [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/aws)                 | 11.0.3  | AWS Lambda adapter                    |
-| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/azure)             | 1.0.0   | Azure Functions adapter               |
-| [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/packages/src/grpc)               | 2.1.19  | gRPC server + client                  |
+| [@heliosjs/core](https://github.com/NaumovOleg/heliosjs/tree/master/src/core)        | 5.0.0  | Decorators, routing, request pipeline |
+| [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)        | 12.0.0 | HTTP server, WebSocket, SSE, GraphQL  |
+| [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/src/middlewares) | 12.0.0 | `@Guard`, `@Pipe`, `@Intercept`, CSRF |
+| [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/src/aws)          | 12.0.0 | AWS Lambda adapter                    |
+| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/src/azure)      | 2.0.0  | Azure Functions adapter               |
+| [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/src/grpc)        | 3.0.0  | gRPC server + client                  |
 
 There's no dependency-injection container — routes are precompiled at
 construction time, not resolved through an IoC graph. That's a deliberate

@@ -15,6 +15,11 @@ throwing the same `ValidationError` either way. That's what keeps "is this
 field validated" answerable by reading the handler's signature alone,
 without a separate schema registry to cross-reference.
 
+At the request boundary, class-validator DTOs default to `whitelist: true` and
+`forbidNonWhitelisted: true`: undeclared properties are rejected instead of
+silently flowing into handlers or persistence code. Pass explicit validator
+options only when a DTO intentionally needs a different policy.
+
 Prefer a JSON Schema and raw throughput over decorated classes? See [Fast path: JSON Schema with compileSchema](#fast-path-json-schema-with-compileschema) further down — same `@Body`/`@Params`/etc., a different validator underneath.
 
 ## Installation
@@ -96,6 +101,7 @@ const strictOptions: ValidationOptions = {
 
 const permissiveOptions: ValidationOptions = {
   whitelist: true,
+  forbidNonWhitelisted: false,       // Strip unknown properties instead of rejecting
   stopAtFirstError: true,       // Return first error only
 };
 
@@ -112,6 +118,10 @@ export class UserController {
   }
 }
 ```
+
+Sensitive values such as passwords, tokens, API keys, authorization headers,
+and payment fields are redacted from validation error details and framework
+logs. Avoid returning raw validation objects from a custom error handler.
 
 ## Validating Query Parameters
 

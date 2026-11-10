@@ -72,7 +72,7 @@ describe('handleCORS', () => {
     const req = reqWithOrigin('http://localhost', 'OPTIONS', {
       'access-control-request-method': 'POST',
     });
-    handleCORS(req, r, { origin: '*', credentials: true });
+    handleCORS(req, r, { origin: 'http://localhost', credentials: true });
     expect(r.headers['Access-Control-Allow-Credentials']).toBe('true');
   });
 
@@ -117,11 +117,19 @@ describe('handleCORS', () => {
     expect(result.continue).toBe(true);
   });
 
-  it('sets origin header with credentials uses actual origin', () => {
+  it('rejects wildcard origin with credentials', () => {
     const r = res();
     const req = reqWithOrigin('http://localhost');
-    handleCORS(req, r, { origin: '*', credentials: true });
-    expect(r.headers['Access-Control-Allow-Origin']).toBe('http://localhost');
+    const result = handleCORS(req, r, { origin: '*', credentials: true });
+    expect(result.permitted).toBe(false);
+    expect(r.status).toBe(403);
+  });
+
+  it('rejects an omitted origin with credentials', () => {
+    const r = res();
+    const result = handleCORS(reqWithOrigin('http://localhost'), r, { credentials: true });
+    expect(result.permitted).toBe(false);
+    expect(r.status).toBe(403);
   });
 
   it('sets origin header without credentials uses *', () => {

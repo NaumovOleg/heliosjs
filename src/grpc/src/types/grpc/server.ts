@@ -11,6 +11,14 @@ export interface GrpcServerOptions extends GrpcBaseOptions {
    * TLS credential for production.
    */
   credentials?: ServerCredentials;
+  /** Explicitly allow plaintext binding on a non-loopback host. Default `false`. */
+  allowInsecure?: boolean;
+  /** Maximum inbound gRPC message size in bytes. Defaults to 4 MiB. */
+  maxReceiveMessageLength?: number;
+  /** Maximum outbound gRPC message size in bytes. Defaults to 4 MiB. */
+  maxSendMessageLength?: number;
+  /** Application authentication hook executed before each RPC. */
+  authenticate?: (call: unknown) => boolean | Promise<boolean>;
   /** Logger config, or `false` to silence the server's own logging. */
   log?: LoggerConfig | false;
 }

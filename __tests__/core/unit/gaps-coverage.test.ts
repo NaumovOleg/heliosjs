@@ -83,7 +83,7 @@ describe('CORS coverage', () => {
       headers: { origin: 'https://x.com', 'access-control-request-method': 'POST' },
     });
     const res = makeRes();
-    const result = handleCORS(req, res, { origin: '*', methods: ['GET'], allowedHeaders: ['Content-Type'] });
+    const result = handleCORS(req, res, { origin: '*', methods: ['POST'], allowedHeaders: ['Content-Type'] });
     expect(result.continue).toBe(false);
     expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Headers', 'Content-Type');
   });
@@ -94,7 +94,7 @@ describe('CORS coverage', () => {
       headers: { origin: 'https://x.com', 'access-control-request-method': 'POST', 'access-control-request-headers': 'X-Custom' },
     });
     const res = makeRes();
-    const result = handleCORS(req, res, { origin: '*', methods: ['GET'] });
+    const result = handleCORS(req, res, { origin: '*', methods: ['POST'] });
     expect(result.continue).toBe(false);
   });
 
@@ -104,7 +104,7 @@ describe('CORS coverage', () => {
       headers: { origin: 'https://x.com', 'access-control-request-method': 'POST' },
     });
     const res = makeRes();
-    handleCORS(req, res, { origin: '*', methods: ['GET'], credentials: true });
+    handleCORS(req, res, { origin: 'https://x.com', methods: ['POST'], credentials: true });
     expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Credentials', 'true');
   });
 
@@ -114,7 +114,7 @@ describe('CORS coverage', () => {
       headers: { origin: 'https://x.com', 'access-control-request-method': 'POST' },
     });
     const res = makeRes();
-    handleCORS(req, res, { origin: '*', methods: ['GET'], maxAge: 3600 });
+    handleCORS(req, res, { origin: '*', methods: ['POST'], maxAge: 3600 });
     expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Max-Age', '3600');
   });
 
@@ -124,14 +124,14 @@ describe('CORS coverage', () => {
       headers: { origin: 'https://x.com', 'access-control-request-method': 'POST' },
     });
     const res = makeRes();
-    handleCORS(req, res, { origin: '*', methods: ['GET'], optionsSuccessStatus: 200 });
+    handleCORS(req, res, { origin: '*', methods: ['POST'], optionsSuccessStatus: 200 });
     expect(res.status).toBe(200);
   });
 
   it('regular request with credentials', () => {
     const req = makeReq({ headers: { origin: 'https://x.com' } });
     const res = makeRes();
-    handleCORS(req, res, { origin: '*', credentials: true });
+    handleCORS(req, res, { origin: 'https://x.com', credentials: true });
     expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Credentials', 'true');
   });
 
@@ -142,11 +142,12 @@ describe('CORS coverage', () => {
     expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Expose-Headers', 'X-Custom');
   });
 
-  it('credentials with wildcard origin sets origin header', () => {
+  it('credentials with wildcard origin is rejected', () => {
     const req = makeReq({ headers: { origin: 'https://x.com' } });
     const res = makeRes();
-    handleCORS(req, res, { origin: '*', credentials: true });
-    expect(res.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', 'https://x.com');
+    const result = handleCORS(req, res, { origin: '*', credentials: true });
+    expect(result.permitted).toBe(false);
+    expect(res.status).toBe(403);
   });
 
   it('non-wildcard origin sets origin header', () => {

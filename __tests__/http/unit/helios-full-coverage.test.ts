@@ -220,19 +220,22 @@ describe('Helios coverage - requestHandler paths', () => {
     expect(res.headers.get('x-response-time')).toBeDefined();
   });
 
-  it('requestHandler: CORS with continue=false permitted', async () => {
+  it('requestHandler: invalid wildcard credentials CORS is rejected', async () => {
     @Controller('/test')
     class TestCtrl {
       @Get('/') index() { return { ok: true }; }
     }
-    app = buildApp([TestCtrl], {
+    expect(() => buildApp([TestCtrl], {
       cors: { origin: '*', methods: ['GET'], credentials: true },
-    });
-    const base = await startApp(app);
-    const res = await fetch(`${base}/test`, {
-      headers: { Origin: 'http://example.com' },
-    });
-    expect(res.status).toBe(200);
+    })).toThrow(TypeError);
+  });
+
+  it('requestHandler: implicit wildcard credentials CORS is rejected', async () => {
+    @Controller('/test')
+    class TestCtrl {
+      @Get('/') index() { return { ok: true }; }
+    }
+    expect(() => buildApp([TestCtrl], { cors: { credentials: true } })).toThrow(TypeError);
   });
 
   it('runController: controller does not implement CONTROLLER_REQUEST', () => {

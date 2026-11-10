@@ -1,4 +1,5 @@
 import type { ServerResponse } from 'node:http';
+import type { Request } from './request';
 
 /** A connected Server-Sent Events client tracked by the server. */
 export interface SSEClient {
@@ -12,6 +13,17 @@ export interface SSEClient {
   data: Record<string, unknown>;
   /** When the connection was opened. */
   connectedAt: Date;
+}
+
+export interface SSEServerOptions {
+  /** Maximum simultaneous streams. Defaults to 1000. */
+  maxConnections?: number;
+  /** Comment heartbeat interval in milliseconds. Defaults to 30 seconds. */
+  heartbeatMs?: number;
+  /** Maximum encoded event size in bytes. Defaults to 1 MiB. */
+  maxMessageBytes?: number;
+  /** Optional authentication hook used by the HTTP adapter before opening a stream. */
+  authenticate?: (request: Request) => boolean | Promise<boolean>;
 }
 
 /** One SSE frame, formatted onto the wire as `event:`/`id:`/`retry:`/`data:` lines. */
@@ -43,7 +55,7 @@ export interface ISSEServer {
    * @param res - The Node response to keep open and stream to.
    * @param origin - Optional origin, used for a CORS check when configured.
    */
-  createConnection(res: ServerResponse, origin?: string): SSEClient;
+  createConnection(res: ServerResponse, origin?: string): SSEClient | undefined;
   /**
    * Sends `message` to one client.
    * @param clientId - Target client id.
@@ -77,5 +89,5 @@ export interface ISSEService {
    * @param res - The Node response to keep open and stream to.
    * @param origin - Optional origin, used for a CORS check when configured.
    */
-  createConnection(res: ServerResponse, origin?: string): SSEClient;
+  createConnection(res: ServerResponse, origin?: string): SSEClient | undefined;
 }

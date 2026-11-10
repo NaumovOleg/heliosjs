@@ -1,6 +1,22 @@
 import type { CORSConfig, Request, Response } from '../../types/core';
 import { getHeaderCI, getOrigin } from './headers';
 
+/**
+ * Validates a CORS policy at the configuration boundary.
+ *
+ * Browsers reject `Access-Control-Allow-Origin: *` together with credentials,
+ * so reflecting the request origin in that configuration is both misleading
+ * and unsafe. Applications must provide an explicit allow-list/predicate when
+ * credentials are enabled.
+ */
+export function assertValidCORSConfig(config: CORSConfig): void {
+  if (config.credentials && (!config.origin || config.origin === '*')) {
+    throw new TypeError(
+      'CORS configuration is invalid: credentials require an explicit origin allow-list or predicate; do not omit origin or use "*".',
+    );
+  }
+}
+
 function setOriginHeader(res: Response, config: CORSConfig, origin: string) {
   const effectiveOrigin = config.origin ?? '*';
   if (effectiveOrigin === '*') {
@@ -34,6 +50,14 @@ export function handleCORS(
   res: Response,
   config: CORSConfig,
 ): { permitted: boolean; continue: boolean } {
+  // Keep this helper fail-closed even when it is used directly by a route-level
+  // decorator rather than through an adapter constructor.
+  if (config.credentials && (!config.origin || config.origin === '*')) {
+    res.status = 403;
+    res.setHeader('Content-Type', 'application/json');
+    return { permitted: false, continue: false };
+  }
+
   const origin = getOrigin(req);
   const effectiveOrigin = config.origin ?? '*';
 
@@ -59,6 +83,15 @@ export function handleCORS(
     !!getHeaderCI(req.headers, 'access-control-request-method') &&
     origin;
   if (isPreflight) {
+    const requestedMethod = getHeaderCI(req.headers, 'access-control-request-method');
+    const requestedMethodValue = Array.isArray(requestedMethod)
+      ? requestedMethod[0]
+      : requestedMethod;
+    if (config.methods?.length && requestedMethodValue && !config.methods.includes(requestedMethodValue)) {
+      res.status = 403;
+      res.setHeader('Content-Type', 'application/json');
+      return { permitted: false, continue: false };
+    }
     setOriginHeader(res, config, origin ?? '*');
     if (config.methods) {
       res.setHeader('Access-Control-Allow-Methods', config.methods.join(', '));

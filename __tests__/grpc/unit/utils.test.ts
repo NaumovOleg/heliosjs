@@ -46,8 +46,8 @@ describe('normalizeError', () => {
     expect(normalizeError({ statusCode: 404, message: 'not found' })).toEqual({ code: status.NOT_FOUND, message: 'not found' });
     expect(normalizeError({ statusCode: 409, message: 'conflict' })).toEqual({ code: status.ALREADY_EXISTS, message: 'conflict' });
     expect(normalizeError({ statusCode: 429, message: 'too many' })).toEqual({ code: status.RESOURCE_EXHAUSTED, message: 'too many' });
-    expect(normalizeError({ statusCode: 501, message: 'no impl' })).toEqual({ code: status.UNIMPLEMENTED, message: 'no impl' });
-    expect(normalizeError({ statusCode: 503, message: 'unavail' })).toEqual({ code: status.UNAVAILABLE, message: 'unavail' });
+    expect(normalizeError({ statusCode: 501, message: 'no impl' })).toEqual({ code: status.UNIMPLEMENTED, message: 'Internal server error' });
+    expect(normalizeError({ statusCode: 503, message: 'unavail' })).toEqual({ code: status.UNAVAILABLE, message: 'Internal server error' });
   });
 
   it('maps unknown HTTP status to INTERNAL', () => {
@@ -55,7 +55,7 @@ describe('normalizeError', () => {
   });
 
   it('falls back to INTERNAL for unknown errors', () => {
-    expect(normalizeError(new Error('oops'))).toEqual({ code: status.INTERNAL, message: 'oops' });
+    expect(normalizeError(new Error('oops'))).toEqual({ code: status.INTERNAL, message: 'Internal server error' });
   });
 
   it('handles errors without message', () => {

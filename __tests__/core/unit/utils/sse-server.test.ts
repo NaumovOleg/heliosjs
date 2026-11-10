@@ -32,20 +32,29 @@ describe('SSEServer', () => {
     }));
   });
 
-  it('sets Access-Control-Allow-Origin for wildcard without config', () => {
+  it('does not opt into cross-origin access without CORS config', () => {
     const sse = new SSEServer();
     const res = createMockResponse();
     sse.createConnection(res);
     const headers = res.writeHead.mock.calls[0][1];
-    expect(headers['Access-Control-Allow-Origin']).toBe('*');
+    expect(headers['Access-Control-Allow-Origin']).toBeUndefined();
   });
 
-  it('sets origin header when origin provided without config', () => {
+  it('does not reflect an origin without CORS config', () => {
     const sse = new SSEServer();
     const res = createMockResponse();
     sse.createConnection(res, 'http://example.com');
     const headers = res.writeHead.mock.calls[0][1];
-    expect(headers['Access-Control-Allow-Origin']).toBe('http://example.com');
+    expect(headers['Access-Control-Allow-Origin']).toBeUndefined();
+  });
+
+  it('allows wildcard origin only when CORS is configured', () => {
+    const sse = new SSEServer();
+    sse.setCorsConfig({ origin: '*' });
+    const res = createMockResponse();
+    sse.createConnection(res, 'http://example.com');
+    const headers = res.writeHead.mock.calls[0][1];
+    expect(headers['Access-Control-Allow-Origin']).toBe('*');
   });
 
   it('uses CORS config for origin matching', () => {
@@ -86,11 +95,16 @@ describe('SSEServer', () => {
 
   it('sets credentials header when configured', () => {
     const sse = new SSEServer();
-    sse.setCorsConfig({ origin: '*', credentials: true });
+    sse.setCorsConfig({ origin: 'http://example.com', credentials: true });
     const res = createMockResponse();
     sse.createConnection(res, 'http://example.com');
     const headers = res.writeHead.mock.calls[0][1];
     expect(headers['Access-Control-Allow-Credentials']).toBe('true');
+  });
+
+  it('rejects wildcard origin with credentials', () => {
+    const sse = new SSEServer();
+    expect(() => sse.setCorsConfig({ origin: '*', credentials: true })).toThrow(TypeError);
   });
 
   it('returns false for non-existent client in sendToClient', () => {

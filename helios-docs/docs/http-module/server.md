@@ -45,24 +45,25 @@ await server.listen();
 | Property       | Type                                      | Description                                            |
 | -------------- | ----------------------------------------- | ------------------------------------------------------ |
 | `port`         | `number`                                  | Port to listen on                                      |
-| `host`         | `string`                                  | Hostname or IP to bind to                              |
-| `controllers`  | `ControllerType[]`                        | Controller classes                                     |
-| `middlewares`  | `MiddlewareCB[]`                          | Global middleware functions                            |
-| `cors`         | `CORSConfig`                              | CORS configuration                                     |
-| `interceptor`  | `InterceptorCB`                           | Global response interceptor                            |
-| `errorHandler` | `(error, req, res) => any`                | Global error handler                                   |
-| `sanitizers`   | `SanitizerConfig[]`                       | Global sanitization rules                              |
-| `statics`      | `StaticConfig[]`                          | Static file serving                                    |
-| `websocket`    | `{ path: string; lazy?: boolean }`        | WebSocket config                                       |
-| `sse`          | `{ enabled: boolean }`                    | SSE config                                             |
-| `graphql`      | `{ path, resolvers, pubSub, playground }` | GraphQL config                                         |
-| `rbac`         | `{ getRoles: (req) => roles }`            | RBAC extractor                                         |
-| `fingerprint`  | `{ secret?, components?, compute? }`      | Fingerprint config                                     |
-| `log`          | `LoggerConfig \| false`                   | Logging config (see [Logging](../core-module/logging)) |
-| `bodyLimit`    | `number`                                  | Max request body size in bytes. Default 1 MB; `0` disables the limit |
-| `trustProxy`   | `boolean`                                 | Trust `X-Forwarded-For`/`X-Forwarded-Proto` for `getClientIp()`/`isSecure()`. Default `false` — only enable behind a proxy you control |
-| `requestTimeout` | `number`                                | Node's `http.Server.requestTimeout` in ms               |
-| `headersTimeout` | `number`                                | Node's `http.Server.headersTimeout` in ms                |
+| `host`           | `string`                                  | Hostname or IP to bind to                              |
+| `canonicalHost`  | `string`                                  | Trusted public authority for generated absolute URLs   |
+| `controllers`    | `ControllerType[]`                        | Controller classes                                     |
+| `middlewares`    | `MiddlewareCB[]`                          | Global middleware functions                            |
+| `cors`           | `CORSConfig`                              | CORS configuration                                     |
+| `interceptor`    | `InterceptorCB`                           | Global response interceptor                            |
+| `errorHandler`   | `(error, req, res) => any`                | Global error handler                                   |
+| `sanitizers`     | `SanitizerConfig[]`                       | Global sanitization rules                              |
+| `statics`        | `StaticConfig[]`                          | Static file serving                                    |
+| `websocket`      | `WebSocketServerOptions & { controllers }`| WebSocket config; see [WebSocket](./websockets)        |
+| `sse`            | `SSEServerOptions & { enabled }`           | SSE config; see [SSE](./server-sent-events)            |
+| `graphql`        | `{ path, resolvers, pubSub, playground }` | GraphQL config                                         |
+| `rbac`           | `{ getRoles: (req) => roles }`            | RBAC extractor                                         |
+| `fingerprint`    | `{ secret?, components?, compute? }`      | Fingerprint config                                     |
+| `log`            | `LoggerConfig \| false`                   | Logging config (see [Logging](../core-module/logging)) |
+| `bodyLimit`      | `number`                                  | Max request body size in bytes. Default 1 MB; `0` disables the limit |
+| `trustProxy`     | `boolean`                                 | Trust forwarded headers. Default `false`; only enable behind a controlled proxy |
+| `requestTimeout` | `number`                                  | Node's `http.Server.requestTimeout` in ms              |
+| `headersTimeout` | `number`                                  | Node's `http.Server.headersTimeout` in ms              |
 
 ## Global Middleware
 
@@ -113,12 +114,25 @@ import { serializeError } from '@heliosjs/core/utils';
   errorHandler: (error, req, res) => {
     console.error(`[${req.requestId}]`, error);
     const serialized = serializeError(error);
-    res.status = serialized.status || 500;
-    return { success: false, error: serialized };
+    const status = serialized.status || 500;
+    res.status = status;
+    return {
+      success: false,
+      error: {
+        code: serialized.code || 'INTERNAL_SERVER_ERROR',
+        status,
+        message: status >= 500 ? 'Internal Server Error' : serialized.message,
+        requestId: req.requestId,
+      },
+    };
   },
 })
 export class App {}
 ```
+
+Use `serializeError()` for server-side logging, but do not return its complete
+object to clients: upstream response bodies, stacks, and internal exception
+messages may contain secrets or infrastructure details.
 
 ## Static File Serving
 
@@ -134,12 +148,18 @@ import path from 'path';
         index: 'index.html',
         maxAge: '1d',
         immutable: true,
+        dotfiles: 'ignore',
       },
     },
   ],
 })
 export class App {}
 ```
+
+Static mounts resolve the real path and reject traversal or symlink escapes
+outside the configured root. Dotfiles are ignored by default; use
+`dotfiles: 'deny'` to return `403`, or `'allow'` only for an intentionally
+public dotfile.
 
 ## RBAC and Fingerprint
 
@@ -174,6 +194,24 @@ export class App {}
 `X-Forwarded-For` / `X-Forwarded-Proto`. Leave it `false` (the default) unless
 you're behind a reverse proxy — these headers are client-spoofable, and both
 rate limiting and fingerprinting key off `getClientIp()` by default.
+
+`canonicalHost` is useful when the `Host` header is rewritten or supplied by an
+untrusted client. When set, `req.getHost()` and `req.getFullUrl()` use this
+authority instead of the incoming `Host` value. Set it to the public host your
+application is actually served from, for example `api.example.com`.
+
+## Security Defaults
+
+HTTP responses include these headers unless the application sets them first:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Strict-Transport-Security` on requests recognized as HTTPS
+
+The default body limit is 1 MiB and applies to GraphQL requests as well. Keep
+the limit finite in production; use `0` only when an upstream gateway already
+enforces an appropriate limit.
 
 ## Helios Server API
 
@@ -263,7 +301,7 @@ export class UserController {
 
 @Server({
   controllers: [HealthController, UserController],
-  cors: { origin: '*', credentials: true },
+  cors: { origin: 'https://app.example.com', credentials: true },
   statics: [{ path: path.join(__dirname, '../public'), options: { index: 'index.html' } }],
   errorHandler: (error, req, res) => {
     console.error(error);

@@ -98,7 +98,7 @@ export interface ErrorResponse {
 
 /** Options controlling how `ApplicationError` normalizes and logs a thrown value. */
 export interface ErrorHandlerConfig {
-  /** Include the stack trace in the normalized error. Default: `true` outside production. */
+  /** Include the stack trace in diagnostics. Default: `false`; never enable this for public responses. */
   includeStack?: boolean;
   /** Log every normalized error via the global logger. Default `true`. */
   logErrors?: boolean;

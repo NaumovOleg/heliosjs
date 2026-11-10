@@ -2,6 +2,7 @@ import 'reflect-metadata';
 
 export * from './catch';
 export * from './cors';
+export * from './csrf';
 export * from './fingerprint';
 export * from './guard';
 export * from './interceptor';

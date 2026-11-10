@@ -33,6 +33,7 @@ export class Req implements Request {
   startTime: number;
   /** When false, `X-Forwarded-*` headers are ignored for client IP / protocol. */
   trustProxy: boolean;
+  private readonly canonicalHost?: string;
 
   // Most requests never call setState/getState — allocate lazily instead of
   // paying for a Map on every request.
@@ -62,6 +63,7 @@ export class Req implements Request {
     this.rawBody = options.rawBody;
     this.isBase64Encoded = options.isBase64Encoded ?? this.base64Encoded();
     this.trustProxy = options.trustProxy ?? false;
+    this.canonicalHost = normalizeCanonicalHost(options.canonicalHost);
     this.startTime = Date.now();
   }
 
@@ -257,7 +259,7 @@ export class Req implements Request {
    * Get request host
    */
   getHost(): string {
-    return (this.getHeader('host') as string) || 'localhost';
+    return this.canonicalHost || (this.getHeader('host') as string) || 'localhost';
   }
 
   /**
@@ -292,6 +294,7 @@ export class Req implements Request {
       rawBody: overrides?.rawBody ?? this.rawBody,
       isBase64Encoded: overrides?.isBase64Encoded ?? this.isBase64Encoded,
       trustProxy: overrides?.trustProxy ?? this.trustProxy,
+      canonicalHost: overrides?.canonicalHost ?? this.canonicalHost,
       requestUrl: overrides?.requestUrl || this.requestUrl,
     });
   }
@@ -318,4 +321,13 @@ export class Req implements Request {
       source: this.source,
     };
   }
+}
+
+function normalizeCanonicalHost(host?: string): string | undefined {
+  if (!host) return undefined;
+  const parsed = new URL(host.includes('://') ? host : `http://${host}`);
+  if (parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+    throw new TypeError('canonicalHost must contain only a hostname and optional port');
+  }
+  return parsed.host;
 }

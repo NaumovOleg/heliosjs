@@ -7,6 +7,7 @@ import type {
 } from '../../../types/core/error';
 import { ErrorCode } from '../../../types/core/error';
 import { getGlobalLogger } from '../logger';
+import { redactIfSensitive } from '../../shared/helpers';
 import { UnauthorizedError } from './authorizations';
 import { BaseError } from './base';
 import { NotFoundError } from './notfound';
@@ -45,7 +46,7 @@ export class ApplicationError {
    *   - `meta` - the {@link Request} (or a `{ requestId, requestUrl, method,
    *     sourceIp, userAgent }` subset). Why: fills `requestId`/`path`/`method`
    *     on the result and the log line.
-   *   - `config` - {@link ErrorHandlerConfig}: `includeStack` (default: non-prod),
+ *   - `config` - {@link ErrorHandlerConfig}: `includeStack` (default: `false`),
    *     `logErrors` (default `true`), `logStack`, `customHandlers`. Why:
    *     per-environment control over what is logged and returned.
    *   - `status` - explicit HTTP status override.
@@ -55,7 +56,9 @@ export class ApplicationError {
     data: { meta: Meta; config: ErrorHandlerConfig; status?: number }
   ) {
     this.config = {
-      includeStack: process.env.NODE_ENV !== 'production',
+      // Diagnostics are for logs, never an environment-name heuristic. Public
+      // adapters explicitly keep this false unless an application opts in.
+      includeStack: false,
       logErrors: true,
       logStack: true,
       ...(data.config ?? {}),
@@ -198,7 +201,7 @@ export class ApplicationError {
       code: error.code,
       status: error.status,
       message: error.message,
-      details: error.details,
+      details: this.redactDetails(error.details),
       stack: this.config.includeStack ? error.stack : undefined,
       ip: meta.sourceIp,
       userAgent: meta.userAgent,
@@ -217,13 +220,36 @@ export class ApplicationError {
     return {
       code: this.code,
       status: this.status,
-      message: this.message,
-      details: this.details,
-      upstream: this.upstream,
+      // Internal exception text can contain SQL, filesystem paths, tokens, or
+      // downstream response data. Only client-safe 4xx messages are echoed.
+      message: this.status >= 500 ? 'Internal Server Error' : this.message,
+      details:
+        this.status >= 500
+          ? undefined
+          : this.redactDetails(this.details),
       timestamp: this.timestamp ?? new Date(),
       requestId: this.requestId,
       path: this.path,
       stack: this.config.includeStack ? this.stack : undefined,
     };
+  }
+
+  private redactDetails(details?: ErrorDetails[]): ErrorDetails[] | undefined {
+    return details?.map((detail) => {
+      const field =
+        typeof detail.field === 'string'
+          ? detail.field
+          : typeof detail.property === 'string'
+            ? detail.property
+            : undefined;
+      const children = Array.isArray(detail.children)
+        ? this.redactDetails(detail.children as ErrorDetails[])
+        : detail.children;
+      return {
+        ...detail,
+        value: redactIfSensitive(field, detail.value),
+        ...(children ? { children } : {}),
+      };
+    });
   }
 }

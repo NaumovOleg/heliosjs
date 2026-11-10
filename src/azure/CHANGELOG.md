@@ -1,5 +1,16 @@
 # @heliosjs/azure
 
+## 2.0.0
+
+### Major Changes
+
+- Harden request processing and transport boundaries across all packages. This release adds fail-closed CORS validation, safer error serialization, security headers, request and message limits, trusted-proxy and canonical-host handling, static-file traversal protection, WebSocket/SSE authentication and backpressure controls, safer multipart and DTO validation, CSRF protection, and hardened AWS, Azure, and gRPC adapters.
+
+### Patch Changes
+
+- Updated dependencies
+  - @heliosjs/core@5.0.0
+
 ## 1.0.1
 
 ### Patch Changes

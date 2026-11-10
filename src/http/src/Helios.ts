@@ -13,6 +13,7 @@ import type {
   Response,
 } from '@heliosjs/core/types';
 import {
+  assertValidCORSConfig,
   handleCORS,
   Logger,
   reflectControllerMeta,
@@ -32,6 +33,20 @@ import {
   resolveConfig,
   staticMiddleware,
 } from './utils/http';
+
+function matchesConfiguredPath(value: string | undefined, configuredPath: string): boolean {
+  if (!value) return false;
+  try {
+    const pathname = new URL(value, 'http://localhost').pathname;
+    const normalized =
+      configuredPath.length > 1 && configuredPath.endsWith('/')
+        ? configuredPath.slice(0, -1)
+        : configuredPath;
+    return pathname === normalized || pathname.startsWith(`${normalized}/`);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * HTTP runtime entrypoint for Helios applications.
@@ -72,6 +87,7 @@ export class Helios extends Plugin implements IHttpServer {
   constructor(configOrClass: new (...args: unknown[]) => unknown) {
     super();
     this.config = resolveConfig(configOrClass);
+    if (this.config.cors) assertValidCORSConfig(this.config.cors);
 
     this.logger = new Logger({
       ...this.config.log,
@@ -118,7 +134,7 @@ export class Helios extends Plugin implements IHttpServer {
     }
 
     if (this.config.sse?.enabled) {
-      this.sse = new SSEServer();
+      this.sse = new SSEServer(this.config.sse);
       if (this.config.cors) {
         this.sse.setCorsConfig(this.config.cors);
       }
@@ -135,9 +151,9 @@ export class Helios extends Plugin implements IHttpServer {
    * This method is called automatically when `websocket` config is enabled.
    */
   setUpWebsocket() {
-    this.websocket = new WebSocketServer(this.app, {
-      path: this.config.websocket?.path ?? '/ws',
-    });
+    const { controllers: _controllers, lazy: _lazy, ...websocketOptions } =
+      this.config.websocket ?? { path: '/ws', controllers: [] };
+    this.websocket = new WebSocketServer(this.app, websocketOptions);
     this.websocket.registerControllers(this.config.websocket?.controllers ?? []);
     WebSocketService.getInstance().initialize(this.websocket);
   }
@@ -257,12 +273,13 @@ export class Helios extends Plugin implements IHttpServer {
     try {
       const graphqlPath = this.config.graphql?.path ?? '/graphql';
       const isGraphQLRequest =
-        !!this.config.graphql && (req.url?.split('?')[0] ?? '').startsWith(graphqlPath);
+        !!this.config.graphql && matchesConfiguredPath(req.url, graphqlPath);
       request = await RequestFactory.create(
         req,
         this.config.bodyLimit,
         this.config.trustProxy,
-        isGraphQLRequest
+        isGraphQLRequest,
+        this.config.canonicalHost,
       );
     } catch (error) {
       // Body too large / malformed JSON / bad URL — reply before we have a Request.
@@ -280,6 +297,7 @@ export class Helios extends Plugin implements IHttpServer {
       return;
     }
     const response = ResponseFactory.create(res, request);
+    let sseHandled = false;
 
     try {
       await this.callPluginHook('beforeRequest', req);
@@ -308,9 +326,28 @@ export class Helios extends Plugin implements IHttpServer {
         if (response.headersSent) return;
         await this.callPluginHook('beforeRoute', request, response);
         if (response.headersSent) return;
+
+        const ssePath = this.config.sse?.path ?? '/events';
+        const normalizedSsePath =
+          ssePath.length > 1 && ssePath.endsWith('/') ? ssePath.slice(0, -1) : ssePath;
+        if (this.sse && request.method === 'GET' && request.path === normalizedSsePath) {
+          sseHandled = true;
+          const sseConfig = this.config.sse;
+          if (sseConfig?.authenticate && !(await sseConfig.authenticate(request))) {
+            response.status = 401;
+            response.data = 'SSE authentication required';
+            return;
+          }
+          const origin = request.getHeader('origin');
+          const originValue = Array.isArray(origin) ? origin[0] : origin;
+          this.sse.createConnection(response.raw as unknown as ServerResponse, originValue);
+          return;
+        }
+
         await this.runController(request, response);
       });
 
+      if (sseHandled) return this.sendResponse(request, response);
       return this.sendResponse(request, response);
     } catch (error: unknown) {
       response.error(error);
@@ -458,6 +495,7 @@ export class Helios extends Plugin implements IHttpServer {
     }
 
     try {
+      this.applyDefaultSecurityHeaders(request, response);
       // `X-Response-Time` is set inside response.end(). HEAD carries the same
       // headers as GET but no body.
       response.end(request.method === 'HEAD' ? undefined : response.data);
@@ -488,6 +526,7 @@ export class Helios extends Plugin implements IHttpServer {
 
     const graphqlWsServer = new WebSocketServer(this.app, {
       path: this.config.graphql.path ?? '/graphql',
+      allowedOrigins: this.websocketOrigins(),
     });
 
     const schemaConfig = {
@@ -521,11 +560,47 @@ export class Helios extends Plugin implements IHttpServer {
       );
     }
     this.use(async (req, res, next) => {
-      if (!req.requestUrl.pathname?.startsWith(this.config.graphql?.path ?? '/graphql')) {
+      if (!matchesConfiguredPath(req.requestUrl.pathname, this.config.graphql?.path ?? '/graphql')) {
         return next();
       }
+      this.applyDefaultSecurityHeaders(req, res);
       await yoga(req.raw, res.raw);
     });
+  }
+
+  private websocketOrigins(): string[] | ((origin: string) => boolean) | undefined {
+    const origin = this.config.cors?.origin;
+    if (!origin) return undefined;
+    if (origin === '*') return () => true;
+    if (typeof origin === 'string') return [origin];
+    if (Array.isArray(origin)) return origin;
+    return origin;
+  }
+
+  private applyDefaultSecurityHeaders(request: Request, response: Response): void {
+    if (typeof response.setHeader !== 'function') {
+      return;
+    }
+
+    const hasHeader = (name: string): boolean => {
+      if (typeof response.hasHeader === 'function') {
+        return response.hasHeader(name);
+      }
+      return typeof response.getHeader === 'function' && response.getHeader(name) !== undefined;
+    };
+
+    if (!hasHeader('X-Content-Type-Options')) {
+      response.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    if (!hasHeader('X-Frame-Options')) {
+      response.setHeader('X-Frame-Options', 'DENY');
+    }
+    if (!hasHeader('Referrer-Policy')) {
+      response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+    if (request.isSecure() && !hasHeader('Strict-Transport-Security')) {
+      response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
   }
 
   /**

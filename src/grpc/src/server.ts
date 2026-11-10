@@ -1,5 +1,5 @@
 import type { UntypedServiceImplementation } from '@grpc/grpc-js';
-import { loadPackageDefinition, Server, ServerCredentials } from '@grpc/grpc-js';
+import { loadPackageDefinition, Server, ServerCredentials, status } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 import { firstValueFrom, Observable } from 'rxjs';
 import { Logger } from '@heliosjs/core';
@@ -39,8 +39,17 @@ export class GrpcServer {
    * @param clients - Optional named clients map used for dependency injection.
    */
   constructor(options: Partial<GrpcServerOptions>, clients?: Map<string, GrpcClient>) {
-    this.server = new Server();
-    this.options = { url: '0.0.0.0:5000', ...options };
+    this.options = {
+      url: '0.0.0.0:5000',
+      allowInsecure: false,
+      maxReceiveMessageLength: 4 * 1024 * 1024,
+      maxSendMessageLength: 4 * 1024 * 1024,
+      ...options,
+    };
+    this.server = new Server({
+      'grpc.max_receive_message_length': this.options.maxReceiveMessageLength,
+      'grpc.max_send_message_length': this.options.maxSendMessageLength,
+    });
     if (clients) {
       this.clients = clients;
     }
@@ -174,9 +183,16 @@ export class GrpcServer {
    * @returns Promise resolved when bind succeeds.
    */
   async start(): Promise<void> {
-    const [host, port] = this.options.url.split(':');
+    const separator = this.options.url.lastIndexOf(':');
+    const host = this.options.url.slice(0, separator);
+    const port = this.options.url.slice(separator + 1);
     if (!this.options.credentials) {
       this.logger.warn('No gRPC credentials provided — binding with createInsecure() (no TLS).');
+      if (!this.options.allowInsecure && !isLoopbackHost(host)) {
+        throw new Error(
+          `Refusing insecure gRPC binding on non-loopback host "${host}". Provide TLS credentials or set allowInsecure: true explicitly.`,
+        );
+      }
     }
     const credentials = this.options.credentials || ServerCredentials.createInsecure();
 
@@ -223,6 +239,12 @@ export class GrpcServer {
     callback: any
   ) {
     try {
+      if (this.options.authenticate) {
+        const authenticated = await this.options.authenticate(call);
+        if (!authenticated) {
+          throw { code: status.UNAUTHENTICATED, message: 'Unauthenticated' };
+        }
+      }
       const request = methodMeta.isStream ? call : call.request;
       const result = handler(request, call.metadata, call);
 
@@ -263,4 +285,9 @@ export class GrpcServer {
       }
     }
   }
+}
+
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.replace(/^\[|\]$/g, '').toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }

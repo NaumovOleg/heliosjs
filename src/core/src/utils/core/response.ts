@@ -55,7 +55,7 @@ export class Res implements Response {
       const serialized = new ApplicationError(data, {
         meta: this.meta,
         config: {
-          includeStack: process.env.NODE_ENV !== 'production',
+          includeStack: false,
           logErrors: !!process.env.LOG_ERRORS,
         },
       });
@@ -147,6 +147,20 @@ export class Res implements Response {
   // ==================== Cookie Methods ====================
 
   setCookie(name: string, value: string, options: CookieOptions = {}): this {
+    assertCookieValue(name, 'name');
+    assertCookieValue(value, 'value', true);
+    if (options.path) assertCookieValue(options.path, 'path');
+    if (options.domain) assertCookieValue(options.domain, 'domain');
+    if (options.maxAge !== undefined && (!Number.isFinite(options.maxAge) || !Number.isInteger(options.maxAge))) {
+      throw new TypeError('Cookie maxAge must be a finite integer');
+    }
+    if (options.expires && Number.isNaN(options.expires.getTime())) {
+      throw new TypeError('Cookie expires must be a valid Date');
+    }
+    if (options.sameSite === 'none' && !options.secure) {
+      throw new TypeError('SameSite=None cookies must also set Secure');
+    }
+
     const cookieName = encodeURIComponent(name);
     const cookieValue = encodeURIComponent(value);
     const parts = [`${cookieName}=${cookieValue}`];
@@ -269,6 +283,13 @@ export class Res implements Response {
       return;
     }
 
+    // Node's ServerResponse does not know about the transport-neutral cookie
+    // accumulator. Apply all Set-Cookie lines immediately before the first
+    // write, including responses finalized by res.send()/res.json().
+    if (this._source === 'http' && this._cookies.length && this.raw.setHeader) {
+      this.raw.setHeader('Set-Cookie', this._cookies);
+    }
+
     // Pipe readable streams straight to the socket instead of serializing them.
     if (data != null && typeof (data as NodeJS.ReadableStream).pipe === 'function') {
       return (data as NodeJS.ReadableStream).pipe(this.raw as unknown as NodeJS.WritableStream);
@@ -323,7 +344,7 @@ export class Res implements Response {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error(error: any): this {
     const config = {
-      includeStack: process.env.NODE_ENV !== 'production',
+      includeStack: false,
       logErrors: !!process.env.LOG_ERRORS,
     };
 
@@ -333,5 +354,11 @@ export class Res implements Response {
     this.data = serialized;
 
     return this;
+  }
+}
+
+function assertCookieValue(value: string, field: string, allowEmpty = false): void {
+  if ((!allowEmpty && !value) || /[\r\n]/.test(value) || value.includes(String.fromCharCode(0))) {
+    throw new TypeError(`Cookie ${field} contains an invalid control character`);
   }
 }

@@ -22,10 +22,24 @@ import { Server } from "@heliosjs/http";
 
 @Server({
   controllers: [NotificationController],
-  sse: { enabled: true },
+  cors: { origin: ["https://app.example.com"] },
+  sse: {
+    enabled: true,
+    path: "/events",
+    maxConnections: 1000,
+    heartbeatMs: 30_000,
+    maxMessageBytes: 1024 * 1024,
+    authenticate: async (request) => Boolean(request.getHeader("authorization")),
+  },
 })
 export class App {}
 ```
+
+The defaults are 1000 connections, a 30-second comment heartbeat, and a 1 MiB
+encoded event limit. `createConnection()` returns `undefined` when the
+connection limit is reached or the origin/authentication check fails; always
+check the return value before using the client. Configure `cors` explicitly
+when browser clients connect from another origin.
 
 ## Decorators
 
@@ -64,6 +78,7 @@ export class EventsController {
   @Get("/subscribe")
   subscribe(@Req() req: Request, @Res() res: Response, @InjectSSE() sse: ISSEService) {
     const client = sse.createConnection(res);
+    if (!client) return;
     sse.sendToClient(client.id, {
       event: "welcome",
       data: { clientId: client.id, message: "Connected to SSE" },
@@ -143,6 +158,7 @@ export class StockController {
   @Get("/subscribe")
   subscribe(@Req() req: any, @Res() res: any, @InjectSSE() sse: ISSEService) {
     const client = sse.createConnection(res);
+    if (!client) return;
 
     // Simulate stock price updates every 2 seconds
     const interval = setInterval(() => {

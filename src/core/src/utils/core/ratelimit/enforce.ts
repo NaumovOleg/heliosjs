@@ -47,6 +47,13 @@ export async function enforceRateLimit(
     if (item.onLimit) onLimit = item.onLimit;
   }
 
+  if (!Number.isFinite(max) || max <= 0 || !Number.isFinite(windowMs) || windowMs <= 0) {
+    throw new TypeError('Rate limit max/windowMs must be positive finite numbers');
+  }
+  if (!Number.isFinite(cost) || cost <= 0) {
+    throw new TypeError('Rate limit cost must be a positive finite number');
+  }
+
   const effectiveStrategy = strategy ?? getDefaultStrategy();
   const effectiveKeyGen = keyGen ?? ((req: Request) => getOrComputeFingerprint(req));
 

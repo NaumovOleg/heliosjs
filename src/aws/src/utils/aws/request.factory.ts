@@ -7,8 +7,13 @@ import type { LambdaEvent } from '../../types/aws';
 import { normalizeEvent } from './lambda.event.normalizers';
 
 export class RequestFactory {
-  static create(event: LambdaEvent, context: Context, trustProxy = true): Req {
-    return new Req({ ...normalizeEvent(event, context), trustProxy });
+  static create(
+    event: LambdaEvent,
+    context: Context,
+    trustProxy = true,
+    canonicalHost?: string,
+  ): Req {
+    return new Req({ ...normalizeEvent(event, context, trustProxy), trustProxy, canonicalHost });
   }
 }
 

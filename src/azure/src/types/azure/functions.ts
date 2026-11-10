@@ -26,4 +26,6 @@ export interface AzureOptions {
    * these; disable only if you terminate untrusted traffic directly.
    */
   trustProxy?: boolean;
+  /** Canonical public authority used for generated absolute URLs. */
+  canonicalHost?: string;
 }

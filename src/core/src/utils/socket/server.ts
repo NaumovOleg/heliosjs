@@ -1,4 +1,5 @@
 import type http from 'node:http';
+import type { Duplex } from 'node:stream';
 import type WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 import type { ControllerType } from '../../types/core';
@@ -7,6 +8,7 @@ import type {
   WebSocketClient,
   WebSocketEvent,
   WebSocketMessage,
+  WebSocketServerOptions,
 } from '../../types/ws';
 import { getGlobalLogger } from '../core/logger';
 import { generateUniqueId } from '../shared';
@@ -23,9 +25,20 @@ export class WebSocketServer implements IWebSocketServer {
   wss: Server;
   private readonly clients = new Map<string, WebSocketClient>();
   private readonly topics = new Map<string, Set<string>>();
+  private readonly messageWindows = new Map<string, { startedAt: number; count: number }>();
   private controllers: ControllerType[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly options: any;
+  private readonly options: Required<
+    Pick<
+      WebSocketServerOptions,
+      | 'path'
+      | 'maxPayload'
+      | 'maxConnections'
+      | 'maxMessagesPerMinute'
+      | 'maxBufferedAmount'
+      | 'allowClientSubscriptions'
+      | 'allowClientPublish'
+    >
+  > & Omit<WebSocketServerOptions, 'path'>;
 
   /**
    * Creates low-level WebSocket server bound to an existing HTTP server.
@@ -33,12 +46,26 @@ export class WebSocketServer implements IWebSocketServer {
    * @param server - Parent HTTP server instance.
    * @param options - WebSocket options including endpoint path.
    */
-  constructor(server: http.Server, options?: { path: string }) {
-    this.options = options;
+  constructor(server: http.Server, options?: Partial<WebSocketServerOptions>) {
+    validateWebSocketLimit(options?.maxPayload, 'maxPayload', false);
+    validateWebSocketLimit(options?.maxConnections, 'maxConnections', true);
+    validateWebSocketLimit(options?.maxMessagesPerMinute, 'maxMessagesPerMinute', true);
+    validateWebSocketLimit(options?.maxBufferedAmount, 'maxBufferedAmount', true);
+    this.options = {
+      path: options?.path ?? '/ws',
+      maxPayload: options?.maxPayload ?? 1024 * 1024,
+      maxConnections: options?.maxConnections ?? 1000,
+      maxMessagesPerMinute: options?.maxMessagesPerMinute ?? 120,
+      maxBufferedAmount: options?.maxBufferedAmount ?? 8 * 1024 * 1024,
+      allowClientSubscriptions: options?.allowClientSubscriptions ?? false,
+      allowClientPublish: options?.allowClientPublish ?? false,
+      ...options,
+    };
 
     this.wss = new Server({
       noServer: true,
       path: this.options.path,
+      maxPayload: this.options.maxPayload,
     });
 
     this.wss.on('connection', (socket) => this.handleConnection(socket));
@@ -51,21 +78,94 @@ export class WebSocketServer implements IWebSocketServer {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (socket as any).__wsHandled = true;
 
-      if (this.shouldHandleWebSocket(request.url)) {
-        this.wss.handleUpgrade(request, socket, head, (ws) => {
-          this.wss.emit('connection', ws, request);
-        });
-      } else {
-        socket.destroy();
-      }
+      this.handleUpgrade(request, socket, head);
     });
   }
 
   private shouldHandleWebSocket(url = ''): boolean {
-    return url.startsWith(this.options.path);
+    try {
+      const pathname = new URL(url, 'http://localhost').pathname;
+      const normalizedPath =
+        this.options.path.length > 1 && this.options.path.endsWith('/')
+          ? this.options.path.slice(0, -1)
+          : this.options.path;
+      return pathname === normalizedPath;
+    } catch {
+      return false;
+    }
+  }
+
+  private handleUpgrade(
+    request: http.IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+  ): void {
+    if (!this.shouldHandleWebSocket(request.url)) {
+      socket.destroy();
+      return;
+    }
+
+    if (this.clients.size >= this.options.maxConnections) {
+      this.rejectUpgrade(socket, 503, 'WebSocket connection limit reached');
+      return;
+    }
+
+    const origin = request.headers?.origin;
+    if (!origin && !this.options.authenticate) {
+      this.acceptUpgrade(request, socket, head);
+      return;
+    }
+
+    void this.authorizeUpgrade(request, socket, head, origin).catch(() => {
+      this.rejectUpgrade(socket, 401, 'WebSocket authentication required');
+    });
+  }
+
+  private async authorizeUpgrade(
+    request: http.IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+    origin?: string,
+  ): Promise<void> {
+    if (origin && !(await this.isOriginAllowed(origin))) {
+      this.rejectUpgrade(socket, 403, 'WebSocket origin not allowed');
+      return;
+    }
+    if (this.options.authenticate && !(await this.options.authenticate(request))) {
+      this.rejectUpgrade(socket, 401, 'WebSocket authentication required');
+      return;
+    }
+    this.acceptUpgrade(request, socket, head);
+  }
+
+  private acceptUpgrade(request: http.IncomingMessage, socket: Duplex, head: Buffer): void {
+    this.wss.handleUpgrade(request, socket, head, (ws) => {
+      this.wss.emit('connection', ws, request);
+    });
+  }
+
+  private async isOriginAllowed(origin: string): Promise<boolean> {
+    const policy = this.options.allowedOrigins;
+    if (!policy) return false;
+    if (Array.isArray(policy)) return policy.includes(origin);
+    return policy(origin);
+  }
+
+  private rejectUpgrade(socket: Duplex, status: number, message: string) {
+    if (!socket.destroyed && typeof socket.write === 'function') {
+      socket.write(
+        `HTTP/1.1 ${status} ${message}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+      );
+    }
+    socket.destroy();
   }
 
   private async handleConnection(socket: WebSocket) {
+    if (this.clients.size >= this.options.maxConnections) {
+      socket.close(1008, 'Connection limit reached');
+      return;
+    }
+
     const clientId = generateUniqueId();
     const client: WebSocketClient = {
       id: clientId,
@@ -76,8 +176,11 @@ export class WebSocketServer implements IWebSocketServer {
     };
 
     this.clients.set(clientId, client);
+    this.messageWindows.set(clientId, { startedAt: Date.now(), count: 0 });
 
-    socket.on('message', (data: WebSocket.Data) => this.handleMessage(client, data));
+    socket.on('message', (data: WebSocket.Data) => {
+      void this.handleMessage(client, data);
+    });
 
     socket.on('close', () => this.handleClose(client));
 
@@ -88,10 +191,26 @@ export class WebSocketServer implements IWebSocketServer {
 
   private async handleMessage(client: WebSocketClient, data: WebSocket.Data) {
     try {
+      if (!this.consumeMessageBudget(client.id)) {
+        this.sendJson(client.socket, { type: 'error', data: { message: 'Rate limit exceeded' } });
+        return;
+      }
+
       const message = JSON.parse(data.toString()) as WebSocketMessage;
+      if (!message || typeof message !== 'object' || typeof message.type !== 'string') {
+        throw new Error('Invalid WebSocket message');
+      }
       const topic = message.topic ?? message.data?.topic;
 
+      if (topic !== undefined && (typeof topic !== 'string' || !this.isValidTopic(topic))) {
+        throw new Error('Invalid topic');
+      }
+
       if (message.type === 'subscribe' && topic) {
+        if (!(await this.canAccessTopic(client, topic, 'subscribe'))) {
+          this.sendJson(client.socket, { type: 'error', data: { message: 'Not authorized' } });
+          return;
+        }
         this.subscribeToTopic(client, topic);
         return;
       }
@@ -102,6 +221,10 @@ export class WebSocketServer implements IWebSocketServer {
       }
 
       if (message.type === 'topic_message' && message.topic) {
+        if (!(await this.canAccessTopic(client, message.topic, 'publish'))) {
+          this.sendJson(client.socket, { type: 'error', data: { message: 'Not authorized' } });
+          return;
+        }
         await this.triggerHandlers(
           'message',
           {
@@ -121,10 +244,48 @@ export class WebSocketServer implements IWebSocketServer {
         client,
         message,
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      client.socket.send(JSON.stringify({ type: 'error', data: { message: error.message } }));
+    } catch {
+      // Never echo parser/handler exception text over an untrusted socket.
+      this.sendJson(client.socket, {
+        type: 'error',
+        data: { message: 'Invalid WebSocket message' },
+      });
     }
+  }
+
+  private consumeMessageBudget(clientId: string): boolean {
+    const now = Date.now();
+    const window = this.messageWindows.get(clientId) ?? { startedAt: now, count: 0 };
+    if (now - window.startedAt >= 60_000) {
+      window.startedAt = now;
+      window.count = 0;
+    }
+    window.count += 1;
+    this.messageWindows.set(clientId, window);
+    return window.count <= this.options.maxMessagesPerMinute;
+  }
+
+  private isValidTopic(topic: string): boolean {
+    return (
+      topic.length > 0 &&
+      topic.length <= 128 &&
+      !topic.includes(String.fromCharCode(0)) &&
+      !topic.includes('\r') &&
+      !topic.includes('\n')
+    );
+  }
+
+  private async canAccessTopic(
+    client: WebSocketClient,
+    topic: string,
+    action: 'subscribe' | 'publish',
+  ): Promise<boolean> {
+    if (this.options.authorizeTopic) {
+      return this.options.authorizeTopic(client, topic, action);
+    }
+    return action === 'subscribe'
+      ? this.options.allowClientSubscriptions
+      : this.options.allowClientPublish;
   }
 
   private async handleClose(client: WebSocketClient) {
@@ -139,6 +300,7 @@ export class WebSocketServer implements IWebSocketServer {
     });
 
     this.clients.delete(client.id);
+    this.messageWindows.delete(client.id);
 
     await this.triggerHandlers('close', {
       type: 'close',
@@ -212,7 +374,7 @@ export class WebSocketServer implements IWebSocketServer {
     this.topics.get(topic)?.add(client.id);
     client.topics.add(topic);
 
-    client.socket.send(JSON.stringify({ type: 'subscribed', topic, data: { success: true } }));
+    this.sendJson(client.socket, { type: 'subscribed', topic, data: { success: true } });
   }
 
   /**
@@ -231,13 +393,11 @@ export class WebSocketServer implements IWebSocketServer {
     }
     client.topics.delete(topic);
 
-    client.socket.send(
-      JSON.stringify({
-        type: 'unsubscribed',
-        topic,
-        data: { success: true },
-      })
-    );
+    this.sendJson(client.socket, {
+      type: 'unsubscribed',
+      topic,
+      data: { success: true },
+    });
   }
 
   /**
@@ -248,15 +408,9 @@ export class WebSocketServer implements IWebSocketServer {
    * @param exclude - Optional client ids to skip.
    */
   public publishToTopic(topic: string, data: unknown, exclude?: string[]) {
+    if (!this.isValidTopic(topic)) return;
     const topicClients = this.topics.get(topic);
     if (!topicClients) return;
-
-    const message = JSON.stringify({
-      type: 'message',
-      topic,
-      data,
-      timestamp: new Date().toISOString(),
-    });
 
     topicClients.forEach((clientId) => {
       if (exclude?.includes(clientId)) {
@@ -265,7 +419,12 @@ export class WebSocketServer implements IWebSocketServer {
 
       const client = this.clients.get(clientId);
       if (client) {
-        client.socket.send(message);
+        this.sendJson(client.socket, {
+          type: 'message',
+          topic,
+          data,
+          timestamp: new Date().toISOString(),
+        });
       }
     });
   }
@@ -280,8 +439,7 @@ export class WebSocketServer implements IWebSocketServer {
   public sendToClient(clientId: string, message: unknown): boolean {
     const client = this.clients.get(clientId);
     if (client) {
-      client.socket.send(JSON.stringify(message));
-      return true;
+      return this.sendJson(client.socket, message);
     }
     return false;
   }
@@ -296,7 +454,7 @@ export class WebSocketServer implements IWebSocketServer {
     const messageStr = JSON.stringify(message);
     this.clients.forEach((client, clientId) => {
       if (clientId !== excludeClientId) {
-        client.socket.send(messageStr);
+        this.sendJson(client.socket, messageStr);
       }
     });
   }
@@ -312,5 +470,29 @@ export class WebSocketServer implements IWebSocketServer {
         subscribers: clients.size,
       })),
     };
+  }
+
+  private sendJson(socket: WebSocket, message: unknown): boolean {
+    if (typeof socket.readyState === 'number' && socket.readyState !== 1) return false;
+    if (
+      typeof socket.bufferedAmount === 'number' &&
+      socket.bufferedAmount > this.options.maxBufferedAmount
+    ) {
+      socket.close(1009, 'Slow consumer');
+      return false;
+    }
+    try {
+      socket.send(typeof message === 'string' ? message : JSON.stringify(message));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function validateWebSocketLimit(value: number | undefined, name: string, allowZero: boolean): void {
+  if (value === undefined) return;
+  if (!Number.isFinite(value) || !Number.isInteger(value) || (allowZero ? value < 0 : value <= 0)) {
+    throw new TypeError(`WebSocket ${name} must be a ${allowZero ? 'non-negative' : 'positive'} integer`);
   }
 }

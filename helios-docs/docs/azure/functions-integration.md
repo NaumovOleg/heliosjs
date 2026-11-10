@@ -79,6 +79,7 @@ const adapter = new Helios(RootController, {
     credentials: true,
   },
   trustProxy: true, // default — the Functions host sets X-Forwarded-*
+  canonicalHost: "api.example.com",
 });
 ```
 
@@ -88,6 +89,12 @@ const adapter = new Helios(RootController, {
 | `fingerprint` | `{ secret?, components?, compute? }` | Fingerprint config |
 | `cors` | `CORSConfig` | Adapter-level CORS, applied regardless of routing |
 | `trustProxy` | `boolean` (default `true`) | Trust `X-Forwarded-For`/`X-Forwarded-Proto` from the Functions host for `req.getClientIp()`/`req.isSecure()` |
+| `canonicalHost` | `string` | Trusted public authority used by `req.getHost()`/`req.getFullUrl()` |
+
+Credentialed CORS requires an explicit origin allow-list or predicate;
+`origin: "*"` and an omitted origin are rejected with `credentials: true`.
+The adapter emits `nosniff`, `DENY`, and referrer-policy headers by default,
+plus HSTS when the request is recognized as HTTPS.
 
 ## Routing: One Function, One Controller Tree
 

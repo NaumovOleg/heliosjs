@@ -9,6 +9,8 @@ import {
 } from '@heliosjs/core/utils';
 import { collectRawBody } from './body';
 
+const DEFAULT_REQUEST_BODY_LIMIT = 1_048_576;
+
 export class RequestFactory {
   /**
    * Create Request from HTTP IncomingMessage
@@ -17,7 +19,8 @@ export class RequestFactory {
     req: IncomingMessage,
     maxBytes?: number,
     trustProxy = false,
-    skipBody = false
+    skipBody = false,
+    canonicalHost?: string
   ): Promise<Req> {
     const fwdProto = trustProxy ? req.headers['x-forwarded-proto'] : undefined;
     const protoStr = Array.isArray(fwdProto) ? fwdProto[0] : fwdProto;
@@ -33,20 +36,22 @@ export class RequestFactory {
     const sourceIp = req.socket.remoteAddress ?? '0.0.0.0';
 
     const method = req.method || 'GET';
+    const effectiveMaxBytes = maxBytes ?? DEFAULT_REQUEST_BODY_LIMIT;
     let rawBody: Buffer | undefined;
     let body: unknown;
 
-    // skipBody: GraphQL requests hand `req.raw` to graphql-yoga, which reads
-    // the body stream itself — draining it here first would leave yoga nothing.
-
-    if (!skipBody && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-      rawBody = await collectRawBody(req, maxBytes);
+    const carriesBody = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
+    if (carriesBody) {
+      rawBody = await collectRawBody(req, effectiveMaxBytes);
       body = parseBody({
         body: rawBody,
         headers: req.headers as Record<string, string | string[]>,
         isBase64Encoded: false,
       });
-      Object.assign(req, { body });
+      // GraphQL/Yoga receives the original IncomingMessage. Attach the
+      // bounded bytes so @whatwg-node/server uses them as BodyInit instead of
+      // trying to read the already-consumed stream a second time.
+      Object.assign(req, skipBody ? { body: rawBody } : { body });
     }
 
     return new Req({
@@ -69,6 +74,7 @@ export class RequestFactory {
       context: req.socket,
       rawBody,
       trustProxy,
+      canonicalHost,
       isBase64Encoded: false,
     });
   }

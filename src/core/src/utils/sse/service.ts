@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import type { ISSEService, SSEMessage } from '../../types/core';
+import type { ISSEService, SSEClient, SSEMessage } from '../../types/core';
 import type { SSEServer } from './server';
 
 /**
@@ -65,7 +65,7 @@ export class SSEService implements ISSEService {
    * Indicates whether SSE runtime is initialized.
    */
   isAvailable(): boolean {
-    return this.sse !== null;
+    return !!this.sse;
   }
 
   /**
@@ -74,7 +74,7 @@ export class SSEService implements ISSEService {
    * @param res - Node.js response object.
    * @returns Connected SSE client descriptor.
    */
-  createConnection(res: ServerResponse, origin?: string) {
-    return this.sse.createConnection(res, origin);
+  createConnection(res: ServerResponse, origin?: string): SSEClient | undefined {
+    return this.sse?.createConnection(res, origin);
   }
 }

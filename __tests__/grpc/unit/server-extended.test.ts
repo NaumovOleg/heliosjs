@@ -62,7 +62,7 @@ describe('GrpcServer', () => {
   });
 
   it('registerService throws for undecorated class', () => {
-    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    const server = new GrpcServer({ url: '0.0.0.0:50051', allowInsecure: true });
     class Undecorated {}
     expect(() => server.registerService(Undecorated)).toThrow('not decorated');
   });
@@ -192,12 +192,12 @@ describe('GrpcServer', () => {
   });
 
   it('start binds and resolves', async () => {
-    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    const server = new GrpcServer({ url: '0.0.0.0:50051', allowInsecure: true });
     await server.start();
   });
 
   it('start rejects when bindAsync errors', async () => {
-    const server = new GrpcServer({ url: '0.0.0.0:50051' });
+    const server = new GrpcServer({ url: '0.0.0.0:50051', allowInsecure: true });
     vi.spyOn((server as any).server, 'bindAsync').mockImplementationOnce(
       (_addr: any, _creds: any, cb: any) => cb(new Error('bind failed'))
     );
@@ -314,7 +314,7 @@ describe('GrpcServer', () => {
     const methodMeta = makeMethodMeta('FindById', 'handler');
 
     await (server as any).executeHandler(handler, methodMeta, { request: {}, metadata: {} }, callback);
-    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ code: expect.any(Number), message: 'handler err' }));
+    expect(callback).toHaveBeenCalledWith(expect.objectContaining({ code: expect.any(Number), message: 'Internal server error' }));
   });
 
   it('regression: a stream handler that throws synchronously reports through call.destroy, not a nonexistent callback', async () => {
@@ -327,7 +327,7 @@ describe('GrpcServer', () => {
 
     await (server as any).executeHandler(handler, methodMeta, call, undefined);
     expect(call.destroy).toHaveBeenCalledWith(
-      expect.objectContaining({ code: expect.any(Number), message: 'handler err' })
+      expect.objectContaining({ code: expect.any(Number), message: 'Internal server error' })
     );
   });
 

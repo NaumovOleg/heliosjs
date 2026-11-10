@@ -65,7 +65,7 @@ describe('gRPC e2e: real server + real client over the wire', () => {
   it('propagates a thrown handler error as a real gRPC error status to the client', async () => {
     const service = client.getService<GrpcServiceClient>('GreetService');
     await expect(firstValueFrom(service.fail({ name: 'world' }))).rejects.toMatchObject({
-      message: expect.stringContaining('boom'),
+      message: expect.stringContaining('Internal server error'),
     });
   });
 });

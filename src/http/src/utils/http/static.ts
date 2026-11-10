@@ -45,7 +45,7 @@ export function staticMiddleware(
     }
     const safePath = decodedUrl.replace(/\\/g, '/');
     const relativePath =
-      mountPath && safePath.startsWith(mountPath)
+      mountPath && (safePath === mountPath || safePath.startsWith(`${mountPath}/`))
         ? safePath.slice(mountPath.length) || '/'
         : safePath;
     const fullPath = path.join(realRootPath, relativePath);
@@ -64,6 +64,22 @@ export function staticMiddleware(
       res.setHeader('Content-Type', 'text/plain');
       res.end('Forbidden');
       return;
+    }
+
+    const dotfilePolicy = () => {
+      if (opts.dotfiles === 'allow') return false;
+      const relative = path.relative(realRootPath, realFullPath || normalizedPath);
+      return relative.split(path.sep).some((segment) => segment.startsWith('.'));
+    };
+
+    if (dotfilePolicy()) {
+      if (opts.dotfiles === 'deny') {
+        res.status = 403;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Forbidden');
+        return;
+      }
+      return next();
     }
 
     let filePath = normalizedPath;
@@ -101,15 +117,36 @@ export function staticMiddleware(
         return next();
       }
 
-      const filename = path.basename(filePath);
-      if (filename.startsWith('.') && opts.dotfiles !== 'allow') {
+      // Index/extension fallback paths may be symlinks even when the original
+      // directory path was inside root. Canonicalize and re-check the final
+      // file immediately before serving it.
+      let realFilePath: string;
+      try {
+        realFilePath = await fs.promises.realpath(filePath);
+      } catch {
+        return next();
+      }
+      if (
+        !realFilePath.startsWith(realRootPath + path.sep) &&
+        realFilePath !== realRootPath
+      ) {
+        res.status = 403;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Forbidden');
+        return;
+      }
+      filePath = realFilePath;
+      stats = await fs.promises.stat(filePath).catch(() => null);
+      if (!stats?.isFile()) return next();
+
+      const relativeFilePath = path.relative(realRootPath, filePath);
+      if (opts.dotfiles !== 'allow' && relativeFilePath.split(path.sep).some((segment) => segment.startsWith('.'))) {
         if (opts.dotfiles === 'deny') {
           res.status = 403;
           res.setHeader('Content-Type', 'text/plain');
           res.end('Forbidden');
           return;
         }
-        // 'ignore' (default): act as if the file doesn't exist.
         return next();
       }
 

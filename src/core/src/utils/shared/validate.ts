@@ -24,7 +24,14 @@ let ajvInstance: InstanceType<typeof AjvType> | undefined;
 function getAjvInstance(): InstanceType<typeof AjvType> {
   if (!ajvInstance) {
     const Ajv = getAjv().default;
-    ajvInstance = new Ajv({ allErrors: true, coerceTypes: true, useDefaults: true });
+    ajvInstance = new Ajv({
+      allErrors: true,
+      coerceTypes: true,
+      useDefaults: true,
+      // Request DTOs should not silently carry undeclared attacker-controlled
+      // properties into handlers or persistence layers.
+      removeAdditional: 'all',
+    });
   }
   return ajvInstance;
 }
@@ -56,7 +63,13 @@ export async function validate(dtoClass: any, data: unknown, options?: Validator
       ]);
     }
     const { validate: Validate } = getClassValidator();
-    const errors = await Validate(instance, options ?? {});
+    const errors = await Validate(instance, {
+      // Secure request-boundary defaults. Callers can explicitly opt out for a
+      // DTO that intentionally accepts arbitrary properties.
+      whitelist: options?.whitelist ?? true,
+      forbidNonWhitelisted: options?.forbidNonWhitelisted ?? true,
+      ...options,
+    });
     if (errors.length > 0) {
       throw new ValidationFailed(formatValidationErrors(errors));
     }

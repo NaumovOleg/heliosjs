@@ -30,9 +30,11 @@ import {
 import { parseCloudFrontHeaders } from './parsers';
 
 const getUrls = (
-  event: APIGatewayProxyEvent | APIGatewayProxyEventV2 | ALBEvent | CloudFrontRequest
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2 | ALBEvent | CloudFrontRequest,
+  trustProxy = true,
 ) => {
-  const protocol = event.headers?.['x-forwarded-proto'] || 'https';
+  const forwardedProto = event.headers?.['x-forwarded-proto'];
+  const protocol = trustProxy && forwardedProto ? forwardedProto : 'https';
   const host = event.headers?.host || 'localhost';
   const path = (event as APIGatewayProxyEvent).path ?? (event as APIGatewayProxyEventV2).rawPath;
   const url = `${protocol}://${host}${path}`;
@@ -63,14 +65,15 @@ const normalizePathParams = (
 
 export const normalizeAPIGatewayEvent = (
   event: APIGatewayProxyEvent,
-  context: Context
+  context: Context,
+  trustProxy = true,
 ): RequestOptions => {
   const headers = parseHeaders(event.headers);
   const body = parseBody({ headers, body: event.body, isBase64Encoded: event.isBase64Encoded });
   const cookies = parseRequestCookie(headers?.Cookie || headers?.cookie || headers.cookies);
   const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
 
-  const { url, requestUrl } = getUrls(event);
+  const { url, requestUrl } = getUrls(event, trustProxy);
 
   return {
     requestId: context.awsRequestId,
@@ -99,12 +102,13 @@ export const normalizeAPIGatewayEvent = (
 
 export const normalizeAPIGatewayV2Event = (
   event: APIGatewayProxyEventV2,
-  context: Context
+  context: Context,
+  trustProxy = true,
 ): RequestOptions => {
   const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
   const headers = parseHeaders(event.headers);
   const body = parseBody({ headers, body: event.body, isBase64Encoded: event.isBase64Encoded });
-  const { url, requestUrl } = getUrls(event);
+  const { url, requestUrl } = getUrls(event, trustProxy);
 
   const cookies = parseRequestCookie(headers?.Cookie || headers?.cookie || headers.cookies);
 
@@ -146,12 +150,16 @@ const getAlbSourceIp = (headers: Record<string, string | undefined>): string | u
   return entries?.[entries.length - 1]?.trim();
 };
 
-export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOptions => {
+export const normalizeALBEvent = (
+  event: ALBEvent,
+  context: Context,
+  trustProxy = true,
+): RequestOptions => {
   const rawBody = Buffer.from(event.body || '', event.isBase64Encoded ? 'base64' : 'utf-8');
   const headers = parseHeaders(event.headers);
   const cookies = parseRequestCookie(headers?.Cookie || headers?.cookie || headers.cookies);
-  const body = parseBody({ headers, body: event.body });
-  const { url, requestUrl } = getUrls(event);
+  const body = parseBody({ headers, body: event.body, isBase64Encoded: event.isBase64Encoded });
+  const { url, requestUrl } = getUrls(event, trustProxy);
 
   return {
     requestId: context.awsRequestId,
@@ -179,7 +187,8 @@ export const normalizeALBEvent = (event: ALBEvent, context: Context): RequestOpt
 
 export const normalizeCloudFrontEvent = (
   event: CloudFrontRequestEvent,
-  context: Context
+  context: Context,
+  trustProxy = true,
 ): RequestOptions => {
   const record = event.Records?.[0];
   const request = record?.cf?.request;
@@ -193,7 +202,7 @@ export const normalizeCloudFrontEvent = (
     request?.clientIp ||
     headers['cloudfront-viewer-address']?.toString().split(':')[0] ||
     headers['x-forwarded-for']?.toString().split(',')[0]?.trim();
-  const { url, requestUrl } = getUrls(request);
+  const { url, requestUrl } = getUrls(request, trustProxy);
 
   return {
     requestId: context.awsRequestId,
@@ -221,7 +230,8 @@ export const normalizeCloudFrontEvent = (
 
 export const normalizeLambdaFunctionUrlEvent = (
   event: LambdaFunctionURLEvent,
-  context: Context
+  context: Context,
+  trustProxy = true,
 ): RequestOptions => {
   const query: Record<string, string | string[]> = {};
   if (event.queryStringParameters) {
@@ -247,8 +257,9 @@ export const normalizeLambdaFunctionUrlEvent = (
     });
   }
 
-  const forwardedProto =
-    event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto'];
+  const forwardedProto = trustProxy
+    ? event.headers?.['x-forwarded-proto'] || event.headers?.['X-Forwarded-Proto']
+    : undefined;
   const protocol =
     forwardedProto?.split(',')[0]?.trim().toLowerCase() ||
     event.requestContext.http.protocol.split('/')[0].toLowerCase();
@@ -325,20 +336,24 @@ export const getLambdaEventType = (event: LambdaEvent): LambdaEventType => {
   return 'unknown';
 };
 
-export const normalizeEvent = (event: LambdaEvent, context: Context): RequestOptions => {
+export const normalizeEvent = (
+  event: LambdaEvent,
+  context: Context,
+  trustProxy = true,
+): RequestOptions => {
   const type = getLambdaEventType(event);
 
   switch (type) {
     case 'apigateway':
-      return normalizeAPIGatewayEvent(event as APIGatewayProxyEvent, context);
+      return normalizeAPIGatewayEvent(event as APIGatewayProxyEvent, context, trustProxy);
     case 'apigatewayv2':
-      return normalizeAPIGatewayV2Event(event as APIGatewayProxyEventV2, context);
+      return normalizeAPIGatewayV2Event(event as APIGatewayProxyEventV2, context, trustProxy);
     case 'alb':
-      return normalizeALBEvent(event as ALBEvent, context);
+      return normalizeALBEvent(event as ALBEvent, context, trustProxy);
     case 'cloudfront':
-      return normalizeCloudFrontEvent(event as CloudFrontRequestEvent, context);
+      return normalizeCloudFrontEvent(event as CloudFrontRequestEvent, context, trustProxy);
     case 'lambda-url':
-      return normalizeLambdaFunctionUrlEvent(event as LambdaFunctionURLEvent, context);
+      return normalizeLambdaFunctionUrlEvent(event as LambdaFunctionURLEvent, context, trustProxy);
 
     default:
       throw new Error(`Unsupported event type: ${type}`);

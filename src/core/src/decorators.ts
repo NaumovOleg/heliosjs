@@ -284,11 +284,17 @@ export const Fingerprint = () => createParamDecorator('fingerprint');
  * @RateLimit({ max: 20, windowMs: 60_000, keyGen: (r) => r.getState('userId') ?? r.getClientIp() })
  */
 export function RateLimit(options: RateLimitOptions) {
-  if (!(options.max > 0)) {
+  if (!Number.isFinite(options.max) || !(options.max > 0)) {
     throw new TypeError('@RateLimit: `max` must be a positive number');
   }
-  if (!(options.windowMs > 0)) {
+  if (!Number.isFinite(options.windowMs) || !(options.windowMs > 0)) {
     throw new TypeError('@RateLimit: `windowMs` must be a positive number');
+  }
+  if (
+    options.cost !== undefined &&
+    (!Number.isFinite(options.cost) || !(options.cost > 0))
+  ) {
+    throw new TypeError('@RateLimit: `cost` must be a positive finite number');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

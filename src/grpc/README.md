@@ -10,12 +10,12 @@
 
 | Package                                                                                     | Version | Description             |
 | ------------------------------------------------------------------------------------------- | ------- | ----------------------- |
-| [@heliosjs/core](https://github.com/NaumovOleg/heliosjs/tree/master/src/core)               |         | Core decorators and DI  |
-| [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)               |         | HTTP server and routing |
-| [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/src/middlewares) |         | Built-in middlewares    |
-| [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/src/aws)                 |         | Aws support             |
-| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/src/azure)             |         | Azure Functions support |
-| [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/src/grpc)               |         | Grpc support            |
+| [@heliosjs/core](https://github.com/NaumovOleg/heliosjs/tree/master/src/core)               | 5.0.0  | Core decorators and request pipeline |
+| [@heliosjs/http](https://github.com/NaumovOleg/heliosjs/tree/master/src/http)               | 12.0.0 | HTTP server and routing              |
+| [@heliosjs/middlewares](https://github.com/NaumovOleg/heliosjs/tree/master/src/middlewares) | 12.0.0 | Built-in middlewares                 |
+| [@heliosjs/aws](https://github.com/NaumovOleg/heliosjs/tree/master/src/aws)                 | 12.0.0 | AWS support                          |
+| [@heliosjs/azure](https://github.com/NaumovOleg/heliosjs/tree/master/src/azure)             | 2.0.0  | Azure Functions support              |
+| [@heliosjs/grpc](https://github.com/NaumovOleg/heliosjs/tree/master/src/grpc)               | 3.0.0  | gRPC support                         |
 
 ## Quick Start
 

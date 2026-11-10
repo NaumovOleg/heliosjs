@@ -9,7 +9,14 @@ import type {
   Response,
 } from '@heliosjs/core/types';
 import { CONTROLLER_REQUEST } from '@heliosjs/core/constants';
-import { ApplicationError, getErrorType, handleCORS, setFingerprintConfig, setRolesExtractor } from '@heliosjs/core/utils';
+import {
+  ApplicationError,
+  assertValidCORSConfig,
+  getErrorType,
+  handleCORS,
+  setFingerprintConfig,
+  setRolesExtractor,
+} from '@heliosjs/core/utils';
 import type { Context, Handler } from 'aws-lambda';
 import type { ILambdaAdapter, LambdaEvent, LambdaOptions, Plugin as LambdaPlugin } from './types/aws';
 import { getEventType, Plugin, RequestFactory, ResponseFactory } from './utils/aws';
@@ -30,6 +37,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
   plugins: LambdaPlugin[] = [];
   private readonly corsConfig?: CORSConfig;
   private readonly trustProxy: boolean;
+  private readonly canonicalHost?: string;
   /**
    * Creates a Lambda adapter with a root Helios controller.
    *
@@ -44,7 +52,9 @@ export class Helios extends Plugin implements ILambdaAdapter {
       setFingerprintConfig(options.fingerprint);
     }
     this.corsConfig = options?.cors;
+    if (this.corsConfig) assertValidCORSConfig(this.corsConfig);
     this.trustProxy = options?.trustProxy ?? true;
+    this.canonicalHost = options?.canonicalHost;
     this.controller = this.compileController(controller);
     this.handler = this.createHandler();
   }
@@ -56,7 +66,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
       let request: Request;
       try {
-        request = RequestFactory.create(event, context, this.trustProxy);
+        request = RequestFactory.create(event, context, this.trustProxy, this.canonicalHost);
       } catch (error) {
         // Malformed JSON / bad event — reply before we have a Request.
         const status = (error as { status?: number })?.status ?? 400;
@@ -113,6 +123,18 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
       await this.callPluginHook('beforeRoute', request, response);
 
+      if (this.corsConfig) {
+        const corsResult = handleCORS(request, response, this.corsConfig);
+        if (!corsResult.permitted) {
+          response.status = 403;
+          response.data = 'CORS: Origin not allowed';
+          return this.toLambdaResponse(request, response, eventType);
+        }
+        if (!corsResult.continue) {
+          return this.toLambdaResponse(request, response, eventType);
+        }
+      }
+
       await controller[CONTROLLER_REQUEST](request, response);
     } catch (error: unknown) {
       return this.handleError(error as ErrorObject, request);
@@ -129,7 +151,13 @@ export class Helios extends Plugin implements ILambdaAdapter {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
     };
+    if (request.isSecure()) {
+      headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+    }
     for (const [key, value] of Object.entries(response.headers)) {
       headers[key] = Array.isArray(value) ? value.join(', ') : value;
     }
@@ -200,7 +228,7 @@ export class Helios extends Plugin implements ILambdaAdapter {
 
   private handleError(error: ErrorObject, request: Request) {
     const config = {
-      includeStack: process.env.NODE_ENV !== 'production',
+      includeStack: false,
       logErrors: true,
     };
 
@@ -218,8 +246,14 @@ export class Helios extends Plugin implements ILambdaAdapter {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': request.requestId,
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
       ...corsHeaders,
     };
+    if (request.isSecure()) {
+      headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+    }
 
     return { statusCode, headers, body, isBase64Encoded: false };
   }

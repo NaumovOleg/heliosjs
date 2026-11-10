@@ -35,6 +35,45 @@ receive WebSocket events, even if it's already in `controllers` for regular
 HTTP routes.
 :::
 
+## Secure WebSocket Configuration
+
+The WebSocket upgrade path is matched exactly. Configure the transport limits
+and authorization hooks explicitly for production:
+
+```typescript
+@Server({
+  controllers: [ChatController],
+  websocket: {
+    path: "/ws",
+    controllers: [ChatController],
+    maxPayload: 1024 * 1024,          // 1 MiB per inbound frame
+    maxConnections: 1000,
+    maxMessagesPerMinute: 120,        // per connection
+    maxBufferedAmount: 8 * 1024 * 1024,
+    allowedOrigins: ["https://app.example.com"],
+    authenticate: async (request) => Boolean(request.headers.authorization),
+    authorizeTopic: async (client, topic, action) => {
+      // Read the authenticated principal from client.data when appropriate.
+      return action === "subscribe" && topic.startsWith("public:");
+    },
+    allowClientSubscriptions: false,
+    allowClientPublish: false,
+  },
+})
+export class App {}
+```
+
+Defaults are defensive: client `subscribe` and `topic_message` frames are
+disabled unless explicitly enabled or authorized by `authorizeTopic`. Frames
+over the payload limit, clients over the connection limit, and connections
+that exceed the message budget are rejected or ignored. Slow consumers are
+closed when their outbound buffer exceeds `maxBufferedAmount`.
+
+When a browser sends an `Origin`, it must match `allowedOrigins` (or its
+predicate). Requests without an `Origin` are allowed unless `authenticate`
+rejects them, which supports non-browser clients but means authentication
+should be enabled for private endpoints.
+
 ## Decorators
 
 | Decorator | Description |

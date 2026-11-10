@@ -229,7 +229,7 @@ describe('WebSocketServer', () => {
   });
 
   it('handleMessage processes subscribe message', async () => {
-    const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+    const wss = new WebSocketServer(mockServer as any, { path: '/ws', allowClientSubscriptions: true });
     const socket = createMockWsSocket();
     const client = { id: 'c1', socket, topics: new Set(), data: {}, connectedAt: new Date() };
     (wss as any).clients.set('c1', client);
@@ -346,7 +346,7 @@ describe('WebSocketServer', () => {
     });
 
     it('invokes matching topic subscriptions and logs when one throws', async () => {
-      const wss = new WebSocketServer(mockServer as any, { path: '/ws' });
+      const wss = new WebSocketServer(mockServer as any, { path: '/ws', allowClientPublish: true });
       const sub = vi.fn();
       const failingSub = vi.fn().mockRejectedValue(new Error('sub failed'));
       wss.registerControllers([

@@ -12,6 +12,7 @@ export * from './decorators';
 export * from './Endpoint';
 export {
   CORSConfig,
+  SSEServerOptions,
   ControllerClass,
   ControllerType,
   ErrorHandler,
@@ -43,10 +44,17 @@ export {
   SanitizerConfig,
 } from './types/core';
 
-export { IWebSocketServer, IWebSocketService, WebSocketEvent } from './types/ws';
+export {
+  IWebSocketServer,
+  IWebSocketService,
+  WebSocketEvent,
+  WebSocketOriginPolicy,
+  WebSocketServerOptions,
+} from './types/ws';
 
 export {
   computeFingerprint,
+  assertValidCORSConfig,
   DEFAULT_COMPONENTS,
   DependencyFailedError,
   DuplicateEntryError,

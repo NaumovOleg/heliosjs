@@ -1,4 +1,36 @@
 import type WebSocket from 'ws';
+import type { IncomingMessage } from 'node:http';
+
+export type WebSocketOriginPolicy =
+  | string[]
+  | ((origin: string) => boolean | Promise<boolean>);
+
+export interface WebSocketServerOptions {
+  /** Exact URL pathname accepted during the upgrade handshake. */
+  path: string;
+  /** Maximum inbound frame size in bytes. Defaults to 1 MiB. */
+  maxPayload?: number;
+  /** Maximum simultaneous connections. Defaults to 1000. */
+  maxConnections?: number;
+  /** Maximum inbound messages per connection per minute. Defaults to 120. */
+  maxMessagesPerMinute?: number;
+  /** Close/skip a client whose outbound buffer exceeds this size. */
+  maxBufferedAmount?: number;
+  /** Browser Origin policy. Requests without Origin remain allowed. */
+  allowedOrigins?: WebSocketOriginPolicy;
+  /** Authentication hook executed before the WebSocket handshake completes. */
+  authenticate?: (request: IncomingMessage) => boolean | Promise<boolean>;
+  /** Authorization hook for client-side topic subscribe/publish operations. */
+  authorizeTopic?: (
+    client: WebSocketClient,
+    topic: string,
+    action: 'subscribe' | 'publish',
+  ) => boolean | Promise<boolean>;
+  /** Explicitly enable client subscribe frames. Disabled by default. */
+  allowClientSubscriptions?: boolean;
+  /** Explicitly enable client topic_message frames. Disabled by default. */
+  allowClientPublish?: boolean;
+}
 
 /**
  * WebSocket connection lifecycle phase a handler can target:

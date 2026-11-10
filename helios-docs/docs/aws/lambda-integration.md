@@ -49,6 +49,12 @@ const adapter = new Helios(RootController, {
     secret: process.env.FP_SECRET,
     components: ["ip", "userAgent"],
   },
+  cors: {
+    origin: ["https://app.example.com"],
+    credentials: true,
+  },
+  trustProxy: true, // API Gateway/ALB/CloudFront are controlled proxies
+  canonicalHost: "api.example.com",
 });
 ```
 
@@ -56,6 +62,18 @@ const adapter = new Helios(RootController, {
 |--------|------|-------------|
 | `rbac` | `{ getRoles: (req) => roles }` | Roles extractor for `@Roles` |
 | `fingerprint` | `{ secret?, components?, compute? }` | Fingerprint config |
+| `cors` | `CORSConfig` | Adapter-level CORS, applied before controller execution |
+| `trustProxy` | `boolean` (default `true`) | Trust provider-supplied forwarded headers for `getClientIp()` / `isSecure()` |
+| `canonicalHost` | `string` | Trusted public authority used by `req.getHost()` / `req.getFullUrl()` |
+
+For credentialed CORS, always provide an explicit origin allow-list or
+predicate. `origin: "*"` and an omitted origin are rejected with
+`credentials: true`. The adapter emits `nosniff`, `DENY`, and referrer-policy
+headers by default, plus HSTS when the request is recognized as HTTPS.
+
+The AWS adapter defaults `trustProxy` to `true` because API Gateway, ALB, and
+CloudFront are expected to be the controlled edge. Disable it if the Lambda is
+reachable through a path where forwarded headers are not trustworthy.
 
 ## Supported Event Types
 

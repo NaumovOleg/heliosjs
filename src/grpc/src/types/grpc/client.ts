@@ -12,4 +12,10 @@ export interface GrpcClientOptions extends GrpcBaseOptions {
    * say otherwise.
    */
   credentials?: ChannelCredentials;
+  /** Explicitly allow plaintext connections to a non-loopback target. Default `false`. */
+  allowInsecure?: boolean;
+  /** Maximum inbound gRPC message size in bytes. Defaults to 4 MiB. */
+  maxReceiveMessageLength?: number;
+  /** Maximum outbound gRPC message size in bytes. Defaults to 4 MiB. */
+  maxSendMessageLength?: number;
 }

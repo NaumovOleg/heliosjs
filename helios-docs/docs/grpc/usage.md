@@ -130,6 +130,8 @@ const client = new GrpcClient({
   url: "localhost:50051",
   package: "hero",
   protoPath: join(__dirname, "./hero.proto"),
+  maxReceiveMessageLength: 4 * 1024 * 1024,
+  maxSendMessageLength: 4 * 1024 * 1024,
 });
 
 const heroService = client.getService<{
@@ -180,11 +182,15 @@ per-call metadata by hand inside each method.
 
 ### TLS
 
-Both `GrpcServer` and `GrpcClient` default to plaintext
-(`ServerCredentials.createInsecure()` / `credentials.createInsecure()`) and
-log a warning when they do — worth noticing in your server logs during
-development, worth fixing before anything crosses a network you don't
-control:
+Both `GrpcServer` and `GrpcClient` default to plaintext for local development
+and log a warning when they do. Plaintext server binds and client targets on a
+non-loopback host are refused unless you provide TLS credentials or explicitly
+set `allowInsecure: true`. The explicit override is intended for a controlled
+private network, not for public production traffic.
+
+Both sides also default to 4 MiB inbound and outbound message limits. Increase
+`maxReceiveMessageLength` or `maxSendMessageLength` only when the service
+contract requires it.
 
 ```typescript
 import { GrpcServer } from "@heliosjs/grpc";
@@ -211,8 +217,13 @@ const client = new GrpcClient({
   package: "hero",
   protoPath: join(__dirname, "./hero.proto"),
   credentials: credentials.createSsl(readFileSync("ca.pem")),
+  maxReceiveMessageLength: 8 * 1024 * 1024,
+  maxSendMessageLength: 8 * 1024 * 1024,
 });
 ```
+
+The equivalent server options are `allowInsecure`,
+`maxReceiveMessageLength`, and `maxSendMessageLength`.
 
 ### Reading auth from metadata
 
@@ -242,6 +253,22 @@ handler error does — the client sees a real gRPC error status, not a hang.
 There's no per-method decorator for this (no `@Guard` here), so this check
 has to be the first line of every method that needs it, or factored into a
 shared function each handler calls.
+
+For application-wide authentication, configure the server hook instead:
+
+```typescript
+const server = new GrpcServer({
+  credentials: ServerCredentials.createSsl(/* ... */),
+  authenticate: async (call) => {
+    const [token] = (call as any).metadata.get("authorization");
+    return token === process.env.GRPC_TOKEN;
+  },
+});
+```
+
+Failed authentication returns `UNAUTHENTICATED`. Unexpected handler failures
+are normalized to a generic `INTERNAL` message so internal exception details
+are not sent to clients.
 
 ## Remarks
 

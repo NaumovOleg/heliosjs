@@ -122,6 +122,23 @@ const grpc = GrpcModule.forRoot({
 | `@GrpcStreamMethod(service?, method?)` | Mark a method as a streaming RPC handler |
 | `@InjectGrpcClient(name)` | Inject a named `GrpcClient` |
 
+## Transport Limits and Security
+
+`GrpcServer` and `GrpcClient` accept these transport options:
+
+| Option | Default | Description |
+| --- | ---: | --- |
+| `maxReceiveMessageLength` | 4 MiB | Maximum inbound message size |
+| `maxSendMessageLength` | 4 MiB | Maximum outbound message size |
+| `allowInsecure` | `false` | Permit plaintext on a non-loopback target; use only for a controlled private network |
+| `credentials` | insecure local credentials | TLS credentials for production |
+| `authenticate` (server) | — | Async hook executed before every RPC |
+
+Without TLS credentials, the server and client warn about plaintext. A
+non-loopback plaintext bind/connection is rejected unless `allowInsecure: true`
+is set explicitly. See [Credentials, TLS, and Auth](./usage#credentials-tls-and-auth)
+for a secure setup.
+
 ## API Reference
 
 Config types (`GrpcServerOptions`, `GrpcClientOptions`) and client-shape

@@ -18,15 +18,16 @@ export function normalizeError(error: any): { code: number; message: string } {
   }
 
   if (error.statusCode) {
+    const message = error.statusCode >= 500 ? 'Internal server error' : error.message;
     return {
       code: mapHttpStatusToGrpc(error.statusCode),
-      message: error.message,
+      message: message || 'Request failed',
     };
   }
 
   return {
     code: status.INTERNAL,
-    message: error.message || 'Internal server error',
+    message: 'Internal server error',
   };
 }
 

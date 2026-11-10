@@ -7,9 +7,10 @@ export class RequestFactory {
   static async create(
     req: HttpRequest,
     context: InvocationContext,
-    trustProxy = true
+    trustProxy = true,
+    canonicalHost?: string,
   ): Promise<Req> {
-    return new Req({ ...(await normalizeAzureRequest(req, context)), trustProxy });
+    return new Req({ ...(await normalizeAzureRequest(req, context)), trustProxy, canonicalHost });
   }
 }
 

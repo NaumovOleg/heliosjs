@@ -53,6 +53,10 @@ export class ApiController {}
 | `maxAge` | `number` | `86400` | Preflight cache duration in seconds |
 | `optionsSuccessStatus` | `number` | `204` | Status code for successful OPTIONS |
 
+`credentials: true` requires an explicit `origin` value: use a single origin,
+an allow-list, or a predicate. Omitting `origin` is treated as a wildcard for
+non-credentialed CORS, but is rejected when credentials are enabled.
+
 ## Real-World Examples
 
 ### Allow Multiple Origins
@@ -127,11 +131,15 @@ export class App {}
 
 Works the same way on `@Cors` at the controller/method level.
 
+For preflight requests, the requested method must also be present in
+`methods` when that list is configured. A disallowed origin or method receives
+`403` and the controller is not executed.
+
 ## Remarks
 
-- The default origin is `*`, allowing all origins
+- The default origin is `*`, allowing all non-credentialed origins
 - The default `optionsSuccessStatus` is `204` for legacy browser compatibility
-- `credentials: true` requires explicit `origin` (not `*`)
+- `credentials: true` requires explicit `origin` (not omitted and not `*`)
 - Applying at class level affects all routes; method-level overrides for that route
 
 ## Related

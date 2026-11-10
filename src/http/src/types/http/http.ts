@@ -10,6 +10,8 @@ import type {
   MiddlewareCB,
   RBACConfig,
   SanitizerConfig,
+  SSEServerOptions,
+  WebSocketServerOptions,
 } from '@heliosjs/core/types';
 import type { PubSub } from 'type-graphql';
 import type { Plugin } from './plugin';
@@ -32,6 +34,9 @@ export interface ServerConfig {
    * `'localhost'`. Use `'0.0.0.0'` to accept external connections (containers).
    */
   host?: string;
+
+  /** Canonical public authority used for generated absolute URLs and redirects. */
+  canonicalHost?: string;
 
   /**
    * Global middlewares run for every request before route dispatch, in order,
@@ -129,14 +134,14 @@ export interface ServerConfig {
    * `lazy` defers server creation. Cannot be combined with `graphql`. Why:
    * opt-in real-time transport.
    */
-  websocket?: { path: string; lazy?: boolean; controllers: ControllerType[] };
+  websocket?: WebSocketServerOptions & { lazy?: boolean; controllers: ControllerType[] };
 
   /**
    * Enables the built-in Server-Sent Events server when `enabled` is `true`.
    * SSE lifecycle handlers are declared with `@OnSSE`. Why: opt-in one-way
    * streaming without WebSockets.
    */
-  sse?: { enabled: boolean };
+  sse?: SSEServerOptions & { enabled: boolean; path?: string };
 
   /**
    * Enables a GraphQL endpoint (type-graphql + graphql-yoga). `path` is the

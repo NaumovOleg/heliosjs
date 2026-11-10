@@ -25,7 +25,7 @@ export class MultipartProcessor {
     const { body, headers, isBase64Encoded } = request;
 
     if (!body) {
-      return { fields: {}, files: {} };
+      return { fields: Object.create(null), files: Object.create(null) };
     }
 
     let contentType = headers['Content-Type'] ?? headers['content-type'] ?? '';
@@ -54,13 +54,14 @@ export class MultipartProcessor {
     const parts = multipart.parse(bodyBuffer, boundaryMatch);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fields: Record<string, any> = {};
-    const files: Record<string, MultipartFile | MultipartFile[]> = {};
+    const fields: Record<string, any> = Object.create(null);
+    const files: Record<string, MultipartFile | MultipartFile[]> = Object.create(null);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     parts.forEach((part: any) => {
       if (part.filename) {
         const fieldName = part.name || 'file';
+        if (this.isUnsafeFieldName(fieldName)) return;
         const contentType = this.getContentType(part);
 
         const fileData: MultipartFile = {
@@ -81,7 +82,7 @@ export class MultipartProcessor {
         } else {
           files[fieldName] = fileData;
         }
-      } else if (part.name) {
+      } else if (part.name && !this.isUnsafeFieldName(part.name)) {
         const text = part.data.toString('utf-8').trim();
 
         // Only decode JSON objects/arrays; scalars ("30", "true") stay strings.
@@ -98,6 +99,10 @@ export class MultipartProcessor {
     });
 
     return { fields, files };
+  }
+
+  private static isUnsafeFieldName(name: string): boolean {
+    return name === '__proto__' || name === 'prototype' || name === 'constructor';
   }
 
   /** `true` when the request's `Content-Type` is `multipart/form-data`. */

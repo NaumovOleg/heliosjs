@@ -182,7 +182,7 @@ interface ErrorResponse {
     message: string;    // Human-readable message
     details?: Array<{   // Optional, for validation errors
       field?: string;
-      value?: any;
+      value?: any;       // Sensitive field values are redacted
       constraint?: string;
     }>;
     timestamp: string;  // ISO 8601
@@ -190,6 +190,22 @@ interface ErrorResponse {
   };
 }
 ```
+
+## Public Error Safety
+
+The built-in adapters deliberately keep internal failures generic:
+
+- 5xx responses use `Internal Server Error` and omit internal details by default.
+- Stack traces are not included in public responses unless an application
+  explicitly opts into diagnostic output; do not enable that for internet-facing
+  APIs.
+- Sensitive validation values are redacted before logging or serialization.
+- `requestId` remains available for correlating the public response with server
+  logs.
+
+If you write a custom `errorHandler`, use `serializeError()` for logs only and
+return a client-safe shape. Never send the complete upstream error, stack, or
+exception object back to the caller.
 
 ## @Catch Decorator
 

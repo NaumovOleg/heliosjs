@@ -76,6 +76,8 @@ export interface RequestOptions {
    * and fingerprinting.
    */
   trustProxy?: boolean;
+  /** Optional canonical authority used instead of the untrusted Host header when building URLs. */
+  canonicalHost?: string;
 }
 
 /**
@@ -207,9 +209,9 @@ export interface Request<
    */
   isSecure(): boolean;
   /**
-   * Best-effort client IP. Uses the left-most `X-Forwarded-For` entry when
-   * `trustProxy` is enabled, otherwise the socket address. Feeds rate limiting
-   * and fingerprinting.
+   * Best-effort client IP. Uses the right-most trusted `X-Forwarded-For` entry
+   * when `trustProxy` is enabled, otherwise the socket address. Feeds rate
+   * limiting and fingerprinting.
    */
   getClientIp(): string;
   /** The `Host` header (authority) for this request. */

@@ -83,6 +83,11 @@ export class GrpcClient implements ClientGrpc {
       getGlobalLogger().warn(
         'No gRPC credentials provided — connecting with createInsecure() (no TLS).'
       );
+      if (!this.options.allowInsecure && !isLoopbackTarget(this.options.url ?? 'localhost:5000')) {
+        throw new Error(
+          `Refusing insecure gRPC connection to non-loopback target "${this.options.url}". Provide TLS credentials or set allowInsecure: true explicitly.`,
+        );
+      }
     }
     const credentials = this.options.credentials || grpc.credentials.createInsecure();
 
@@ -101,7 +106,10 @@ export class GrpcClient implements ClientGrpc {
       throw new Error(`Service "${serviceName}" not found`);
     }
 
-    const client = new serviceDefinition(this.options.url, credentials);
+    const client = new serviceDefinition(this.options.url ?? 'localhost:5000', credentials, {
+      'grpc.max_receive_message_length': this.options.maxReceiveMessageLength ?? 4 * 1024 * 1024,
+      'grpc.max_send_message_length': this.options.maxSendMessageLength ?? 4 * 1024 * 1024,
+    });
     this.realClients.set(serviceName, client);
 
     // Wrap methods to return Observables. grpc-js attaches `requestStream`/
@@ -179,4 +187,12 @@ export class GrpcClient implements ClientGrpc {
     this.realClients.clear();
     this.serviceClients.clear();
   }
+}
+
+function isLoopbackTarget(target: string): boolean {
+  const host = target.startsWith('[')
+    ? target.slice(1, target.indexOf(']'))
+    : target.slice(0, target.lastIndexOf(':'));
+  const normalized = host.toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
