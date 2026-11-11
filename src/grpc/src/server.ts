@@ -21,7 +21,7 @@ import { normalizeError } from './utils/grpc';
  * registered against proto definitions at startup.
  *
  * @example
- * const server = new GrpcServer({ url: '0.0.0.0:50051' });
+ * const server = new GrpcServer({ url: '127.0.0.1:50051' });
  * server.registerService(UserService);
  * await server.start();
  */
@@ -40,7 +40,7 @@ export class GrpcServer {
    */
   constructor(options: Partial<GrpcServerOptions>, clients?: Map<string, GrpcClient>) {
     this.options = {
-      url: '0.0.0.0:5000',
+      url: '127.0.0.1:5000',
       allowInsecure: false,
       maxReceiveMessageLength: 4 * 1024 * 1024,
       maxSendMessageLength: 4 * 1024 * 1024,

@@ -74,7 +74,7 @@ export class SSEService implements ISSEService {
    * @param res - Node.js response object.
    * @returns Connected SSE client descriptor.
    */
-  createConnection(res: ServerResponse, origin?: string): SSEClient | undefined {
+  async createConnection(res: ServerResponse, origin?: string): Promise<SSEClient | undefined> {
     return this.sse?.createConnection(res, origin);
   }
 }

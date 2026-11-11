@@ -52,10 +52,16 @@ export interface SSEEvent {
 export interface ISSEServer {
   /**
    * Opens a new SSE connection on `res` and registers the client.
+   *
+   * When `authenticate` is configured, the hook runs for every connection,
+   * including ones opened from a controller route, and must resolve `true`
+   * before the stream is established.
+   *
    * @param res - The Node response to keep open and stream to.
    * @param origin - Optional origin, used for a CORS check when configured.
+   * @returns The registered client, or `undefined` when rejected.
    */
-  createConnection(res: ServerResponse, origin?: string): SSEClient | undefined;
+  createConnection(res: ServerResponse, origin?: string): Promise<SSEClient | undefined>;
   /**
    * Sends `message` to one client.
    * @param clientId - Target client id.
@@ -88,6 +94,7 @@ export interface ISSEService {
    * Opens a new SSE connection on `res`.
    * @param res - The Node response to keep open and stream to.
    * @param origin - Optional origin, used for a CORS check when configured.
+   * @returns The registered client, or `undefined` when rejected.
    */
-  createConnection(res: ServerResponse, origin?: string): SSEClient | undefined;
+  createConnection(res: ServerResponse, origin?: string): Promise<SSEClient | undefined>;
 }

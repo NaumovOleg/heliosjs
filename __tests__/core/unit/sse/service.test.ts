@@ -53,12 +53,14 @@ describe('SSEService', () => {
     expect(fresh.getStats()).toEqual({ clients: 2 });
   });
 
-  it('delegates createConnection', () => {
+  it('delegates createConnection', async () => {
     const fresh = new (SSEService as any)();
-    const mockSse = { createConnection: vi.fn().mockReturnValue({ id: 'c1' }) };
+    const mockSse = { createConnection: vi.fn().mockResolvedValue({ id: 'c1' }) };
     fresh.initialize(mockSse);
     const mockRes = { writeHead: vi.fn() };
-    fresh.createConnection(mockRes as any, 'http://localhost');
+    await expect(fresh.createConnection(mockRes as any, 'http://localhost')).resolves.toEqual({
+      id: 'c1',
+    });
     expect(mockSse.createConnection).toHaveBeenCalledWith(mockRes, 'http://localhost');
   });
 });

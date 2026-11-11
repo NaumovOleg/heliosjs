@@ -202,7 +202,7 @@ export class ApplicationError {
       status: error.status,
       message: error.message,
       details: this.redactDetails(error.details),
-      stack: this.config.includeStack ? error.stack : undefined,
+      stack: this.config.logStack ? error.stack : undefined,
       ip: meta.sourceIp,
       userAgent: meta.userAgent,
     };

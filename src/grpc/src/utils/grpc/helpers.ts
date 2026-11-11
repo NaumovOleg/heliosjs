@@ -3,7 +3,7 @@ import { status } from '@grpc/grpc-js';
 /**
  * Maps an arbitrary thrown value to a `{ code, message }` gRPC status pair.
  * A value that already has a numeric `code` + `message` passes through; an object
- * with an HTTP `statusCode` is translated (400→INVALID_ARGUMENT, 401→
+ * with an HTTP `statusCode`/`status` is translated (400→INVALID_ARGUMENT, 401→
  * UNAUTHENTICATED, 403→PERMISSION_DENIED, 404→NOT_FOUND, 409→ALREADY_EXISTS,
  * 429→RESOURCE_EXHAUSTED, 500→INTERNAL, 501→UNIMPLEMENTED, 503→UNAVAILABLE);
  * anything else becomes `INTERNAL`. Used by `GrpcServer` when a handler throws.
@@ -17,10 +17,11 @@ export function normalizeError(error: any): { code: number; message: string } {
     return { code: error.code, message: error.message };
   }
 
-  if (error.statusCode) {
-    const message = error.statusCode >= 500 ? 'Internal server error' : error.message;
+  const httpStatus = error.statusCode ?? error.status;
+  if (typeof httpStatus === 'number' && httpStatus >= 400) {
+    const message = httpStatus >= 500 ? 'Internal server error' : error.message;
     return {
-      code: mapHttpStatusToGrpc(error.statusCode),
+      code: mapHttpStatusToGrpc(httpStatus),
       message: message || 'Request failed',
     };
   }

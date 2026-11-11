@@ -127,7 +127,7 @@ export class Silent {}
 import { GrpcServer } from "@heliosjs/grpc";
 
 const server = new GrpcServer({
-  url: "0.0.0.0:50051",
+  url: "127.0.0.1:50051",
   protoPath: "./app.proto",
   package: "app.v1",
   log: { level: "log", prefix: "gRPC" },

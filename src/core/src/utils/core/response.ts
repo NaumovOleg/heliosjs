@@ -1,7 +1,8 @@
 import { OK_STATUSES } from '../../constants';
-import type { _Raw, CookieOptions, Response } from '../../types/core';
+import type { _Raw, CookieOptions, Request, Response } from '../../types/core';
 import type { Meta } from '../../types/core/common';
 import type { ResponseSource } from '../../types/core/response';
+import { bindRequestToResponse } from '../shared/request-context';
 import { ApplicationError } from './error';
 
 /**
@@ -24,6 +25,11 @@ export class Res implements Response {
   constructor(source: ResponseSource = 'unknown', meta: Meta, raw: _Raw) {
     this._source = source;
     this._raw = raw;
+    // HTTP callers pass the full `Request` as `meta`; remember it so transports
+    // that outlive request dispatch (SSE) can still run request-bound checks.
+    if (raw && typeof raw === 'object') {
+      bindRequestToResponse(raw, meta as unknown as Request);
+    }
     this.meta = {
       requestUrl: meta.requestUrl,
       method: meta.method,

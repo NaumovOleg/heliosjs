@@ -6,6 +6,8 @@
 
 - Harden request processing and transport boundaries across all packages. This release adds fail-closed CORS validation, safer error serialization, security headers, request and message limits, trusted-proxy and canonical-host handling, static-file traversal protection, WebSocket/SSE authentication and backpressure controls, safer multipart and DTO validation, CSRF protection, and hardened AWS, Azure, and gRPC adapters.
 
+  `ISSEServer.createConnection()` / `ISSEService.createConnection()` are now async: the SSE `authenticate` hook runs for every connection (including streams opened directly from a controller route), so callers must `await` the result. WebSocket handshakes without an explicit `allowedOrigins` policy now fall back to the global CORS policy, then to same-origin only.
+
 ## 4.0.7
 
 ### Patch Changes

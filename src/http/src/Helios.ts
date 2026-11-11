@@ -153,6 +153,14 @@ export class Helios extends Plugin implements IHttpServer {
   setUpWebsocket() {
     const { controllers: _controllers, lazy: _lazy, ...websocketOptions } =
       this.config.websocket ?? { path: '/ws', controllers: [] };
+    // Explicit `websocket.allowedOrigins` wins; otherwise reuse the global CORS
+    // policy. Without either, WebSocketServer falls back to same-origin only.
+    if (websocketOptions.allowedOrigins === undefined) {
+      const origins = this.websocketOrigins();
+      if (origins) {
+        websocketOptions.allowedOrigins = origins;
+      }
+    }
     this.websocket = new WebSocketServer(this.app, websocketOptions);
     this.websocket.registerControllers(this.config.websocket?.controllers ?? []);
     WebSocketService.getInstance().initialize(this.websocket);
@@ -289,6 +297,9 @@ export class Helios extends Plugin implements IHttpServer {
       if (!res.headersSent) {
         res.statusCode = status;
         res.setHeader('Content-Type', 'application/json');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         // The request body may be unread/oversized at this point; don't reuse
         // this socket for a pipelined request.
         res.setHeader('Connection', 'close');
@@ -297,15 +308,13 @@ export class Helios extends Plugin implements IHttpServer {
       return;
     }
     const response = ResponseFactory.create(res, request);
+    // Apply defaults up front so direct `res.json()` / `res.send()` / static /
+    // SSE writes carry the same hardening as framework-finalized responses.
+    this.applyDefaultSecurityHeaders(request, response);
     let sseHandled = false;
 
-    try {
-      await this.callPluginHook('beforeRequest', req);
-    } catch (error: unknown) {
-      response.status = 500;
-      response.data = error;
-      return this.sendResponse(request, response);
-    }
+    // PluginDispatch logs and swallows hook failures itself.
+    await this.callPluginHook('beforeRequest', req);
     if (response.headersSent) return;
 
     try {
@@ -332,15 +341,12 @@ export class Helios extends Plugin implements IHttpServer {
           ssePath.length > 1 && ssePath.endsWith('/') ? ssePath.slice(0, -1) : ssePath;
         if (this.sse && request.method === 'GET' && request.path === normalizedSsePath) {
           sseHandled = true;
-          const sseConfig = this.config.sse;
-          if (sseConfig?.authenticate && !(await sseConfig.authenticate(request))) {
-            response.status = 401;
-            response.data = 'SSE authentication required';
-            return;
-          }
           const origin = request.getHeader('origin');
           const originValue = Array.isArray(origin) ? origin[0] : origin;
-          this.sse.createConnection(response.raw as unknown as ServerResponse, originValue);
+          await this.sse.createConnection(
+            response.raw as unknown as ServerResponse,
+            originValue,
+          );
           return;
         }
 
@@ -509,11 +515,8 @@ export class Helios extends Plugin implements IHttpServer {
       }
       return;
     }
-    try {
-      await this.callPluginHook('afterResponse', request, response);
-    } catch {
-      // plugin hook error — response already sent, nothing to do
-    }
+    // PluginDispatch logs and swallows hook failures itself.
+    await this.callPluginHook('afterResponse', request, response);
   }
 
   private async setupGraphQL() {

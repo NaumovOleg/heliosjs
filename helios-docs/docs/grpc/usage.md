@@ -159,7 +159,7 @@ import { GrpcModule } from "@heliosjs/grpc";
 import { join } from "node:path";
 
 const grpc = GrpcModule.forRoot({
-  server: { url: "0.0.0.0:50051", package: "hero", protoPath: join(__dirname, "./hero.proto") },
+  server: { url: "127.0.0.1:50051", package: "hero", protoPath: join(__dirname, "./hero.proto") },
 });
 
 // Start
@@ -198,7 +198,7 @@ import { ServerCredentials } from "@grpc/grpc-js";
 import { readFileSync } from "node:fs";
 
 const server = new GrpcServer({
-  url: "0.0.0.0:50051",
+  url: "127.0.0.1:50051",
   credentials: ServerCredentials.createSsl(
     readFileSync("ca.pem"), // root CA, or null to use the system trust store
     [{ private_key: readFileSync("server-key.pem"), cert_chain: readFileSync("server-cert.pem") }],

@@ -54,6 +54,28 @@ describe('normalizeError', () => {
     expect(normalizeError({ statusCode: 418, message: 'teapot' })).toEqual({ code: status.INTERNAL, message: 'teapot' });
   });
 
+  it('maps framework errors that expose `status` instead of `statusCode`', () => {
+    expect(normalizeError({ status: 404, message: 'missing' })).toEqual({
+      code: status.NOT_FOUND,
+      message: 'missing',
+    });
+    expect(normalizeError({ status: 500, message: 'secret detail' })).toEqual({
+      code: status.INTERNAL,
+      message: 'Internal server error',
+    });
+  });
+
+  it('ignores non-numeric or non-error status values', () => {
+    expect(normalizeError({ status: '404', message: 'missing' })).toEqual({
+      code: status.INTERNAL,
+      message: 'Internal server error',
+    });
+    expect(normalizeError({ status: 200, message: 'ok' })).toEqual({
+      code: status.INTERNAL,
+      message: 'Internal server error',
+    });
+  });
+
   it('falls back to INTERNAL for unknown errors', () => {
     expect(normalizeError(new Error('oops'))).toEqual({ code: status.INTERNAL, message: 'Internal server error' });
   });

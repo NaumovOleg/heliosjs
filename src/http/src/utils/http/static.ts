@@ -21,7 +21,12 @@ export function staticMiddleware(
   };
 
   const rootPath = path.resolve(root || '.');
-  const mountPath = options.path || '';
+  const rawMountPath = options.path || '';
+  // `/assets/` and `/assets` must behave the same when stripping the mount.
+  const mountPath =
+    rawMountPath.length > 1 && rawMountPath.endsWith('/')
+      ? rawMountPath.slice(0, -1)
+      : rawMountPath;
 
   return async (req: Request, res: Response, next: (...args: unknown[]) => unknown) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -258,10 +263,7 @@ function parseRange(rangeHeader: string, fileSize: number): { start: number; end
   if (!matches) return null;
 
   const start = Number.parseInt(matches[1], 10);
-  let end = matches[2] ? Number.parseInt(matches[2], 10) : fileSize - 1;
-
-  if (Number.isNaN(start)) return null;
-  if (Number.isNaN(end)) end = fileSize - 1;
+  const end = matches[2] ? Number.parseInt(matches[2], 10) : fileSize - 1;
 
   if (start >= fileSize || end >= fileSize || start > end) return null;
 

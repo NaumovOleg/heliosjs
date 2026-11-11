@@ -36,10 +36,20 @@ export class App {}
 ```
 
 The defaults are 1000 connections, a 30-second comment heartbeat, and a 1 MiB
-encoded event limit. `createConnection()` returns `undefined` when the
-connection limit is reached or the origin/authentication check fails; always
-check the return value before using the client. Configure `cors` explicitly
-when browser clients connect from another origin.
+encoded event limit. `createConnection()` is async and resolves to `undefined`
+when the connection limit is reached or the origin/authentication check fails;
+always `await` it and check the return value before using the client. Configure
+`cors` explicitly when browser clients connect from another origin.
+
+`authenticate` runs for every connection, including streams opened directly
+from a controller route — not just the built-in route below.
+
+:::note Reserved auto-route
+When SSE is enabled, `GET <path>` (default `/events`) is handled by the
+built-in stream endpoint before controller dispatch. A controller route mounted
+at the same path is shadowed, including its guards and middleware. Choose a
+different `sse.path` or controller path if you need a route at `/events`.
+:::
 
 ## Decorators
 
@@ -76,8 +86,8 @@ import { OnSSEConnection, OnSSEClose, OnSSEError, InjectSSE } from "@heliosjs/ht
 export class EventsController {
   // Establishes the connection — the client does `new EventSource('/events/subscribe')`
   @Get("/subscribe")
-  subscribe(@Req() req: Request, @Res() res: Response, @InjectSSE() sse: ISSEService) {
-    const client = sse.createConnection(res);
+  async subscribe(@Req() req: Request, @Res() res: Response, @InjectSSE() sse: ISSEService) {
+    const client = await sse.createConnection(res.raw);
     if (!client) return;
     sse.sendToClient(client.id, {
       event: "welcome",
@@ -156,8 +166,8 @@ export class StockController {
   private intervals = new Map<string, NodeJS.Timeout>();
 
   @Get("/subscribe")
-  subscribe(@Req() req: any, @Res() res: any, @InjectSSE() sse: ISSEService) {
-    const client = sse.createConnection(res);
+  async subscribe(@Req() req: any, @Res() res: any, @InjectSSE() sse: ISSEService) {
+    const client = await sse.createConnection(res.raw);
     if (!client) return;
 
     // Simulate stock price updates every 2 seconds

@@ -4,7 +4,7 @@ import type { GrpcBaseOptions } from './common';
 
 /** Options for constructing a {@link GrpcServer}. */
 export interface GrpcServerOptions extends GrpcBaseOptions {
-  /** `host:port` to bind. Default `'0.0.0.0:5000'`. */
+  /** `host:port` to bind. Default `'127.0.0.1:5000'` (loopback). */
   url?: string;
   /**
    * Server credentials. Default: `ServerCredentials.createInsecure()`. Provide a

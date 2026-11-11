@@ -18,7 +18,7 @@ export interface GrpcModuleConfig {
  *
  * @example
  * const grpc = GrpcModule.forRoot({
- *   server: { url: '0.0.0.0:50051', protoPath: './app.proto', package: 'app.v1' },
+ *   server: { url: '127.0.0.1:50051', protoPath: './app.proto', package: 'app.v1' },
  *   clients: [{ name: 'users', options: { protoPath: './user.proto', package: 'user.v1' } }],
  * });
  *

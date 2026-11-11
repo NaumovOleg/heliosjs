@@ -70,9 +70,11 @@ that exceed the message budget are rejected or ignored. Slow consumers are
 closed when their outbound buffer exceeds `maxBufferedAmount`.
 
 When a browser sends an `Origin`, it must match `allowedOrigins` (or its
-predicate). Requests without an `Origin` are allowed unless `authenticate`
-rejects them, which supports non-browser clients but means authentication
-should be enabled for private endpoints.
+predicate). If `allowedOrigins` is omitted, the global `cors.origin` policy is
+reused; with neither configured, only same-origin handshakes are accepted.
+Requests without an `Origin` are allowed unless `authenticate` rejects them,
+which supports non-browser clients but means authentication should be enabled
+for private endpoints.
 
 ## Decorators
 

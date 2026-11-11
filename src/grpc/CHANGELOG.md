@@ -6,6 +6,8 @@
 
 - Harden request processing and transport boundaries across all packages. This release adds fail-closed CORS validation, safer error serialization, security headers, request and message limits, trusted-proxy and canonical-host handling, static-file traversal protection, WebSocket/SSE authentication and backpressure controls, safer multipart and DTO validation, CSRF protection, and hardened AWS, Azure, and gRPC adapters.
 
+  The default server bind address is now loopback (`127.0.0.1:5000`) so `start()` works without TLS or an explicit `allowInsecure: true`. Error normalization also understands framework errors that expose `status` rather than `statusCode`.
+
 ### Patch Changes
 
 - Updated dependencies

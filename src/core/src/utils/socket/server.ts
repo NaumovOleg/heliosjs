@@ -85,11 +85,9 @@ export class WebSocketServer implements IWebSocketServer {
   private shouldHandleWebSocket(url = ''): boolean {
     try {
       const pathname = new URL(url, 'http://localhost').pathname;
-      const normalizedPath =
-        this.options.path.length > 1 && this.options.path.endsWith('/')
-          ? this.options.path.slice(0, -1)
-          : this.options.path;
-      return pathname === normalizedPath;
+      const normalize = (value: string) =>
+        value.length > 1 && value.endsWith('/') ? value.slice(0, -1) : value;
+      return normalize(pathname) === normalize(this.options.path);
     } catch {
       return false;
     }
@@ -127,7 +125,7 @@ export class WebSocketServer implements IWebSocketServer {
     head: Buffer,
     origin?: string,
   ): Promise<void> {
-    if (origin && !(await this.isOriginAllowed(origin))) {
+    if (origin && !(await this.isOriginAllowed(origin, request))) {
       this.rejectUpgrade(socket, 403, 'WebSocket origin not allowed');
       return;
     }
@@ -144,11 +142,29 @@ export class WebSocketServer implements IWebSocketServer {
     });
   }
 
-  private async isOriginAllowed(origin: string): Promise<boolean> {
+  private async isOriginAllowed(
+    origin: string,
+    request: http.IncomingMessage,
+  ): Promise<boolean> {
     const policy = this.options.allowedOrigins;
-    if (!policy) return false;
+    if (!policy) return this.isSameOrigin(origin, request);
     if (Array.isArray(policy)) return policy.includes(origin);
     return policy(origin);
+  }
+
+  /**
+   * Without an explicit origin policy, browser handshakes are accepted only
+   * when the `Origin` authority matches the request `Host` (same-origin).
+   * Requests without `Origin` never reach this method.
+   */
+  private isSameOrigin(origin: string, request: http.IncomingMessage): boolean {
+    const host = request.headers?.host;
+    if (!host) return false;
+    try {
+      return new URL(origin).host.toLowerCase() === host.toLowerCase();
+    } catch {
+      return false;
+    }
   }
 
   private rejectUpgrade(socket: Duplex, status: number, message: string) {

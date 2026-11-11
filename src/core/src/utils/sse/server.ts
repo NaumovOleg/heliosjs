@@ -12,7 +12,7 @@ import type {
 } from '../../types/core';
 import { assertValidCORSConfig } from '../core/cors';
 import { getGlobalLogger } from '../core/logger';
-import { generateUniqueId } from '../shared';
+import { generateUniqueId, getBoundRequest } from '../shared';
 
 /**
  * @internal Low-level Server-Sent Events server: tracks connected clients and
@@ -25,7 +25,8 @@ export class SSEServer implements ISSEServer {
   private readonly clients = new Map<string, SSEClient>();
   private readonly options: Required<
     Pick<SSEServerOptions, 'maxConnections' | 'heartbeatMs' | 'maxMessageBytes'>
-  >;
+  > &
+    Pick<SSEServerOptions, 'authenticate'>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controllers: any[] = [];
   private corsConfig?: CORSConfig;
@@ -38,6 +39,7 @@ export class SSEServer implements ISSEServer {
       maxConnections: options.maxConnections ?? 1000,
       heartbeatMs: options.heartbeatMs ?? 30_000,
       maxMessageBytes: options.maxMessageBytes ?? 1024 * 1024,
+      authenticate: options.authenticate,
     };
   }
 
@@ -50,24 +52,41 @@ export class SSEServer implements ISSEServer {
   /**
    * Creates and registers a new SSE client connection.
    *
+   * The connection is rejected when `authenticate` is configured and either
+   * fails or the originating request cannot be resolved. This applies to every
+   * connection, including ones opened directly from a controller route.
+   *
    * @param res - Raw HTTP response used as event stream transport.
    * @param origin - Optional origin header value for CORS.
-   * @returns Registered SSE client descriptor.
+   * @returns Registered SSE client descriptor, or `undefined` when rejected.
    */
-  public createConnection(res: ServerResponse, origin?: string): SSEClient | undefined {
+  public async createConnection(
+    res: ServerResponse,
+    origin?: string,
+  ): Promise<SSEClient | undefined> {
+    if (this.options.authenticate) {
+      const request = getBoundRequest(res);
+      let authenticated = false;
+      if (request) {
+        try {
+          authenticated = await this.options.authenticate(request);
+        } catch {
+          authenticated = false;
+        }
+      }
+      if (!authenticated) {
+        this.rejectConnection(res, 401, 'SSE authentication required');
+        return undefined;
+      }
+    }
+
     if (this.clients.size >= this.options.maxConnections) {
-      res.statusCode = 503;
-      res.end('SSE connection limit reached');
+      this.rejectConnection(res, 503, 'SSE connection limit reached');
       return undefined;
     }
 
     if (origin && this.corsConfig && !this.isOriginAllowed(origin)) {
-      if (typeof res.writeHead === 'function') {
-        res.writeHead(403, { 'Content-Type': 'text/plain' });
-      } else {
-        res.statusCode = 403;
-      }
-      res.end?.('SSE origin not allowed');
+      this.rejectConnection(res, 403, 'SSE origin not allowed');
       return undefined;
     }
 
@@ -124,6 +143,15 @@ export class SSEServer implements ISSEServer {
     });
 
     return client;
+  }
+
+  private rejectConnection(res: ServerResponse, status: number, message: string): void {
+    if (typeof res.writeHead === 'function' && !res.headersSent) {
+      res.writeHead(status, { 'Content-Type': 'text/plain' });
+    } else {
+      res.statusCode = status;
+    }
+    res.end?.(message);
   }
 
   private isOriginAllowed(origin: string): boolean {

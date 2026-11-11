@@ -6,6 +6,8 @@
 
 - Harden request processing and transport boundaries across all packages. This release adds fail-closed CORS validation, safer error serialization, security headers, request and message limits, trusted-proxy and canonical-host handling, static-file traversal protection, WebSocket/SSE authentication and backpressure controls, safer multipart and DTO validation, CSRF protection, and hardened AWS, Azure, and gRPC adapters.
 
+  Security headers now also cover direct `res.json()`/`res.send()`/`res.stream()` writes, static files, SSE streams, and early request-parsing errors. WebSocket handshakes inherit the global CORS policy (falling back to same-origin), and SSE `authenticate` applies to controller-created connections. `sse.createConnection()` is async and must be awaited.
+
 ### Patch Changes
 
 - Updated dependencies

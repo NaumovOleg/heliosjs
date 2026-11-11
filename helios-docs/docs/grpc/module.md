@@ -45,7 +45,7 @@ class HeroService {
 
 const grpc = GrpcModule.forRoot({
   server: {
-    url: "0.0.0.0:50051",
+    url: "127.0.0.1:50051",
     package: "hero",
     protoPath: join(__dirname, "./hero.proto"),
   },
@@ -88,7 +88,7 @@ console.log(result); // { id: 1, name: "Hero 1" }
 ```typescript
 const grpc = GrpcModule.forRoot({
   server: {
-    url: "0.0.0.0:50051",
+    url: "127.0.0.1:50051",
     package: "hero",
     protoPath: join(__dirname, "./hero.proto"),
   },
